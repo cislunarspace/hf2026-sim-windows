@@ -1,0 +1,28 @@
+[run] algorithm config: C:\Coding\projects\openSim\examples\multi_uav_coop_decoy\config\algorithm.yaml
+[run] starting opensim-sim: C:\Coding\projects\openSim\build\opensim-sim.exe --config examples/multi_uav_coop_decoy/config/scenario_task1.json
+[run] opensim-sim ready (subscribed to sim:commands)
+[run] first state @ sim_time=-28799.400, entities=6
+[run] UAVs discovered: ['20001', '20002', '20003']
+[run] sector center auto-filled from UAV centroid: (26.999000, 124.999999)
+[run] evaluation: K=1, targets=3, dwell=20s, grace=2s
+[run] activated trajectories for 3/3 declared targets
+[run] control loop @ 10.0 Hz for 90.0 sim-seconds
+
+============================================================
+COOP SCENARIO COMPLETE
+  sim duration       : 90.0 s
+  wall duration      : 165.7 s
+  UAVs               : 3
+  true targets found : 3/3
+  tracking ticks     : 11498
+  misid track ticks  : 0
+  comm sent/delivered: 193/329
+  --- EVALUATION (Spec 025) ---
+  total score        : 84.0 / 100  (passed=True)
+  K/dwell/grace      : 1 / 20.0s / 2.0s
+  completed          : 3/3  (rate=1.00)
+  misid rate         : 0.00
+  evaluation json    : examples\multi_uav_coop_decoy\output_task1\run_1781926221.evaluation.json
+  metrics json       : examples\multi_uav_coop_decoy\output_task1\run_1781926221.json
+============================================================
+[run_task] launch: C:\Python314\python.exe -m examples.multi_uav_coop_decoy.run --scenario examples/multi_uav_coop_decoy/config/scenario_task1.json --duration 90.0 --coop-k 1 --output examples/multi_uav_coop_decoy/output_task1 --start-sim

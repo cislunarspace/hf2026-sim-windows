@@ -1,0 +1,27 @@
+[run] starting opensim-sim: C:\Coding\projects\openSim\build\opensim-sim.exe --config examples/multi_uav_coop_decoy/config/scenario_task2_real.json
+[run] opensim-sim ready (subscribed to sim:commands)
+[diag] UAVs=['20001'] true_targets=['10001']
+
+--- t=   0.0s ---
+  20001 mode=SEARCH pos=(27.00081,125.00100) det=False wp=(27.00082,125.00100) d_wp=1m
+  target positions: {'10001': '(27.00300,125.00300)'}
+
+--- t=   5.0s ---
+  20001 mode=TRACK  pos=(27.00143,125.00122) det¡útgt 10001 (40m) conf=0.99
+  target positions: {'10001': '(27.00336,125.00300)'}
+
+--- t=  10.0s ---
+  20001 mode=TRACK  pos=(27.00197,125.00169) det¡útgt 10001 (80m) conf=0.99
+  target positions: {'10001': '(27.00372,125.00300)'}
+
+--- t=  15.0s ---
+  20001 mode=TRACK  pos=(27.00242,125.00220) det¡útgt 10001 (120m) conf=0.99
+  target positions: {'10001': '(27.00408,125.00300)'}
+
+--- t=  20.0s ---
+  20001 mode=TRACK  pos=(27.00247,125.00289) det¡útgt 10001 (160m) conf=0.99
+  target positions: {'10001': '(27.00444,125.00300)'}
+
+--- t=  25.0s ---
+  20001 mode=TRACK  pos=(27.00297,125.00336) det¡útgt 10001 (200m) conf=0.99
+  target positions: {'10001': '(27.00480,125.00300)'}

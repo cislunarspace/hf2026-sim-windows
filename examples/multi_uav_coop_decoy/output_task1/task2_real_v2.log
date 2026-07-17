@@ -1,0 +1,5 @@
+[task2] scenario=scenario_task2_real.json  ground_truth=real
+[run] starting opensim-sim: C:\Coding\projects\openSim\build\opensim-sim.exe --config examples/multi_uav_coop_decoy/config/scenario_task2_real.json
+[run] opensim-sim ready (subscribed to sim:commands)
+[task2] first detection @ sim_t=2.4s
+[task2] DECIDED: REAL  (ground_truth=real, correct=True)  time_to_decide=0.63s  samples=75  span=5.1m

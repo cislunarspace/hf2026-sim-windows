@@ -1,0 +1,62 @@
+[search_track] 实体 10001 起点设为路线 'road3' 的 Start (26.996979, 124.986701)
+[search_track] prepared scenario → C:\Coding\projects\openSim\dist\opensim-2.0.0-win-x64\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] starting opensim-sim: C:\Coding\projects\openSim\dist\opensim-2.0.0-win-x64\opensim-sim.exe --config C:\Coding\projects\openSim\dist\opensim-2.0.0-win-x64\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] opensim-sim ready (subscribed to sim:commands)
+[search_track] first frame @ sim_time=1782432000.583
+[INJECT] 并发注入 1 辆车 (workers=1)
+[NAV] 实体 10001 使用路线 'road3'
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=5
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=9
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=9
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=5
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=8
+[NAV] 10001 A* 规划出 37 个路径点 (全程沿路网)
+[NAV] 10001 set_trajectory 已发送 (37 pts)
+[INJECT] 完成: ok=1 fail=0 耗时=0.24s
+[search_track] 1 agent(s) instantiated
+[search_track] status=ended; exiting
+
+============================================================
+SEARCH_TRACK COMPLETE
+  total score : 0.0 / 100  (passed=False)
+  completion  : 0/1  (rate=N/A)
+  eval json   : C:\Coding\projects\openSim\dist\opensim-2.0.0-win-x64\competition\scenarios\search_track\output\search_track_1784268567.evaluation.json
+============================================================
+[search_track] 实体 10001 起点设为路线 'road5' 的 Start (27.012465, 124.991424)
+[search_track] prepared scenario → C:\Coding\projects\openSim\dist\opensim-2.0.0-UE-win-x64\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] starting opensim-sim: C:\Coding\projects\openSim\dist\opensim-2.0.0-UE-win-x64\opensim-sim.exe --config C:\Coding\projects\openSim\dist\opensim-2.0.0-UE-win-x64\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] opensim-sim ready (subscribed to sim:commands)
+[search_track] first frame @ sim_time=1782432000.267
+[INJECT] 并发注入 1 辆车 (workers=1)
+[NAV] 实体 10001 使用路线 'road5'
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=7
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=5
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=5
+[NAV] 10001 A* 规划出 26 个路径点 (全程沿路网)
+[NAV] 10001 set_trajectory 已发送 (26 pts)
+[INJECT] 完成: ok=1 fail=0 耗时=0.68s
+[search_track] 1 agent(s) instantiated
+[search_track] status=ended; exiting
+
+============================================================
+SEARCH_TRACK COMPLETE
+  total score : 1.5 / 100  (passed=False)
+  completion  : 0/1  (rate=N/A)
+  eval json   : C:\Coding\projects\openSim\dist\opensim-2.0.0-UE-win-x64\competition\scenarios\search_track\output\search_track_1784269587.evaluation.json
+============================================================

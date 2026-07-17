@@ -1,0 +1,93 @@
+[run] starting opensim-sim: C:\Coding\projects\openSim\build\opensim-sim.exe --config examples/multi_uav_coop_decoy/config/scenario_task1.json
+[run] opensim-sim ready (subscribed to sim:commands)
+[diag] UAVs=['20001', '20002', '20003'] true_targets=['10001', '10002', '10003']
+
+--- t=   0.0s ---
+  20001 mode=SEARCH pos=(27.00055,124.99700) det=False
+  20002 mode=SEARCH pos=(27.00047,125.00304) det=False
+  20003 mode=SEARCH pos=(26.99598,124.99995) det=False
+  target positions: {'10001': '(27.00540,125.01050)', '10002': '(26.98830,125.00000)', '10003': '(27.00490,124.99040)'}
+
+--- t=   5.0s ---
+  20001 mode=SEARCH pos=(27.00062,124.99760) det=False
+  20002 mode=SEARCH pos=(26.99998,125.00281) det=False
+  20003 mode=SEARCH pos=(26.99641,124.99959) det=False
+  target positions: {'10001': '(27.00558,125.01073)', '10002': '(26.98806,125.00037)', '10003': '(27.00524,124.99054)'}
+
+--- t=  10.0s ---
+  20001 mode=SEARCH pos=(27.00021,124.99821) det=False
+  20002 mode=SEARCH pos=(26.99973,125.00210) det=False
+  20003 mode=SEARCH pos=(26.99708,124.99970) det=False
+  target positions: {'10001': '(27.00576,125.01095)', '10002': '(26.98782,125.00073)', '10003': '(27.00558,124.99069)'}
+
+--- t=  15.0s ---
+  20001 mode=SEARCH pos=(26.99981,124.99881) det=False
+  20002 mode=SEARCH pos=(26.99948,125.00139) det=False
+  20003 mode=SEARCH pos=(26.99776,124.99980) det=False
+  target positions: {'10001': '(27.00594,125.01118)', '10002': '(26.98758,125.00110)', '10003': '(27.00591,124.99083)'}
+
+--- t=  20.0s ---
+  20001 mode=SEARCH pos=(26.99940,124.99942) det=False
+  20002 mode=SEARCH pos=(26.99923,125.00069) det=False
+  20003 mode=SEARCH pos=(26.99843,124.99990) det=False
+  target positions: {'10001': '(27.00612,125.01140)', '10002': '(26.98734,125.00146)', '10003': '(27.00625,124.99097)'}
+
+--- t=  25.0s ---
+  20001 mode=SEARCH pos=(26.99899,125.00003) det=False
+  20002 mode=SEARCH pos=(26.99898,124.99998) det=False
+  20003 mode=SEARCH pos=(26.99911,124.99998) det=False
+  target positions: {'10001': '(27.00630,125.01163)', '10002': '(26.98710,125.00183)', '10003': '(27.00659,124.99111)'}
+
+--- t=  30.0s ---
+  20001 mode=SEARCH pos=(26.99855,124.99977) det=False
+  20002 mode=SEARCH pos=(26.99849,125.00009) det=False
+  20003 mode=TRACK  pos=(26.99960,124.99947) det¡útgt 10003 (241m) conf=0.99
+  target positions: {'10001': '(27.00648,125.01185)', '10002': '(26.98686,125.00219)', '10003': '(27.00693,124.99126)'}
+
+--- t=  35.0s ---
+  20001 mode=SEARCH pos=(26.99905,124.99975) det=False
+  20002 mode=SEARCH pos=(26.99897,125.00027) det=False
+  20003 mode=TRACK  pos=(27.00008,124.99893) det¡útgt 10003 (281m) conf=0.99
+  target positions: {'10001': '(27.00666,125.01208)', '10002': '(26.98662,125.00256)', '10003': '(27.00726,124.99140)'}
+
+--- t=  40.0s ---
+  20001 mode=SEARCH pos=(26.99862,125.00004) det=False
+  20002 mode=SEARCH pos=(26.99917,124.99962) det=False
+  20003 mode=TRACK  pos=(27.00058,124.99841) det¡útgt 10003 (301m) conf=0.99
+  target positions: {'10001': '(27.00684,125.01230)', '10002': '(26.98638,125.00292)', '10003': '(27.00746,124.99139)'}
+
+--- t=  45.0s ---
+  20001 mode=SEARCH pos=(26.99886,124.99955) det=False
+  20002 mode=SEARCH pos=(26.99942,125.00011) det=False
+  20003 mode=TRACK  pos=(27.00108,124.99790) det¡útgt 10003 (276m) conf=0.99
+  target positions: {'10001': '(27.00697,125.01252)', '10002': '(26.98614,125.00329)', '10003': '(27.00732,124.99102)'}
+
+--- t=  50.0s ---
+  20001 mode=SEARCH pos=(26.99887,125.00011) det=False
+  20002 mode=SEARCH pos=(26.99899,124.99983) det¡útgt 10003 (255m) conf=0.34
+  20003 mode=TRACK  pos=(27.00156,124.99736) det¡útgt 10003 (255m) conf=0.99
+  target positions: {'10001': '(27.00672,125.01264)', '10002': '(26.98617,125.00352)', '10003': '(27.00718,124.99064)'}
+
+--- t=  55.0s ---
+  20001 mode=SEARCH pos=(26.99861,124.99963) det=False
+  20002 mode=SEARCH pos=(26.99949,124.99983) det=False
+  20003 mode=TRACK  pos=(27.00202,124.99680) det¡útgt 10003 (238m) conf=0.99
+  target positions: {'10001': '(27.00647,125.01276)', '10002': '(26.98658,125.00356)', '10003': '(27.00704,124.99027)'}
+
+--- t=  60.0s ---
+  20001 mode=SEARCH pos=(26.99905,124.99990) det=False
+  20002 mode=SEARCH pos=(26.99905,125.00011) det=False
+  20003 mode=TRACK  pos=(27.00246,124.99622) det¡útgt 10003 (228m) conf=0.99
+  target positions: {'10001': '(27.00623,125.01289)', '10002': '(26.98698,125.00361)', '10003': '(27.00690,124.98990)'}
+
+--- t=  65.0s ---
+  20001 mode=SEARCH pos=(26.99855,124.99991) det=False
+  20002 mode=SEARCH pos=(26.99931,124.99963) det=False
+  20003 mode=TRACK  pos=(27.00288,124.99562) det¡útgt 10003 (224m) conf=0.99
+  target positions: {'10001': '(27.00598,125.01301)', '10002': '(26.98738,125.00365)', '10003': '(27.00676,124.98953)'}
+
+--- t=  70.0s ---
+  20001 mode=SEARCH pos=(26.99898,124.99962) det=False
+  20002 mode=TRACK  pos=(26.99930,125.00019) det¡útgt 10002 (371m) conf=0.98
+  20003 mode=TRACK  pos=(27.00327,124.99499) det¡útgt 10003 (228m) conf=0.99
+  target positions: {'10001': '(27.00573,125.01313)', '10002': '(26.98779,125.00370)', '10003': '(27.00662,124.98916)'}

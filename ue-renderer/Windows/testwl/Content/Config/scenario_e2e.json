@@ -1,0 +1,47 @@
+{
+  "_comment": "e2e 验证最小场景 — 1 FixedWingUAV（挂相机）+ 1 TargetVehicle（被标注目标）。Target 位于 UAV 正下方，确保进入相机视场。用于验证 PNG 渲染 + bbox 检测输出端到端链路。",
+  "config_version": "1.0",
+  "simulation": {
+    "tick_rate_hz": 60.0,
+    "time_scale": 1.0,
+    "redis_host": "127.0.0.1",
+    "redis_port": 6379,
+    "redis_command_channel": "sim:commands",
+    "redis_state_channel": "sim:state"
+  },
+  "entities": [
+    {
+      "id": "20001",
+      "name": "uav_alpha",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.0,
+        "initial_longitude": 125.0,
+        "initial_altitude": 300.0,
+        "initial_heading": 0.0
+      },
+      "components": {
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "auto_track": false,
+            "fov": 40.0
+          }
+        }
+      }
+    },
+    {
+      "id": "10001",
+      "name": "target_1",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.0,
+        "initial_longitude": 125.0,
+        "initial_altitude": 0.0
+      }
+    }
+  ]
+}
