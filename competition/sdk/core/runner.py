@@ -13,8 +13,10 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import importlib
+import json
 import os
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -310,17 +312,56 @@ class RunnerBase:
                     viz_dir=cfg.viz_dir, redis_host=cfg.redis_host,
                     redis_port=cfg.redis_port, open_browser=cfg.open_browser,
                     log=self.log)
+            # spec 036: 在 spawn 子进程之前建立 Redis 连接并立即 publish 一帧
+            # '准备启动' 进度 —— 防止前端 stall timer（5s）误报「卡死」。
+            # 同时启动心跳线程,在后续所有等待期间（C++ 引擎读 786MB
+            # terrain CSV → 订阅 sim:commands → 第一帧 sim:state）持续发心跳。
+            client: Optional[SimClient] = None
+            heartbeat_stop = threading.Event()
+            heartbeat_thread: Optional[threading.Thread] = None
+            if cfg.start_sim_flag and not cfg.dry_run:
+                client = SimClient(host=cfg.redis_host, port=cfg.redis_port)
+                client.connect()
+                self._publish_progress(
+                    client, phase="准备启动 C++ 引擎", pct=0.0,
+                    detail="spawning opensim-sim"
+                )
+                heartbeat_thread = self._start_heartbeat(client, heartbeat_stop)
+
             if cfg.start_sim_flag:
                 sim_proc = self._start_engine()
+                # 036: _start_engine 在 sim 已订阅 sim:commands 时返回 —— 此时引擎
+                # 已经能接收命令,即使第一帧 sim:state 还没来。把心跳停下来交给
+                # wait_first_state 处理(它本身极短)。如果 start 失败,清心跳再返回。
+                if heartbeat_thread is not None:
+                    heartbeat_stop.set()
+                    heartbeat_thread.join(timeout=2)
+                    heartbeat_thread = None
                 if sim_proc is None:
                     return {"error": "engine start failed"}
 
-            client = SimClient(host=cfg.redis_host, port=cfg.redis_port)
-            if not cfg.dry_run:
+            if client is None and not cfg.dry_run:
+                client = SimClient(host=cfg.redis_host, port=cfg.redis_port)
                 client.connect()
+            if client is not None and heartbeat_thread is None and not cfg.dry_run:
+                # 等待第一帧期间重新启用心跳；必须 clear 之前 set 的 stop_event,
+                # 否则新线程会立刻退出。
+                heartbeat_stop.clear()
+                heartbeat_thread = self._start_heartbeat(client, heartbeat_stop)
+
+            if not cfg.dry_run:
                 first = client.wait_first_state(timeout=120.0)
             else:
                 first = self._synthetic_first_state()
+            # 收到 sim:state 后停止心跳（下一步是 _build_perception → ready 帧 → inject_startup）
+            heartbeat_stop.set()
+            if heartbeat_thread is not None:
+                heartbeat_thread.join(timeout=2)
+                heartbeat_thread = None
+            # 给一个 phase 提示,告诉前端正在做什么
+            self._publish_progress(
+                client, phase="初始化仿真", pct=0.0, detail="感知层构建中"
+            )
             self.log(f"[{self.scenario_name}] first frame @ sim_time={first.sim_time:.3f}")
 
             # startup injection (target trajectories, etc.)
@@ -348,6 +389,23 @@ class RunnerBase:
 
             # spec 029: 构建感知层（PhotoCache + DetectionResolver）
             photo_cache, resolver = self._build_perception(list(agents.keys()))
+
+            # 036: 向 bridge/前端发送最终就绪帧，进度条到达 100% 后进入主循环。
+            if not cfg.dry_run and client._redis is not None:
+                try:
+                    import json as _json_progress
+                    client._redis.publish(
+                        'sim:progress',
+                        _json_progress.dumps({
+                            'type': 'load_progress',
+                            'phase': '就绪',
+                            'pct': 1.0,
+                            'detail': '主循环开始',
+                        })
+                    )
+                    self.log(f'[{self.scenario_name}] ready frame published')
+                except Exception as e:
+                    self.log(f'[{self.scenario_name}] ready frame publish failed: {e}')
 
             period = 1.0 / cfg.control_rate_hz
             sim_t0 = first.sim_time
@@ -566,6 +624,59 @@ class RunnerBase:
                 c.params.get("target_id"),
                 true_targets, destroyed_true, ws.sim_time)
 
+    # ── spec 036: progress heartbeat during engine boot ────────────────
+    # C++ 引擎启动 ~20s 全用于加载 786MB terrain CSV,期间不会 publish
+    # 任何 sim:progress 帧。前端 stall timer 在 5s 无消息时会显示
+    # "加载可能卡住"——为消除这一误报,controller 在建立 Redis 连接后即
+    # publish 一帧「准备启动」,并起后台心跳线程每 1.5s 推送「等待引擎
+    # 就绪」直到收到第一帧 sim:state 后停掉。心跳 pct 从 0.02 缓慢递增到
+    # 0.04 —— 总在 [0, 0.85×0.6=0.51] 范围内,不会冲掉真实进度(后到的
+    # 真实百分比由高水位 Math.max 自动覆盖)。
+    _PROGRESS_PHASE_BOOT = "等待引擎就绪"  # class-level 常量便于可能的测试引用
+
+    def _publish_progress(self, client: "SimClient", phase: str,
+                          pct: float, detail: str = "") -> None:
+        """向 sim:progress 频道 publish 一帧。client 必须已 connect。"""
+        if client is None or client._redis is None:
+            return
+        try:
+            payload = {"type": "load_progress", "phase": phase,
+                       "pct": round(float(pct), 4), "detail": detail}
+            client._redis.publish("sim:progress", json.dumps(payload))
+            self.log(f"[{self.scenario_name}] progress {phase}: {pct*100:.1f}%  ({detail})")
+        except Exception as e:
+            self.log(f"[{self.scenario_name}] progress publish failed: {e}")
+
+    def _start_heartbeat(self, client: "SimClient",
+                         stop_event: threading.Event) -> threading.Thread:
+        """启动后台心跳线程,直到 stop_event 触发或发送 30 帧后停止。
+
+        关键设计: 心跳 **pct=0**(不前进) 持续告诉前端"我还活着",
+        因为前端用的是 Math.max 高水位。任何 pct>0 的心跳都会把进度条
+        卡在心跳值,直到真实进度越过它 —— 这会让用户在 boot 阶段看到
+        个假的 2.x% 然后从 0.1% 重新开始(或被高水位卡住)。
+        所以 heartbeat 只发 phase + detail,pct=0。
+        """
+        def _run() -> None:
+            t0 = time.time()
+            i = 0
+            while not stop_event.is_set() and i < 30:
+                # phase 文案含秒数,让用户能确定性看到进展
+                elapsed = int(time.time() - t0)
+                self._publish_progress(
+                    client,
+                    phase=self._PROGRESS_PHASE_BOOT,
+                    pct=0.0,
+                    detail=f"已等 {elapsed}s，引擎正在加载 terrain CSV (786MB)",
+                )
+                if stop_event.wait(1.5):
+                    return
+                i += 1
+        t = threading.Thread(target=_run, name=f"heartbeat-{self.scenario_name}",
+                             daemon=True)
+        t.start()
+        return t
+
     # ── spec 030: halt destroyed targets at predicted position ────────
     def _halt_destroyed_targets(self, client, ws, evaluator, halted: set,
                                 period: float) -> None:
@@ -630,8 +741,12 @@ class RunnerBase:
                     Path(scenario_path).read_text(encoding="utf-8-sig"))
                 sim = self._scenario_cfg.setdefault("simulation", {})
                 sim["seed"] = int(self.cfg.seed)
-            except Exception:
-                pass
+            except Exception as e:
+                # 不静默: scenario 读错会让 briefing/trajectory 注入用错配置,
+                # 且 seed 没设会导致随机性失控。打印警告便于排障。
+                import sys as _sys
+                print(f"[runner] WARNING: 重载 {scenario_path} 失败: {e!r}",
+                      file=_sys.stderr, flush=True)
 
         # Let the scenario subclass mutate self._scenario_cfg before the
         # engine reads it (e.g. pick random routes for targets and overwrite

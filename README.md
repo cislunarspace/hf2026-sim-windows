@@ -27,16 +27,19 @@ Windows 版内置 `bin\redis-server.exe`（redis-windows-fork）+ 依赖 DLL，
 
 ### Windows (PowerShell)
 ```powershell
-.\setup.ps1   # 检测并安装依赖（python/pip/redis/pyyaml，无需管理员）
+.\setup.ps1   # 检测并安装依赖（python/pip/redis/pyyaml/vcredist；vcredist 安装可能需要管理员）
 .\start.ps1   # 启动 Redis + bridge + 前端
 # 浏览器自动打开 http://localhost:3000
 #   → 选赛题 → (可选)「算法」框填 module:Class → 点「开始仿真」
 ```
 
+> 注：`setup.ps1` 会自动检测 Microsoft Visual C++ 2015-2022 Redistributable (x64)，若未安装，会静默运行包内附带的 `vc_redist.x64.exe`。该步骤可能需要管理员权限；安装成功后建议重启系统以确保 SxS 运行时装载生效。
+
 ## 系统要求
 
 - **Linux**: x86-64，glibc ≥ 2.39（Ubuntu 24.04+），apt 包管理器
-- **Windows**: Windows 10 1809+（内置 tar/curl/PowerShell 5.1+），Python 3.10+
+- **Windows**: Windows 10 1809+（内置 tar/curl/PowerShell 5.1+），推荐管理员权限运行 `setup.ps1` 以便自动安装 VC++ Redistributable
+- 捆绑 Python 3.12 standalone，不强制要求系统 Python
 - GPU（可选，仅 UE 渲染用；无 GPU 自动降级 Three.js 自渲染）
 
 ## 选手算法接入

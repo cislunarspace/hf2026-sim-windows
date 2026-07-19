@@ -24,7 +24,8 @@ STATE_CHANNEL = "sim:state"
 
 def _load_routes(path: Path) -> List[dict]:
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        # utf-8-sig 容忍 BOM: routes json 可能被 PS/编辑器写入 BOM(见 CLAUDE.md 跨平台坑清单#1)
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
         return data.get("Paths", [])
     except Exception:
         return []
@@ -94,9 +95,10 @@ def publish_regenerate_zones(client) -> int:
 # 用于把 inject_startup 串行规划路线的进度上报到前端进度条。
 ProgressCb = Optional[Callable[[int, int, str], None]]
 
-# 路线规划进度映射到进度条 51%-100% (引擎加载占 0%-50%, 前端缩放)。
-PROGRESS_ROUTE_START = 0.51
-PROGRESS_ROUTE_END = 1.0
+# 路线规划进度映射到进度条 85%-98% (引擎加载占 0%-85%, 前端缩放; 98%-100%
+# 由 RunnerBase 主循环就绪帧占用)。
+PROGRESS_ROUTE_START = 0.85
+PROGRESS_ROUTE_END = 0.98
 PROGRESS_CHANNEL = "sim:progress"
 
 

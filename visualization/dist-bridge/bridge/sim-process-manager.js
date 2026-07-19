@@ -76,6 +76,12 @@ class SimProcessManager {
         this.unsubscribeStateChannel = null;
         /** 是否已通过 bridge 启动仿真(区别于外部命令行启动)。 */
         this.startedByBridge = false;
+        /** 036: 正在等待仿真 ready 帧 / 首个 sim:state，期间保持 loading。 */
+        this.waitingForReady = false;
+        /** 036: sim:progress ready 帧订阅的取消函数。 */
+        this.readyCleanup = null;
+        /** 036: ready 帧超时定时器。 */
+        this.readyTimeout = null;
         this.deps = deps;
         this.subscribeToStateChannel();
     }
@@ -101,6 +107,9 @@ class SimProcessManager {
             if (!simStatus)
                 return;
             if (this.startedByBridge) {
+                // 036: bridge 启动的会话不依赖首个 sim:state 切 running——那发生在
+                // controller 做路径规划之前,会过早收起进度条。真实就绪以 controller 的
+                // '就绪' 进度帧为准(见 subscribeToReadyProgress); 进程崩溃/超时兜底。
                 return;
             }
             if (this.state.status === 'idle') {
@@ -151,6 +160,64 @@ class SimProcessManager {
             return;
         this.state = { ...this.state, status: next, error };
         this.deps.onStateChange(this.getState());
+    }
+    /** 036: 订阅 sim:progress 的 ready/就绪 帧;收到即切 running。 */
+    async subscribeToReadyProgress() {
+        if (!this.deps.redis.subscribe)
+            return;
+        try {
+            const unsub = await this.deps.redis.subscribe('sim:progress', (msg) => {
+                try {
+                    const parsed = JSON.parse(msg);
+                    // 036: 只有 Python controller 的最终就绪帧(phase='就绪')才切 running。
+                    // 引擎自身的 'ready' 只是进度节点,此时 controller 还在做路径规划,
+                    // 不应过早把 session 置为 running(否则前端会提前收起进度条)。
+                    if (parsed.type === 'load_progress' && parsed.phase === '就绪') {
+                        this.warn('[SimProcessManager] controller ready frame received; transitioning to running');
+                        this.markReady();
+                    }
+                }
+                catch { /* ignore parse errors */ }
+            });
+            this.readyCleanup = () => {
+                try {
+                    unsub();
+                }
+                catch { /* ignore */ }
+            };
+        }
+        catch (e) {
+            this.warn(`failed to subscribe to sim:progress: ${e.message}`);
+        }
+    }
+    /** 036: 取消 ready 订阅与超时,切到 running(幂等)。 */
+    markReady() {
+        if (!this.waitingForReady)
+            return;
+        this.waitingForReady = false;
+        if (this.readyTimeout) {
+            clearTimeout(this.readyTimeout);
+            this.readyTimeout = null;
+        }
+        if (this.readyCleanup) {
+            this.readyCleanup();
+            this.readyCleanup = null;
+        }
+        if (this.state.status === 'loading' || this.state.status === 'starting') {
+            this.setState('running');
+        }
+    }
+    /** 036: 清理 ready 相关订阅与超时(进程退出 / stop 时调用)。 */
+    cleanupReady() {
+        this.waitingForReady = false;
+        if (this.readyTimeout) {
+            clearTimeout(this.readyTimeout);
+            this.readyTimeout = null;
+        }
+        if (this.readyCleanup) {
+            this.readyCleanup();
+            this.readyCleanup = null;
+        }
     }
     /**
      * 启动 competition 进程(单一子进程)。
@@ -226,6 +293,19 @@ class SimProcessManager {
         }
         this.setState('loading');
         this.watchExit(this.competitionProc, 'competition_crashed');
+        // 036: 在 spawn 后保持 loading;监听 sim:progress ready 帧或首个 sim:state
+        // 才认为仿真真正运行。进程崩溃由 watchExit 兜底。
+        this.waitingForReady = true;
+        await this.subscribeToReadyProgress();
+        this.readyTimeout = setTimeout(() => {
+            if (this.waitingForReady) {
+                this.warn('[SimProcessManager] ready timeout after 5 minutes; marking error');
+                this.waitingForReady = false;
+                this.readyCleanup?.();
+                this.readyCleanup = null;
+                this.setState('error', 'ready_timeout');
+            }
+        }, 5 * 60 * 1000);
         // 启动后短暂等待;进程立即退出 → crashed。
         await this.deps.sleep(50);
         if (this.competitionProc.exited) {
@@ -234,10 +314,10 @@ class SimProcessManager {
         }
         // Spec 028: UE 渲染旁路。renderCtlBinary 缺省 → 跳过(仿真照跑)。
         // 任一步失败 → WARN 降级,不影响 competition 已起来的会话。
+        // 036: 渲染启动完成后仍保持 loading,由 sim:progress ready / sim:state 触发 running。
         await this.startRenderers(opts).catch((e) => {
             this.warn(`renderer orchestration degraded: ${e.message}`);
         });
-        this.setState('running');
         return this.getState();
     }
     /**
@@ -383,11 +463,13 @@ class SimProcessManager {
                 }
                 this.killUeProcs().catch(() => { });
                 this.competitionProc = null;
+                this.cleanupReady(); // 036: 清理 ready 订阅
                 this.state = { status: 'idle', scenario: null, sessionId: null, error: null };
                 this.deps.onStateChange(this.getState());
                 return;
             }
             this.setState('error', errorCode);
+            this.cleanupReady(); // 036: 清理 ready 订阅
             // Spec 028: competition 崩溃时连带停 scheduler + kill UE(避免孤儿)。
             if (this.renderScheduler) {
                 this.renderScheduler.stop().catch(() => { });
@@ -418,6 +500,7 @@ class SimProcessManager {
             return this.getState();
         this.stopRequested = true;
         this.setState('stopping');
+        this.cleanupReady(); // 036: 停止后不再等待 ready
         try {
             await this.deps.redis.publish(this.deps.commandChannel, JSON.stringify({ cmd: 'end' }));
         }

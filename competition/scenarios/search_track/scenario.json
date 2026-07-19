@@ -1,14 +1,14 @@
 {
-  "_comment": "uav_search_track_car example scenario 鈥?1 FixedWingUAV + 1 TargetVehicle. Mirrors root config.json style.",
+  "_comment": "uav_search_track_car example scenario — 1 FixedWingUAV + 1 TargetVehicle. Mirrors root config.json style.",
   "config_version": "1.0",
   "simulation": {
     "tick_rate_hz": 60,
     "time_scale": 1,
     "redis_host": "127.0.0.1",
+    "redis_port": 6379,
     "start_time_str": "2026-06-26 08:00:00",
     "redis_command_channel": "sim:commands",
-    "redis_state_channel": "sim:state",
-    "redis_port": 6380
+    "redis_state_channel": "sim:state"
   },
   "weather": {
     "type": "Rain"

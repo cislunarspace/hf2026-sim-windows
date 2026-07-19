@@ -9,6 +9,17 @@ set -eu
 PACK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PACK_ROOT"
 
+# Python 解释器：V2.1.0 起用包内捆绑的 python-build-standalone 3.12（与打包时编译 .pyc
+# 的版本一致，根治 magic number 跨版本不兼容）。优先用包内，env 覆盖留给调试。
+BUNDLED_PY="$PACK_ROOT/python/bin/python3.12"
+if [ -x "$BUNDLED_PY" ]; then
+    export PYTHON_BIN="${PYTHON_BIN:-$BUNDLED_PY}"
+else
+    # 兜底：发行包损坏缺捆绑 python 时，回退系统 python（可能 magic 不匹配，但至少能启动 start.sh 自身的内联脚本）。
+    export PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || echo python3)}"
+    echo "⚠️  捆绑 python 缺失，回退系统 python（SDK 可能因 magic number 不匹配无法运行）"
+fi
+
 # 端口可配（默认 + env 覆盖）
 OPENSIM_REDIS_PORT="${OPENSIM_REDIS_PORT:-6379}"
 OPENSIM_WS_PORT="${OPENSIM_WS_PORT:-8080}"
@@ -44,7 +55,7 @@ if [ -d "$PACK_ROOT/config/renderers" ]; then
     for cfg in "$PACK_ROOT/config/renderers"/*.json; do
         [ -f "$cfg" ] || continue
         case "$(basename "$cfg")" in *.template.json) continue;; esac
-        workdir=$(python3 -c "import json; d=json.load(open('$cfg')); print(d.get('executable',{}).get('workdir',''))" 2>/dev/null || true)
+        workdir=$("$PYTHON_BIN" -c "import json; d=json.load(open('$cfg')); print(d.get('executable',{}).get('workdir',''))" 2>/dev/null || true)
         [ -z "$workdir" ] && continue
         case "$workdir" in \<*\>) continue;; esac
         for cwd_link in /proc/[0-9]*/cwd; do
@@ -62,9 +73,9 @@ if [ -d "$PACK_ROOT/config/renderers" ]; then
 fi
 sleep 1
 
-# 环境检测：缺 python3/redis/pyyaml 时提示运行 setup.sh
-if ! command -v python3 >/dev/null 2>&1 || ! python3 -c "import redis,yaml" 2>/dev/null; then
-    echo "✗ 缺少 Python 依赖。请先运行: ./setup.sh"
+# 环境检测：捆绑 python 缺失或 redis/pyyaml 不可用时提示运行 setup.sh
+if ! "$PYTHON_BIN" -c "import redis,yaml" 2>/dev/null; then
+    echo "✗ Python 依赖不可用（捆绑 python 缺失或损坏）。请先运行: ./setup.sh"
     exit 1
 fi
 
@@ -108,7 +119,7 @@ OPENSIM_WEB_PORT=$(pick_free_port "$OPENSIM_WEB_PORT" "WEB")
 echo "  同步 redis_port=$OPENSIM_REDIS_PORT 到 scenario.json..."
 for sj in "$PACK_ROOT"/competition/scenarios/*/scenario.json; do
     [ -f "$sj" ] || continue
-    python3 -c "
+    "$PYTHON_BIN" -c "
 import json
 with open('$sj') as f: d = json.load(f)
 d.setdefault('simulation', {})['redis_port'] = $OPENSIM_REDIS_PORT
@@ -155,7 +166,7 @@ if ! alive "$PID_DIR/bridge.pid"; then
     export OPENSIM_RENDERERS_DIR="$PACK_ROOT/config/renderers"
     export OPENSIM_SCENARIOS_DIR="$PACK_ROOT/competition/scenarios"
     export OPENSIM_SIM_BIN="$PACK_ROOT/opensim-sim"
-    export PYTHON_BIN="${PYTHON_BIN:-$(command -v python3)}"
+    # PYTHON_BIN 已在脚本开头定义（指向捆绑 python），此处无需重复 export。
     export WS_PORT="$OPENSIM_WS_PORT" CAM_HTTP_PORT="$OPENSIM_CAM_PORT"
     export REDIS_HOST="127.0.0.1" REDIS_PORT="$OPENSIM_REDIS_PORT"
     nohup "$PACK_ROOT/bin/node" "$PACK_ROOT/visualization/dist-bridge/bridge/index.js" \

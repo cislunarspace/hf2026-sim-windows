@@ -15,8 +15,49 @@ function Test-Command {
     $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Get-VcRedistInstalledVersion {
+    # Checks registry for any MSVC 14.x (2015-2022) redistributable.
+    # Returns the Major.Minor.Build string, or $null if not found.
+    $keys = @(
+        'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\x64',
+        'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.1\VC\Runtimes\x64',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.1\VC\Runtimes\x64',
+        'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.2\VC\Runtimes\x64',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.2\VC\Runtimes\x64',
+        'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.3\VC\Runtimes\x64',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.3\VC\Runtimes\x64',
+        'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.4\VC\Runtimes\x64',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.4\VC\Runtimes\x64'
+    )
+    $latestBld = 0
+    foreach ($k in $keys) {
+        $v = Get-ItemProperty -Path $k -ErrorAction SilentlyContinue
+        if ($v -and $v.Installed -and $v.Bld) {
+            if ($v.Bld -gt $latestBld) { $latestBld = $v.Bld }
+        }
+    }
+    if ($latestBld -gt 0) { return $latestBld }
+    return $null
+}
+
+function Install-VcRedist {
+    param([string]$InstallerPath)
+    # Run Microsoft's installer silently. May require admin rights.
+    # 0   = success
+    # 1638 = already installed / newer version present
+    # 3010 = success, reboot required
+    $proc = Start-Process -FilePath $InstallerPath -ArgumentList '/install', '/passive', '/norestart' -Wait -PassThru
+    return $proc.ExitCode
+}
+
 function Get-PythonExe {
-    # 与 bridge/index.ts 一致的探测顺序，避免命中 MS Store stub
+    # 优先使用发行包内捆绑的 Python,实现不依赖目标机系统 Python。
+    # 捆绑 Python 位于 <包根>\python\python.exe(由 package-release.ps1 准备)。
+    $bundled = Join-Path $PSScriptRoot 'python\python.exe'
+    if (Test-Path $bundled) { return $bundled }
+
+    # 回退:目标机系统 Python(兼容旧包/开发场景)
     $candidates = @(
         'C:\Python314\python.exe',
         'C:\Python313\python.exe',
@@ -40,6 +81,37 @@ function Invoke-Python {
         return $LASTEXITCODE -eq 0
     } catch {
         return $false
+    }
+}
+
+# ── 0. Microsoft Visual C++ 2015-2022 Redistributable (x64) ──
+# The bundled Python 3.12 is built with MSVC and needs VCRUNTIME140 + UCRT.
+# This step detects the redist; if absent, it runs the bundled installer.
+# The installer may require administrator rights on some machines.
+$packRoot = $PSScriptRoot
+$vcInstaller = Join-Path $packRoot 'vc_redist.x64.exe'
+$vcBld = Get-VcRedistInstalledVersion
+if ($vcBld) {
+    Write-Host "✓ VC++ Redistributable detected (build $vcBld)"
+} else {
+    Write-Host '⚠️  VC++ Redistributable not detected. This is required by the bundled Python.' -ForegroundColor Yellow
+    if (Test-Path $vcInstaller) {
+        Write-Host '  Installing bundled vc_redist.x64.exe silently...' -ForegroundColor Yellow
+        $exitCode = Install-VcRedist -InstallerPath $vcInstaller
+        switch ($exitCode) {
+            0       { Write-Host '✓ VC++ Redistributable installed successfully.' Green }
+            1638    { Write-Host '✓ VC++ Redistributable already present (or newer version installed).' Green }
+            3010    { Write-Host '✓ VC++ Redistributable installed. A system reboot may be required.' Yellow }
+            default {
+                Write-Host "✗ VC++ Redistributable installer returned exit code $exitCode" -ForegroundColor Red
+                Write-Host '  Please install it manually: https://aka.ms/vs/17/release/vc_redist.x64.exe' -ForegroundColor Red
+                exit 1
+            }
+        }
+    } else {
+        Write-Host '✗ Bundled vc_redist.x64.exe not found. The bundled Python may fail to start.' -ForegroundColor Red
+        Write-Host '  Please install it manually: https://aka.ms/vs/17/release/vc_redist.x64.exe' -ForegroundColor Red
+        exit 1
     }
 }
 

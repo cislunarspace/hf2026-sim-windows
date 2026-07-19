@@ -72,7 +72,7 @@ class Waypoint:
 
 
 def load_road(points_path: str | Path, road_name: str) -> dict[str, Any]:
-    with open(points_path, encoding="utf-8") as f:
+    with open(points_path, encoding="utf-8-sig") as f:
         data = json.load(f)
     for p in data["Paths"]:
         if p["Name"] == road_name:
@@ -115,7 +115,7 @@ class RoadTrackerConfig:
     @classmethod
     def from_yaml(cls, path: str | Path) -> "RoadTrackerConfig":
         import yaml
-        with open(path, encoding="utf-8") as f:
+        with open(path, encoding="utf-8-sig") as f:
             raw = yaml.safe_load(f) or {}
         known = {field.name for field in cls.__dataclass_fields__.values()}
         filtered = {k: v for k, v in raw.items() if k in known}

@@ -20,8 +20,8 @@
       "type": "TargetVehicle",
       "enabled": true,
       "params": {
-        "initial_latitude": 27.012465,
-        "initial_longitude": 124.991424,
+        "initial_latitude": 26.9959375,
+        "initial_longitude": 125.01052083333336,
         "initial_altitude": 0.0
       },
       "components": {

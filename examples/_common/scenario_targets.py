@@ -33,7 +33,7 @@ def load_target_trajectories(scenario_path: str) -> dict[str, dict]:
     activates them at startup.
     """
     sp = Path(scenario_path)
-    with sp.open("r", encoding="utf-8") as f:
+    with sp.open("r", encoding="utf-8-sig") as f:
         scen = json.load(f)
     out: dict[str, dict] = {}
     for ent in scen.get("entities", []):

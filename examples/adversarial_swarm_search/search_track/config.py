@@ -20,5 +20,5 @@ except Exception:
     # If 017 isn't on the path, fall back to a tiny stub loader.
     def load_algorithm_config(path: str) -> dict[str, Any]:  # type: ignore
         import yaml
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return yaml.safe_load(f) or {}

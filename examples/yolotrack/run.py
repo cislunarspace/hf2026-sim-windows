@@ -110,7 +110,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     # 注意：使用 yaml.safe_load 直接读为 dict，因为 AlgorithmConfig 是
     # dataclass（无 yolo 字段）；dict 才能完整携带 yolo 块给 controller。
     import yaml
-    with open(args.config, "r", encoding="utf-8") as f:
+    with open(args.config, "r", encoding="utf-8-sig") as f:
         cfg = yaml.safe_load(f)
     if args.controller:
         cfg["controller"] = args.controller
@@ -342,7 +342,7 @@ def _load_road_waypoints(road_name: str, repo_root: Path, log) -> list:
         log(f"[run] WARN: points.json 不存在: {points_path}")
         return []
     try:
-        data = json.loads(points_path.read_text(encoding="utf-8"))
+        data = json.loads(points_path.read_text(encoding="utf-8-sig"))
     except Exception as e:
         log(f"[run] WARN: 解析 points.json 失败: {e}")
         return []

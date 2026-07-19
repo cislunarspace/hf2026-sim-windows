@@ -76,6 +76,11 @@ function Stop-Pid {
 }
 
 function Get-PythonExe {
+    # 优先使用发行包内捆绑的 Python,实现不依赖目标机系统 Python。
+    $bundled = Join-Path $PSScriptRoot 'python\python.exe'
+    if (Test-Path $bundled) { return $bundled }
+
+    # 回退:目标机系统 Python(兼容旧包/开发场景)
     $candidates = @(
         'C:\Python314\python.exe',
         'C:\Python313\python.exe',
@@ -223,7 +228,9 @@ $envContent = @"
 `$env:OPENSIM_CAM_PORT = '$OPENSIM_CAM_PORT'
 `$env:OPENSIM_WEB_PORT = '$OPENSIM_WEB_PORT'
 "@
-$envContent | Set-Content -Path (Join-Path $RUN_DIR 'env.ps1') -Encoding UTF8
+# 用 .NET WriteAllText + UTF8Encoding($false) 写无 BOM,保持仓库约定(见 CLAUDE.md 坑清单#2)
+$envPath = Join-Path $RUN_DIR 'env.ps1'
+[System.IO.File]::WriteAllText($envPath, $envContent, (New-Object System.Text.UTF8Encoding($false)))
 
 # 进程存活检测（幂等：已起则跳过）
 function Test-Alive {

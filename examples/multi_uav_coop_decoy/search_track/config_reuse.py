@@ -28,7 +28,7 @@ def load_algorithm_config(path: str | Path) -> AlgorithmConfig:
     # Re-read the raw yaml to pick up 017-only top-level keys and merge
     # them into advanced (where CoopController.configure looks).
     p = Path(path)
-    with p.open("r", encoding="utf-8") as f:
+    with p.open("r", encoding="utf-8-sig") as f:
         raw = yaml.safe_load(f) or {}
     _017_TOP_KEYS = (
         "coop_broadcast_period",

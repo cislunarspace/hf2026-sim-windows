@@ -150,13 +150,68 @@ def _terrain_bbox_from_csv(csv_path: "Path | None" = None
         return _TERRAIN_BBOX_FALLBACK
 
 
-# Single source of truth for the map extent. Derived once at import from the
-# terrain CSV (same file the C++ engine loads), then cached. Format:
+def _terrain_bbox_cache_path() -> "Path":
+    """Resolve the JSON cache path for the terrain bbox."""
+    from pathlib import Path
+    return Path(__file__).resolve().parents[3] / "config" / "terrain_bbox.json"
+
+
+def _load_terrain_bbox_cache() -> "tuple[tuple[float, float], tuple[float, float]] | None":
+    """Return cached bbox if the JSON cache is valid, else None."""
+    import json
+    path = _terrain_bbox_cache_path()
+    try:
+        with open(path, encoding="utf-8-sig") as f:
+            data = json.load(f)
+        return (
+            (float(data["lat_min"]), float(data["lon_min"])),
+            (float(data["lat_max"]), float(data["lon_max"])),
+        )
+    except Exception:
+        return None
+
+
+def _save_terrain_bbox_cache(bbox: "tuple[tuple[float, float], tuple[float, float]]") -> None:
+    """Persist the computed bbox to JSON. Best-effort; failures are non-fatal."""
+    import json
+    (lat_min, lon_min), (lat_max, lon_max) = bbox
+    data = {
+        "lat_min": lat_min,
+        "lon_min": lon_min,
+        "lat_max": lat_max,
+        "lon_max": lon_max,
+    }
+    path = _terrain_bbox_cache_path()
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        import sys
+        print(f"[coop_eval] WARNING: failed to write terrain bbox cache: {e!r}",
+              file=sys.stderr)
+
+
+# Single source of truth for the map extent. Derived lazily from the terrain
+# bbox JSON cache (preferred) or the terrain CSV (same file the C++ engine
+# loads) on first use, then cached in memory. Format:
 # ((lat_min, lon_min), (lat_max, lon_max)). Used as the boundary-excursion
-# penalty's mission bbox; UAVs may fly up to ``penalty_boundary_margin_m``
+# penalty's mission_bbox; UAVs may fly up to ``penalty_boundary_margin_m``
 # (500 m) outside this rectangle without penalty.
-_TERRAIN_BBOX: tuple[tuple[float, float], tuple[float, float]] = \
-    _terrain_bbox_from_csv()
+_TERRAIN_BBOX: Optional[tuple[tuple[float, float], tuple[float, float]]] = None
+
+
+def _get_terrain_bbox() -> tuple[tuple[float, float], tuple[float, float]]:
+    """Lazily derive the terrain bbox from the JSON cache first, then the CSV."""
+    global _TERRAIN_BBOX
+    if _TERRAIN_BBOX is not None:
+        return _TERRAIN_BBOX
+    cached = _load_terrain_bbox_cache()
+    if cached is not None:
+        _TERRAIN_BBOX = cached
+        return _TERRAIN_BBOX
+    _TERRAIN_BBOX = _terrain_bbox_from_csv()
+    _save_terrain_bbox_cache(_TERRAIN_BBOX)
+    return _TERRAIN_BBOX
 
 
 @dataclass(frozen=True)
@@ -249,7 +304,7 @@ def profile_multi_uav_coop_decoy(duration_s: float = 120.0,
         penalty_boundary_margin_m=500.0,
         penalty_per_violation=2.0,
         penalty_cap=15.0,
-        mission_bbox=_TERRAIN_BBOX,
+        mission_bbox=_get_terrain_bbox(),
     )
 
 
@@ -279,7 +334,7 @@ def profile_adversarial_swarm_search(duration_s: float = 60.0,
         penalty_boundary_margin_m=500.0,
         penalty_per_violation=2.0,
         penalty_cap=15.0,
-        mission_bbox=_TERRAIN_BBOX,
+        mission_bbox=_get_terrain_bbox(),
     )
 
 

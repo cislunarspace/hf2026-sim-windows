@@ -128,14 +128,22 @@ def start_sim(
         stderr = open(stderr_file, "w", encoding="utf-8", errors="ignore")
     else:
         stderr = subprocess.DEVNULL
-    # Windows: CREATE_NO_WINDOW 避免弹出 cmd 黑窗。
+    # Windows: 原 CREATE_NO_WINDOW 在父进程无控制台（如被 bridge 后台 spawn）时
+    # 会导致 opensim-sim 退出(STATUS_CONTROL_C_EXIT)。CREATE_NEW_CONSOLE 给引擎
+    # 分配独立控制台；STARTUPINFO wShowWindow 隐藏该窗口避免弹黑框。
     creationflags = 0
     if sys.platform == "win32":
-        creationflags = subprocess.CREATE_NO_WINDOW
+        creationflags = subprocess.CREATE_NEW_CONSOLE
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0  # SW_HIDE
+    else:
+        startupinfo = None
     proc = subprocess.Popen(
         [str(bin_path), "--config", scenario],
         stdout=subprocess.DEVNULL, stderr=stderr,
         creationflags=creationflags,
+        startupinfo=startupinfo,
     )
     time.sleep(boot_delay)
     if proc.poll() is not None:

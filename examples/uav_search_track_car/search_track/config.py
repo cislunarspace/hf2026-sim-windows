@@ -81,7 +81,7 @@ def from_yaml(path: str | Path) -> AlgorithmConfig:
     p = Path(path)
     if not p.exists():
         raise FileNotFoundError(f"config not found: {p}")
-    with p.open("r", encoding="utf-8") as f:
+    with p.open("r", encoding="utf-8-sig") as f:
         raw = yaml.safe_load(f) or {}
     merged = {**DEFAULTS, **raw}
     advanced_raw = merged.pop("advanced", {}) or {}

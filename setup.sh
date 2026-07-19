@@ -6,7 +6,6 @@
 set -eu
 
 NEED_APT=()
-NEED_PIP=()
 HAS_APT=0
 command -v apt-get >/dev/null 2>&1 && HAS_APT=1
 
@@ -15,27 +14,17 @@ command -v lsof   >/dev/null 2>&1 || NEED_APT+=(lsof)
 command -v curl   >/dev/null 2>&1 || NEED_APT+=(curl)
 command -v pgrep  >/dev/null 2>&1 || NEED_APT+=(procps)
 
-# 2. Python 解释器
-if ! command -v python3 >/dev/null 2>&1; then
-    NEED_APT+=(python3 python3-pip)
-else
-    # 3. pip
-    if ! python3 -m pip --version >/dev/null 2>&1; then
-        NEED_APT+=(python3-pip)
-    fi
-    # 4. Python 包
-    python3 -c "import redis" 2>/dev/null || NEED_PIP+=(redis)
-    python3 -c "import yaml"  2>/dev/null || NEED_PIP+=(pyyaml)
-fi
+# 2. Python 解释器 —— V2.1.0 起捆绑 python-build-standalone 3.12，不再依赖系统 python。
+#    redis-py/pyyaml 已随捆绑 python 进包，无需 apt 装 python3-pip 或 pip 装包。
 
-# 5. glibc 版本检测（引擎要求 >= 2.39，不满足警告但不阻断）
+# 3. glibc 版本检测（引擎要求 >= 2.35，即 Ubuntu 22.04+；不满足警告但不阻断）
 GLIBC_VER=$(ldd --version 2>/dev/null | head -1 | awk '{print $NF}')
 warn_glibc() {
     if [ -n "${GLIBC_VER:-}" ]; then
         major=$(echo "$GLIBC_VER" | cut -d. -f1)
         minor=$(echo "$GLIBC_VER" | cut -d. -f2)
-        if [ "${major:-0}" -lt 2 ] 2>/dev/null || { [ "${major:-0}" -eq 2 ] 2>/dev/null && [ "${minor:-0}" -lt 39 ] 2>/dev/null; }; then
-            echo "⚠️  glibc $GLIBC_VER < 2.39，引擎二进制可能无法运行（建议 Ubuntu 24.04+）"
+        if [ "${major:-0}" -lt 2 ] 2>/dev/null || { [ "${major:-0}" -eq 2 ] 2>/dev/null && [ "${minor:-0}" -lt 35 ] 2>/dev/null; }; then
+            echo "⚠️  glibc $GLIBC_VER < 2.35，引擎二进制可能无法运行（需 Ubuntu 22.04+）"
         fi
     fi
 }
@@ -55,14 +44,15 @@ if [ ${#NEED_APT[@]} -gt 0 ]; then
     fi
 fi
 
-# pip 安装（apt 装完 python3-pip 后重新探测）
-if ! python3 -m pip --version >/dev/null 2>&1; then
-    echo "✗ pip 仍不可用，请手动安装 python3-pip"
+# V2.1.0: 不再需要 pip 安装 —— Python + redis-py + pyyaml 均随捆绑 python 进包。
+# 验证捆绑 python 可用（自检，缺失则提示发行包损坏）。
+PACK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -x "$PACK_ROOT/python/bin/python3.12" ]; then
+    "$PACK_ROOT/python/bin/python3.12" -c "import redis, yaml" 2>/dev/null || \
+        echo "⚠️  捆绑 python 的 redis/pyyaml 不可用，发行包可能损坏"
+else
+    echo "✗ 捆绑 python 缺失（python/bin/python3.12），发行包不完整"
     exit 1
-fi
-if [ ${#NEED_PIP[@]} -gt 0 ]; then
-    echo "缺少 Python 包: ${NEED_PIP[*]}"
-    python3 -m pip install --user "${NEED_PIP[@]}"
 fi
 
 warn_glibc

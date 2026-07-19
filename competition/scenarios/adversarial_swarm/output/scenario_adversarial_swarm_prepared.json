@@ -1,0 +1,1083 @@
+{
+  "_comment": "Spec 019 \u9225?generated scenario; 10 UAV + 10 real + 20 decoys + zones.",
+  "config_version": "1.0",
+  "simulation": {
+    "tick_rate_hz": 60,
+    "time_scale": 1,
+    "redis_host": "127.0.0.1",
+    "start_time_str": "2026-06-26 08:00:00",
+    "redis_command_channel": "sim:commands",
+    "redis_state_channel": "sim:state",
+    "redis_port": 6380
+  },
+  "weather": {
+    "type": "Rain"
+  },
+  "_comment_bounds": "FALLBACK only. At runtime ThreatArbiter sources the zone-clamp bounds from the terrain CSV (config/HeightSample.csv) bbox \u9225?the single source of truth for the map extent. These values are used only if the terrain fails to load.",
+  "bounds": {
+    "lat_min": 26.97,
+    "lat_max": 27.03,
+    "lon_min": 124.97,
+    "lon_max": 125.03
+  },
+  "zones": [
+    {
+      "_comment": "C1: \u6d60\u8de8\u6e61\u9353\u5d85\u59e9\u93ac\u4f7a\u6553\u93b4\u6136\u7d19\u942d\u2541\u8230\u951b\u5c83\ue6eb\u9429\u682d\u5134\u9352\u55d9\u6d30\u93cd\u56ea\u57c5\u6769\u7678\u7d1d\u6748\u572d\u666b\u6d93\u5d88\u79f4\u9366\u677f\u6d58\u951b\u5908\u20ac\u4fdbrea_m2=\u941c\u626e\u59f8\u95c8\u3222\u041d~1.1km\u864f",
+      "type": "air_defense",
+      "generate": {
+        "count": 1,
+        "area_m2": 1100000,
+        "coverage": "target_route",
+        "coverage_fraction": 0.3
+      },
+      "alt_min": 0,
+      "alt_max": 2500,
+      "hit_delay_s": 2,
+      "hit_probability": 1
+    },
+    {
+      "_comment": "C1: \u6d60\u8de8\u6e61\u9353\u5d85\u59e9\u93ac\u4f7a\u6553\u93b4\u6136\u7d19\u9366?\u93b5\u677f\u59e9\u951b\u5c83\ue6eb\u9429\u682d\u5134\u9352\u55d9\u6d30\u93cd\u56ea\u57c5\u6769\u7678\u7d1a\u9286\u4fdbrea_m2=\u941c\u626e\u59f8\u95c8\u3222\u041d~0.55km\u864f",
+      "type": "comm_jam_static",
+      "generate": {
+        "count": 1,
+        "area_m2": 550000,
+        "coverage": "target_route",
+        "coverage_fraction": 0.3
+      },
+      "alt_min": 0,
+      "alt_max": 5000
+    },
+    {
+      "type": "comm_jam_random",
+      "max_count": 2,
+      "radius_m": 400,
+      "lifetime_s": 25,
+      "spawn_interval_s": 12,
+      "alt_min": 0,
+      "alt_max": 5000,
+      "rng_seed": 7
+    }
+  ],
+  "entities": [
+    {
+      "id": "20001",
+      "name": "uav_01",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27,
+        "initial_longitude": 124.985,
+        "initial_altitude": 500,
+        "initial_heading": 0
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "20002",
+      "name": "uav_02",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27,
+        "initial_longitude": 124.99,
+        "initial_altitude": 500,
+        "initial_heading": 36
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "20003",
+      "name": "uav_03",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27,
+        "initial_longitude": 124.995,
+        "initial_altitude": 500,
+        "initial_heading": 72
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "20004",
+      "name": "uav_04",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27,
+        "initial_longitude": 125,
+        "initial_altitude": 500,
+        "initial_heading": 108
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "20005",
+      "name": "uav_05",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27,
+        "initial_longitude": 125.005,
+        "initial_altitude": 500,
+        "initial_heading": 144
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "20006",
+      "name": "uav_06",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.02,
+        "initial_longitude": 124.985,
+        "initial_altitude": 500,
+        "initial_heading": 180
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "20007",
+      "name": "uav_07",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.02,
+        "initial_longitude": 124.99,
+        "initial_altitude": 500,
+        "initial_heading": 216
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "20008",
+      "name": "uav_08",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.02,
+        "initial_longitude": 124.995,
+        "initial_altitude": 500,
+        "initial_heading": 252
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "20009",
+      "name": "uav_09",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.02,
+        "initial_longitude": 125,
+        "initial_altitude": 500,
+        "initial_heading": 288
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "20010",
+      "name": "uav_10",
+      "type": "FixedWingUAV",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.02,
+        "initial_longitude": 125.005,
+        "initial_altitude": 500,
+        "initial_heading": 324
+      },
+      "components": {
+        "kinematics": {
+          "type": "KinematicsComponent",
+          "enabled": true,
+          "params": {
+            "min_speed": 15,
+            "max_speed": 40,
+            "max_bank_angle_deg": 45,
+            "max_climb_rate_ms": 10
+          }
+        },
+        "gimbal_tracking": {
+          "type": "GimbalTrackingComponent",
+          "enabled": true,
+          "params": {
+            "pan_rate_limit_dps": 60,
+            "tilt_rate_limit_dps": 45,
+            "auto_track": false,
+            "fov": 30
+          }
+        },
+        "comm": {
+          "type": "CommComponent",
+          "enabled": true,
+          "params": {}
+        }
+      }
+    },
+    {
+      "id": "10001",
+      "name": "target_01",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.01253472222222,
+        "initial_longitude": 124.99135416666668,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 6,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "10002",
+      "name": "target_02",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.01253472222222,
+        "initial_longitude": 124.99565972222224,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 5,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "10003",
+      "name": "target_03",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.01267361111111,
+        "initial_longitude": 125.00114583333334,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 7,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "10004",
+      "name": "target_04",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.01267361111111,
+        "initial_longitude": 124.99586805555556,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 4,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "10005",
+      "name": "target_05",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.0128125,
+        "initial_longitude": 125.00107638888888,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 8,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "10006",
+      "name": "target_06",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.012326388888887,
+        "initial_longitude": 124.99149305555557,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 6,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "10007",
+      "name": "target_07",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.012604166666662,
+        "initial_longitude": 124.99142361111112,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 5,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "10008",
+      "name": "target_08",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.01246527777778,
+        "initial_longitude": 124.99128472222225,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 6,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "10009",
+      "name": "target_09",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 26.996979,
+        "initial_longitude": 124.986701,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 5,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "10010",
+      "name": "target_10",
+      "type": "TargetVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.012535,
+        "initial_longitude": 124.995799,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 7,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30001",
+      "name": "decoy_01",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.021354166666665,
+        "initial_longitude": 124.99253472222225,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30002",
+      "name": "decoy_02",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.01642361111111,
+        "initial_longitude": 124.99663194444445,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30003",
+      "name": "decoy_03",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.01913194444444,
+        "initial_longitude": 124.9830902777778,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30004",
+      "name": "decoy_04",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.00065972222222,
+        "initial_longitude": 124.99788194444444,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30005",
+      "name": "decoy_05",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 26.99684027777778,
+        "initial_longitude": 125.00663194444444,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30006",
+      "name": "decoy_06",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.0103125,
+        "initial_longitude": 124.99072916666668,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30007",
+      "name": "decoy_07",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 26.995104166666664,
+        "initial_longitude": 124.98788194444444,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30008",
+      "name": "decoy_08",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.012743055555557,
+        "initial_longitude": 124.9996875,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30009",
+      "name": "decoy_09",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.007465277777776,
+        "initial_longitude": 124.99704861111113,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30010",
+      "name": "decoy_10",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.006979166666664,
+        "initial_longitude": 125.0180902777778,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30011",
+      "name": "decoy_11",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.0040625,
+        "initial_longitude": 125.01489583333334,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30012",
+      "name": "decoy_12",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 26.988576388888887,
+        "initial_longitude": 125.00697916666668,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30013",
+      "name": "decoy_13",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 26.99892361111111,
+        "initial_longitude": 124.98524305555556,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30014",
+      "name": "decoy_14",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.0034375,
+        "initial_longitude": 124.98246527777778,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30015",
+      "name": "decoy_15",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 26.99364583333333,
+        "initial_longitude": 124.98315972222224,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30016",
+      "name": "decoy_16",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.012326388888887,
+        "initial_longitude": 125.00767361111112,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30017",
+      "name": "decoy_17",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.004270833333333,
+        "initial_longitude": 124.99253472222225,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30018",
+      "name": "decoy_18",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.0059375,
+        "initial_longitude": 125.01100694444445,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30019",
+      "name": "decoy_19",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.021354166666665,
+        "initial_longitude": 124.99253472222225,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    },
+    {
+      "id": "30020",
+      "name": "decoy_20",
+      "type": "DecoyVehicle",
+      "enabled": true,
+      "params": {
+        "initial_latitude": 27.01642361111111,
+        "initial_longitude": 124.99663194444445,
+        "initial_altitude": 0.0
+      },
+      "components": {
+        "trajectory": {
+          "type": "TargetTrajectoryComponent",
+          "enabled": true,
+          "params": {
+            "speed": 0,
+            "waypoints": []
+          }
+        }
+      }
+    }
+  ]
+}

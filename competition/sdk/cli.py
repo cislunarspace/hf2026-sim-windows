@@ -38,8 +38,11 @@ def _resolve_redis_port(scenario: str, scenario_json: str | None) -> int:
         port = cfg.get("simulation", {}).get("redis_port")
         if port:
             return int(port)
-    except Exception:
-        pass
+    except Exception as e:
+        # 不静默吞异常: redis_port 读错会连不上 Redis,根因消失在静默里极难排障。
+        # 回退到默认 6379 但打印警告(见 CLAUDE.md 跨平台规范)。
+        print(f"[cli] WARNING: 读取 {sj_path} 的 redis_port 失败,回退 6379: {e!r}",
+              file=sys.stderr, flush=True)
     return 6379
 
 

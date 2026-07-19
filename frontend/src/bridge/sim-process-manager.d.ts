@@ -76,6 +76,12 @@ export declare class SimProcessManager {
     private unsubscribeStateChannel;
     /** 是否已通过 bridge 启动仿真(区别于外部命令行启动)。 */
     private startedByBridge;
+    /** 036: 正在等待仿真 ready 帧 / 首个 sim:state，期间保持 loading。 */
+    private waitingForReady;
+    /** 036: sim:progress ready 帧订阅的取消函数。 */
+    private readyCleanup;
+    /** 036: ready 帧超时定时器。 */
+    private readyTimeout;
     constructor(deps: SimManagerDeps);
     getState(): SessionState;
     /** 订阅 sim:state 频道,感知外部启动的仿真(命令行启动)。 */
@@ -84,6 +90,12 @@ export declare class SimProcessManager {
     private handleStateChannelMessage;
     /** 所有状态变更的唯一出口:更新 + 广播 + 去重。 */
     private setState;
+    /** 036: 订阅 sim:progress 的 ready/就绪 帧;收到即切 running。 */
+    private subscribeToReadyProgress;
+    /** 036: 取消 ready 订阅与超时,切到 running(幂等)。 */
+    private markReady;
+    /** 036: 清理 ready 相关订阅与超时(进程退出 / stop 时调用)。 */
+    private cleanupReady;
     /**
      * 启动 competition 进程(单一子进程)。
      * competition 内部自己 spawn opensim-sim 并轮询就绪,bridge 不重复做。
