@@ -122,22 +122,38 @@ $env:OPENSIM_REDIS_PORT = '6380'; $env:OPENSIM_WEB_PORT = '3001'; .\start.ps1
 
 ## 故障排查
 
-### Linux
+### 一键诊断（推荐给远程支持场景）
+
+遇到问题且无法自行定位时，在发布包根目录运行诊断脚本，它会自动收集
+系统信息、包完整性、依赖状态、端口/进程和全部日志，生成一个压缩包：
+
+```bash
+./diagnose.sh        # Linux —— 生成 opensim-diagnostics-<时间戳>.tar.gz
+```
+
+```powershell
+.\diagnose.ps1       # Windows —— 生成 opensim-diagnostics-<时间戳>.zip
+# 若被执行策略拦截：powershell -ExecutionPolicy Bypass -File .\diagnose.ps1
+```
+
+把生成的压缩包发回给运维/开发即可，无需手动翻日志。脚本只读不写，可随时重复执行。
+
+### 手动排查（Linux）
 ```bash
 ./verify.sh                          # 定位哪个组件有问题
 tail -f run/logs/redis.log           # Redis 日志
 tail -f run/logs/bridge.log          # bridge 日志
 tail -f run/logs/frontend.log        # 前端服务日志
-ls run/sim-output/                   # 引擎输出（点赛题后才有）
+ls competition/scenarios/*/output/     # 引擎/控制器输出（点赛题后才有）
 ```
 
-### Windows (PowerShell)
+### 手动排查（Windows PowerShell）
 ```powershell
 .\verify.ps1                                    # 定位哪个组件有问题
 Get-Content run\logs\redis.log -Wait            # Redis 日志
 Get-Content run\logs\bridge.log -Wait           # bridge 日志
 Get-Content run\logs\frontend.log -Wait         # 前端服务日志
-Get-ChildItem run\sim-output\                   # 引擎输出（点赛题后才有）
+Get-ChildItem competition\scenarios\*\output\         # 引擎/控制器输出（点赛题后才有）
 # 进程/端口排查：
 Get-NetTCPConnection -State Listen              # 监听端口
 Get-CimInstance Win32_Process | Where CommandLine -match 'opensim'  # 找进程
