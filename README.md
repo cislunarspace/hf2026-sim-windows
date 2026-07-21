@@ -76,14 +76,14 @@ python -m competition run --scenario search_track `
   --agent my_agent:MyAgent --start-sim --visualize
 ```
 
-## UE 渲染器配置（可选）
+## 可视化渲染配置
 
 默认使用 Three.js 自渲染。若要用 UE 真实渲染：
 
-1. 复制 `config/renderers/ue_testwl.template.json` 为 `ue_testwl.json`
-2. 把 `workdir` 改成你的 UE 打包产物路径
+1. 打开`config/renderers/ue_testwl.json`
+2. 把 `workdir` 改成你的 UE 打包产物路径（目前为文件夹：20260716-1615_Shipping，当前已改好）
 3. 确保机器有 GPU（≥8GB VRAM，支持 Vulkan）
-4. 重启 `./start.sh`
+4. 如果想保存飞机云台拍摄的照片，需更改`20260716-1615_Shipping/x86/Linux/testwl/Content/Config/capture_config.json`的`saveimage`配置内容，将`enabled`字段改为True，并在`output_dir`配置输出照片的文件夹路径
 
 ## 端口配置
 
