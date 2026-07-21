@@ -1,6 +1,6 @@
 # OpenSim 仿真平台
 
-版本: 1.1.1 | 平台: Linux x86-64 / Windows x64
+版本: 2.0.0 | 平台: Linux x86-64 / Windows x64
 
 ## 平台支持
 
