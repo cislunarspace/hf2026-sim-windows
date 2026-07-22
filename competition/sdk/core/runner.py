@@ -88,6 +88,55 @@ def resolve_scenario_seed(cli_seed: int,
     return int(cli_seed) if cli_seed and int(cli_seed) > 0 else 0
 
 
+_PHOTO_MODES = ("auto", "on", "off")
+
+
+def resolve_photo_mode(photo_mode, photo_enabled=None) -> str:
+    """把 (photo_mode, 旧 photo_enabled) 归一化为合法的三态 photo_mode。
+
+    优先级与兼容规则（spec 029 + 相机流自动启用）：
+
+    - 显式 photo_mode（auto/on/off）优先；非法值抛 ValueError。
+    - 调用者只传了旧 photo_enabled（未显式给 photo_mode，或 photo_mode 是
+      默认 auto 且 photo_enabled 非默认 False）时按 True→on / False→off 映射。
+    - 二者同时显式且语义冲突时，photo_mode 胜出并打印一次 deprecation warning。
+
+    被三个场景 ``run()``、``ScenarioConfig.__post_init__``、CLI 解析共用，
+    避免在三处复制同一份归一化逻辑。
+    """
+    if photo_mode not in _PHOTO_MODES:
+        raise ValueError(
+            f"photo_mode must be one of {_PHOTO_MODES}, got {photo_mode!r}")
+
+    if photo_enabled is None:
+        return photo_mode
+
+    legacy = "on" if photo_enabled else "off"
+    # 旧布尔被显式设置且与新字段语义不同 → 警告并让 photo_mode 胜出。
+    if photo_enabled is not False and photo_mode == "auto":
+        # photo_enabled=True 但 photo_mode=auto：调用者旧意图是"开"，
+        # 映射成 on，保留旧行为。
+        return legacy
+    if photo_enabled is False and photo_mode != "off":
+        # 显式 photo_enabled=False 但 photo_mode 非 off：调用者旧意图是"关"，
+        # 与新字段冲突 → 新字段优先，警告。
+        import warnings
+        warnings.warn(
+            "photo_enabled=False 与 photo_mode=%r 冲突；以 photo_mode 为准。"
+            "photo_enabled 已废弃，请改用 photo_mode。" % photo_mode,
+            DeprecationWarning, stacklevel=2)
+        return photo_mode
+    if photo_enabled is not False and photo_mode == "off":
+        # 显式 True 但 photo_mode=off：新字段优先。
+        import warnings
+        warnings.warn(
+            "photo_enabled=True 与 photo_mode='off' 冲突；以 photo_mode 为准。"
+            "photo_enabled 已废弃，请改用 photo_mode。",
+            DeprecationWarning, stacklevel=2)
+        return photo_mode
+    return photo_mode
+
+
 @dataclass
 class ScenarioConfig:
     """Static, whole-run scenario parameters resolved at startup."""
@@ -109,7 +158,15 @@ class ScenarioConfig:
     extra: dict = field(default_factory=dict)
     # spec 029: 感知层配置
     run_mode: str = "train"          # "train" | "eval"
-    photo_enabled: bool = False      # 是否启动 PhotoCache
+    # 相机帧拉取模式（spec 029 + 相机流自动启用）：
+    #   "auto"（默认）= 非 dry_run 时启动 PhotoCache；Redis 有帧则注入 obs.self.photo，
+    #                  无帧安全降级为 None（不报错）。带 UE 的标准环境无需任何额外开关。
+    #   "on"  = 显式要求相机（行为同 auto 的非 dry_run 分支；dry_run 仍不启动）
+    #   "off" = 不启动 PhotoCache，obs.self.photo 恒 None
+    photo_mode: str = "auto"
+    # 废弃别名：旧布尔开关。None（默认）= 调用者未传，不触发兼容解析；
+    # True → on, False → off。与 photo_mode 显式冲突时 photo_mode 胜出 + 警告。
+    photo_enabled: Optional[bool] = None
     accuracy: float = 0.85           # AccuracySimulator 检出概率（钳制上界 0.9）
     noise_sigma_m: float = 50.0      # AccuracySimulator 位置噪声（米，钳制下界 30）
     yolo_model_path: str = ""        # YoloDetector 模型路径（eval 模式）
@@ -120,12 +177,15 @@ class ScenarioConfig:
     # （ScenarioConfig 构造 / CLI / bridge）构造后一律受此约束。
     ACCURACY_MAX = 0.9
     NOISE_SIGMA_MIN = 30.0
+    _PHOTO_MODES = ("auto", "on", "off")
 
     def __post_init__(self) -> None:
         if self.accuracy > self.ACCURACY_MAX:
             self.accuracy = self.ACCURACY_MAX
         if self.noise_sigma_m < self.NOISE_SIGMA_MIN:
             self.noise_sigma_m = self.NOISE_SIGMA_MIN
+        # 归一化 photo_mode：兼容旧 photo_enabled，并校验合法取值。
+        self.photo_mode = resolve_photo_mode(self.photo_mode, self.photo_enabled)
 
 
 def read_weather(scenario_path: Optional[str]) -> str:
@@ -178,7 +238,9 @@ class RunnerBase:
     def _build_perception(self, uids):
         """构建感知层组件（spec 029 + spec 032）。返回 (photo_cache, resolver)。
 
-        - PhotoCache 仅在 photo_enabled 且非 dry_run 时启动（dry_run 无 UE 渲染）
+        - PhotoCache 在 photo_mode != "off" 且非 dry_run 时启动
+          （dry_run 无 UE 渲染，一律不启动）
+        - auto 模式：Redis 有帧则注入 obs.self.photo，无帧 get() 返回 None（安全降级）
         - 默认识别器：eval 模式 + yolo_model_path → YoloDetector(primary)
           + AccuracySimulator(fallback)；否则仅 AccuracySimulator
         - spec 032 渲染门控：eval 模式下，无 photo 的 UAV 自动降级到 fallback
@@ -187,7 +249,7 @@ class RunnerBase:
             AccuracySimulator, DetectionResolver, PhotoCache, YoloDetector,
         )
         photo_cache = None
-        if self.cfg.photo_enabled and not self.cfg.dry_run:
+        if self.cfg.photo_mode != "off" and not self.cfg.dry_run:
             import redis as redis_lib
             rc = redis_lib.Redis(host=self.cfg.redis_host,
                                  port=self.cfg.redis_port)

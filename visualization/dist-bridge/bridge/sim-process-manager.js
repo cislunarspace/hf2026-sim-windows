@@ -82,6 +82,12 @@ class SimProcessManager {
         this.readyCleanup = null;
         /** 036: ready 帧超时定时器。 */
         this.readyTimeout = null;
+        /**
+         * 进程存活 watchdog 定时器:每 2 秒探测 competition 进程是否仍存活。
+         * 兜底 child exit 事件因 detached+unref 丢失的情况(实测 competition
+         * 10 分钟自然结束后 exit 事件未触发,UE 成孤儿)。检测到进程死亡即触发清理。
+         */
+        this.watchdogTimer = null;
         this.deps = deps;
         this.subscribeToStateChannel();
     }
@@ -233,6 +239,7 @@ class SimProcessManager {
             await this.killUeProcs();
             await this.killProc();
             this.competitionProc = null;
+            this.stopWatchdog();
             this.state = { status: 'idle', scenario: null, sessionId: null, error: null };
             this.deps.onStateChange(this.getState());
         }
@@ -256,11 +263,11 @@ class SimProcessManager {
             '--redis-host', this.deps.redisHost ?? '127.0.0.1',
             '--redis-port', String(this.deps.redisPort ?? 6379),
         ];
-        // Spec 033: 感知参数条件追加（undefined → 不追加，命令行与改造前逐字节一致）。
+        // 感知参数条件追加：photoMode 三态（默认 auto → 非 dry_run 自动拉取 UE 相机 PNG 帧）。
         if (sc.mode)
             args.push('--mode', sc.mode);
-        if (sc.photo)
-            args.push('--photo');
+        const photoMode = sc.photoMode ?? 'auto';
+        args.push('--photo-mode', photoMode);
         if (sc.yoloModel)
             args.push('--yolo-model', sc.yoloModel);
         // 防泄漏钳制后的 accuracy/noise（已由 endpoint 限定 [0,0.9] / ≥30）。
@@ -293,6 +300,8 @@ class SimProcessManager {
         }
         this.setState('loading');
         this.watchExit(this.competitionProc, 'competition_crashed');
+        // 启动存活 watchdog:兜底 child exit 事件因 detached+unref 丢失的情况。
+        this.startWatchdog();
         // 036: 在 spawn 后保持 loading;监听 sim:progress ready 帧或首个 sim:state
         // 才认为仿真真正运行。进程崩溃由 watchExit 兜底。
         this.waitingForReady = true;
@@ -315,7 +324,7 @@ class SimProcessManager {
         // Spec 028: UE 渲染旁路。renderCtlBinary 缺省 → 跳过(仿真照跑)。
         // 任一步失败 → WARN 降级,不影响 competition 已起来的会话。
         // 036: 渲染启动完成后仍保持 loading,由 sim:progress ready / sim:state 触发 running。
-        await this.startRenderers(opts).catch((e) => {
+        await this.startRenderers(opts, outDir).catch((e) => {
             this.warn(`renderer orchestration degraded: ${e.message}`);
         });
         return this.getState();
@@ -323,8 +332,9 @@ class SimProcessManager {
     /**
      * Spec 028: 调 render-ctl plan → spawn UE 进程 → 装配 RenderScheduler。
      * 全程 best-effort:失败只 WARN,不抛错(仿真照跑)。
+     * UE stdout/stderr 重定向到 outDir/ue_<rendererId>.log。
      */
-    async startRenderers(opts) {
+    async startRenderers(opts, outDir) {
         if (!opts.renderCtlBinary)
             return; // 渲染子系统休眠
         if (!this.deps.execFile) {
@@ -393,9 +403,9 @@ class SimProcessManager {
         this.renderScheduler = new render_scheduler_1.RenderScheduler(schedDeps);
         await this.renderScheduler.start(plan.gimbalUavs, plan.excessUavs);
         const spawned = [];
-        // spawn 各 UE 实例(detached + GPU 隔离 env)。
+        // spawn 各 UE 实例(detached + GPU 隔离 env + 日志重定向)。
         for (const inst of plan.instances) {
-            const proc = this.spawnUe(inst);
+            const proc = this.spawnUe(inst, outDir);
             if (proc) {
                 this.ueProcs.push(proc);
                 spawned.push(proc);
@@ -429,7 +439,7 @@ class SimProcessManager {
         this.renderSchedulerPending = [];
     }
     /** spawn 单个 UE 实例(按 plan 的 argv/cwd/env)。失败返回 null(降级)。 */
-    spawnUe(inst) {
+    spawnUe(inst, outDir) {
         // plan 通常保证 argv[0] 存在(= 启动脚本/exe);缺失时按平台选默认 shell
         const defaultShell = process.platform === 'win32' ? 'cmd.exe' : '/bin/bash';
         const cmd = inst.argv[0] ?? defaultShell;
@@ -439,6 +449,7 @@ class SimProcessManager {
                 cwd: inst.cwd,
                 env: inst.env,
                 detached: true,
+                logFile: path.join(outDir, `ue_${inst.rendererId}.log`),
             });
         }
         catch (e) {
@@ -452,32 +463,84 @@ class SimProcessManager {
     /** 注册子进程退出监听:非 stop 上下文退出 → error。 */
     watchExit(proc, errorCode) {
         proc.onExit((code) => {
-            if (this.stopRequested)
-                return;
-            if (this.state.status === 'idle' || this.state.status === 'stopping')
-                return;
-            if (code === 0) {
-                if (this.renderScheduler) {
-                    this.renderScheduler.stop().catch(() => { });
-                    this.renderScheduler = null;
-                }
-                this.killUeProcs().catch(() => { });
-                this.competitionProc = null;
-                this.cleanupReady(); // 036: 清理 ready 订阅
-                this.state = { status: 'idle', scenario: null, sessionId: null, error: null };
-                this.deps.onStateChange(this.getState());
-                return;
-            }
-            this.setState('error', errorCode);
-            this.cleanupReady(); // 036: 清理 ready 订阅
-            // Spec 028: competition 崩溃时连带停 scheduler + kill UE(避免孤儿)。
+            this.warn(`[SimProcessManager] watched proc exit: code=${code} status=${this.state.status} stopRequested=${this.stopRequested} ueProcs=${this.ueProcs.length}`);
+            this.handleCompetitionExit(code, errorCode);
+        });
+    }
+    /**
+     * competition 退出的统一清理路径(由 exit 事件或 watchdog 触发)。
+     * code=null 表示 watchdog 探测到进程消失但未收到 exit 事件(按非 0 处理)。
+     *
+     * 关键:无论 session 当前状态如何,只要 competition 进程没了就必杀 UE。
+     * 旧逻辑的 `status === idle/stopping` guard 会在 sim:state 提前把状态切到
+     * idle 时跳过清理,导致 UE 孤儿。孤儿 UE 占 GPU/CPU 远比重复清理危害大。
+     */
+    handleCompetitionExit(code, errorCode) {
+        if (this.stopRequested)
+            return;
+        // 不再因 status===idle/stopping 早返回:competition 没了 UE 必须清理。
+        const wasRunning = this.state.status !== 'idle' && this.state.status !== 'stopping';
+        if (code === 0 || code === null) {
+            // code===null: watchdog 探测到进程消失,按正常退出处理(仿真自然结束)。
             if (this.renderScheduler) {
                 this.renderScheduler.stop().catch(() => { });
                 this.renderScheduler = null;
             }
+            this.warn(`[SimProcessManager] competition ended (code=${code}), killing ${this.ueProcs.length} UE proc(s)`);
             this.killUeProcs().catch(() => { });
-            this.killProc().catch(() => { });
-        });
+            this.competitionProc = null;
+            this.cleanupReady(); // 036: 清理 ready 订阅
+            this.stopWatchdog();
+            if (wasRunning) {
+                this.state = { status: 'idle', scenario: null, sessionId: null, error: null };
+                this.deps.onStateChange(this.getState());
+            }
+            return;
+        }
+        // 非 0 退出:崩溃路径。
+        if (wasRunning)
+            this.setState('error', errorCode);
+        this.cleanupReady(); // 036: 清理 ready 订阅
+        this.stopWatchdog();
+        // Spec 028: competition 崩溃时连带停 scheduler + kill UE(避免孤儿)。
+        if (this.renderScheduler) {
+            this.renderScheduler.stop().catch(() => { });
+            this.renderScheduler = null;
+        }
+        this.warn(`[SimProcessManager] competition crashed code=${code}, killing ${this.ueProcs.length} UE proc(s)`);
+        this.killUeProcs().catch(() => { });
+        this.killProc().catch(() => { });
+    }
+    /**
+     * 启动 competition 存活 watchdog(spawn 后调用)。
+     * 兜底 child exit 事件因 detached+unref 丢失的情况:每 2 秒用
+     * kill(pid,0) 探测 competition 进程,消失即触发清理。
+     */
+    startWatchdog() {
+        this.stopWatchdog();
+        this.watchdogTimer = setInterval(() => this.watchdogTick(), 2000);
+        // unref:watchdog 不应阻止 bridge 退出(bridge 退出走 stop() 正常清理)。
+        this.watchdogTimer.unref?.();
+    }
+    stopWatchdog() {
+        if (this.watchdogTimer) {
+            clearInterval(this.watchdogTimer);
+            this.watchdogTimer = null;
+        }
+    }
+    watchdogTick() {
+        const proc = this.competitionProc;
+        if (!proc)
+            return; // 无会话,不探测
+        if (this.state.status === 'idle' || this.state.status === 'stopping')
+            return;
+        // 进程已 exited(exit 事件触发过)或 isAlive 探测失败 → 触发清理。
+        if (proc.exited)
+            return; // exit 事件路径已处理
+        if (!proc.isAlive()) {
+            this.warn(`[SimProcessManager] watchdog: competition pid=${proc.pid} no longer alive (exit event missed?), cleaning up`);
+            this.handleCompetitionExit(null, 'competition_crashed');
+        }
     }
     /** 暂停:发 pause 命令给引擎(competition 主循环空转检测自动跟随)。 */
     async pause() {
@@ -501,6 +564,7 @@ class SimProcessManager {
         this.stopRequested = true;
         this.setState('stopping');
         this.cleanupReady(); // 036: 停止后不再等待 ready
+        this.stopWatchdog(); // 停 watchdog(主动 stop 走正常清理,不需兜底探测)
         try {
             await this.deps.redis.publish(this.deps.commandChannel, JSON.stringify({ cmd: 'end' }));
         }
@@ -528,32 +592,50 @@ class SimProcessManager {
             this.unsubscribeStateChannel = null;
         }
     }
-    /** Spec 028: 两段式 kill 所有 UE 进程(SIGTERM → stopGrace → SIGKILL)。 */
+    /**
+     * Spec 028: 两段式 kill 所有 UE 进程(SIGTERM → stopGrace → SIGKILL)。
+     *
+     * 关键:bridge spawn 的是 `bash run.sh`,run.sh 再 spawn testwl.sh,testwl.sh
+     * 再 spawn 真正的 UE 二进制。bash 收到 SIGTERM 退出后,其 exit 事件触发
+     * (`exited=true`),但**孙子进程 UE 仍在同一进程组里活着**(被 init 收养)。
+     * 旧逻辑用 `exited` 判断是否要 SIGKILL → 只看 bash,误以为全干净,UE 成孤儿。
+     *
+     * 修复:SIGTERM 后用 isAlive() 探测(而非 exited),且 SIGKILL 阶段对每个曾
+     * spawn 的进程**无条件**发信号(process.kill(-pgid) 给整个进程组,杀掉所有
+     * 后代无论多深,无论 bash 是否已 exited)。
+     */
     async killUeProcs() {
         const procs = this.ueProcs.filter((p) => !p.exited);
         this.ueProcs = [];
-        // 先全部 SIGTERM
+        this.warn(`[SimProcessManager] killUeProcs: ${procs.length} alive (of ${procs.length} total)`);
+        // 先全部 SIGTERM(整个进程组)
         for (const p of procs) {
+            this.warn(`[SimProcessManager]   SIGTERM pid=${p.pid} exited=${p.exited}`);
             try {
                 p.kill('SIGTERM');
             }
-            catch { /* ignore */ }
+            catch (e) {
+                this.warn(`[SimProcessManager]   SIGTERM pid=${p.pid} failed: ${e.message}`);
+            }
         }
         if (procs.some((p) => !p.exited)) {
             await this.deps.sleep(this.deps.stopGrace * 1000);
         }
-        // 仍未退出的 SIGKILL
+        // SIGKILL 阶段:对每个曾 spawn 的进程**无条件**发整个进程组的 SIGKILL。
+        // 不能只看 bash 的 exited —— bash 死了但同组的 UE 孙子还活着。
+        // process.kill(-pgid, SIGKILL) 会杀掉进程组所有成员(bash + testwl.sh + UE 二进制)。
         for (const p of procs) {
-            if (!p.exited) {
-                try {
-                    p.kill('SIGKILL');
-                }
-                catch { /* ignore */ }
+            // 进程组可能已空(bash + UE 都退了),kill 会抛 ESRCH,catch 忽略。
+            this.warn(`[SimProcessManager]   SIGKILL pgid=${p.pid} (force whole group)`);
+            try {
+                p.kill('SIGKILL');
             }
+            catch { /* 组已空,忽略 */ }
         }
         if (procs.some((p) => !p.exited)) {
             await this.deps.sleep(200);
         }
+        this.warn(`[SimProcessManager] killUeProcs done: ${procs.filter((p) => !p.exited).length} bash still alive`);
     }
     /** 两段式:SIGTERM → stopGrace → SIGKILL。 */
     async killProc() {
@@ -644,6 +726,18 @@ function spawnChildProcess(cmd, args, opts) {
             }
             try {
                 return child.kill(signal);
+            }
+            catch {
+                return false;
+            }
+        },
+        isAlive() {
+            if (exited || !child.pid)
+                return false;
+            // kill(pid, 0) 不发信号,只探测进程是否存在。ESRCH → 已退出。
+            try {
+                process.kill(child.pid, 0);
+                return true;
             }
             catch {
                 return false;

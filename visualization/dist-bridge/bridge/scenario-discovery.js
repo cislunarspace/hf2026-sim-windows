@@ -54,7 +54,7 @@ const algorithm_discovery_1 = require("./algorithm-discovery");
 exports.COMPETITION_SCENARIOS = [
     {
         id: 'adversarial_swarm',
-        name: '对抗集群搜索',
+        name: '无人机群自主协同打击',
         description: '集群突防防空与干扰区域,搜索并打击目标',
         baselineAgent: 'baselines.swarm_distributed:SwarmDistributedAgent',
         defaultDuration: 600,
@@ -65,7 +65,7 @@ exports.COMPETITION_SCENARIOS = [
     },
     {
         id: 'coop_decoy',
-        name: '协同诱饵识别',
+        name: '无人机群自主协同跟踪',
         description: '多无人机协同识别真实目标与诱饵',
         baselineAgent: 'baselines.coop_distributed:CoopDistributedAgent',
         defaultDuration: 600,
@@ -76,7 +76,7 @@ exports.COMPETITION_SCENARIOS = [
     },
     {
         id: 'search_track',
-        name: '单目标追踪',
+        name: '单无人机自主识别跟踪',
         description: '单无人机搜索并跟踪地面目标',
         baselineAgent: 'baselines.search_track_fsm:FsmAgent',
         defaultDuration: 600,

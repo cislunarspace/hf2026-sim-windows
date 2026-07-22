@@ -1,3 +1,0 @@
-ue-renderer/Windows/testwl/Content/Paks/*.ucas filter=lfs diff=lfs merge=lfs -text
-ue-renderer/Windows/testwl/Content/Paks/*.utoc filter=lfs diff=lfs merge=lfs -text
-ue-renderer/Windows/testwl/Content/Paks/*.pak filter=lfs diff=lfs merge=lfs -text

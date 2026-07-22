@@ -15,6 +15,12 @@ export interface LatestCameraFrame {
     image: Buffer;
 }
 /**
+ * 按游标读取指定 UAV 的下一帧(假设帧号单调递增)。
+ * 仅当 `sync_camera:{uid}:frame:{lastFrameNo+1}` 存在且含 image 时返回。
+ * @returns 下一帧;无下一帧时返回 null。
+ */
+export declare function readNextFrame(redis: CameraFrameRedis, uid: string, lastFrameNo: number): Promise<LatestCameraFrame | null>;
+/**
  * 定位并读取指定 UAV 的最新相机帧。
  * @returns 最新帧;无帧/缺 image 字段时返回 null。
  */

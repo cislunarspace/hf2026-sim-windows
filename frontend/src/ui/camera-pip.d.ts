@@ -1,8 +1,8 @@
 export interface CameraPipOptions {
-    /** bridge 相机端点基址。 */
-    camBaseUrl: string;
-    /** 注入 fetch(测试用)。 */
-    fetchImpl?: typeof fetch;
+    /** bridge 相机帧 WebSocket URL(如 ws://host:8082)。所有窗口共享一条连接。 */
+    camWsUrl: string;
+    /** 注入 WebSocket 构造器(测试用)。 */
+    WebSocketImpl?: typeof WebSocket;
     /** 同时打开的最大窗口数(默认 4,布局左 2 右 2 对称)。 */
     maxWindows?: number;
     /**
@@ -18,7 +18,11 @@ export declare class CameraPip {
     private windows;
     /** 最后一次 open 的 uid(app.ts 用 currentUavId 判断是否已在看)。 */
     private lastUid;
+    /** 所有窗口共享的 WS 拉流客户端(懒创建:首个窗口 open 时建)。 */
+    private sharedClient;
     constructor(opts: CameraPipOptions);
+    /** 懒创建共享 WS 客户端(首个窗口 open 时建,onFrame 按 uid 路由到窗口)。 */
+    private ensureSharedClient;
     /** 兼容旧接口:返回最后 open 的 uid。 */
     get currentUavId(): string | null;
     /** 是否已为该 uid 开窗。 */

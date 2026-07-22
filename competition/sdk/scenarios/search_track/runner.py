@@ -228,7 +228,8 @@ def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
         quiet: bool = False, sim_binary: str | None = None,
         seed: int = 0, visualize: bool = False, viz_dir: str | None = None,
         open_browser: bool = True,
-        mode: str = "train", photo_enabled: bool = False,
+        mode: str = "train", photo_mode: str = "auto",
+        photo_enabled: bool | None = None,
         accuracy: float = 0.85, noise_sigma_m: float = 50.0,
         yolo_model_path: str = "") -> dict:
     """Convenience entry point for players.
@@ -239,11 +240,13 @@ def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
 
     spec 029 perception params (all default to train-mode baseline):
       * ``mode`` — "train" (AccuracySimulator) | "eval" (YoloDetector)
-      * ``photo_enabled`` — start PhotoCache to pull UE camera frames
+      * ``photo_mode`` — 相机帧拉取模式：auto(默认)/on/off（见 ScenarioConfig）
+      * ``photo_enabled`` — 废弃布尔别名；与 photo_mode 冲突时 photo_mode 胜出
       * ``accuracy`` / ``noise_sigma_m`` — AccuracySimulator params
       * ``yolo_model_path`` — YOLO model path (eval mode)
     """
     from . import DEFAULT_SCENARIO_JSON
+    from competition.sdk.core.runner import resolve_photo_mode
     cfg = ScenarioConfig(
         scenario_name="search_track",
         scenario_path=scenario or DEFAULT_SCENARIO_JSON,
@@ -255,7 +258,8 @@ def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
         dry_run=dry_run, quiet=quiet,
         seed=seed, visualize=visualize, viz_dir=viz_dir,
         open_browser=open_browser,
-        run_mode=mode, photo_enabled=photo_enabled,
+        run_mode=mode,
+        photo_mode=resolve_photo_mode(photo_mode, photo_enabled),
         accuracy=accuracy, noise_sigma_m=noise_sigma_m,
         yolo_model_path=yolo_model_path,
     )

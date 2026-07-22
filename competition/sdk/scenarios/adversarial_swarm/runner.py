@@ -93,6 +93,9 @@ class AdversarialSwarmRunner(RunnerBase):
         self._scenario_cfg = self._load_scenario(cfg.scenario_path)
         self._initial_alive: int | None = None
         self._approx_zones: Tuple[ApproxZoneSpec, ...] | None = None
+        # _approximate_zones_cache 的签名缓存:zones 不变→命中,变了→刷新。
+        # 防止 briefing 永久冻结在 init() 阶段的临时 air_defense 上。
+        self._approx_zones_sig: str | None = None
         # uid → 选定路线名（prepare_scenario 选路时记录，inject_startup 用）
         self._route_assignment: Dict[str, str] = {}
 
@@ -131,15 +134,40 @@ class AdversarialSwarmRunner(RunnerBase):
         return p
 
     def _approximate_zones_cache(self, ws: WorldState) -> Tuple[ApproxZoneSpec, ...]:
-        """精确多边形→近似 bbox+面积，外扩20%。动态干扰区不进。"""
-        if self._approx_zones is not None:
+        """精确多边形→近似 bbox+面积，外扩20%。动态干扰区不进。
+
+        缓存语义:按 ws.zones 的"签名"缓存。同一份 zones 不重算(避免
+        per-tick 重复构建);zones 变化时刷新。这覆盖 regenerate_zones 场景:
+        引擎 init() 阶段用空 routes 生成临时 air_defense(coverage=random
+        退化),runner 注入 A* 路线后发 regenerate_zones,引擎 deferred
+        重建出最终 polygon。若首次缓存后永久冻结,选手 briefing 会一直
+        暴露临时 polygon 的近似 bbox(与实际杀伤区中心可差 ~1 km),
+        导致选手按错误位置避障。按签名缓存:zones 不变→命中(零开销),
+        zones 变了→刷新(整局通常只变 1 次)。
+        """
+        sig = self._zones_signature(ws)
+        if self._approx_zones is not None and sig == self._approx_zones_sig:
             return self._approx_zones
         out = []
         for z in ws.zones:
             if z.kind in _STATIC_ZONE_KINDS and not z.is_dynamic:
                 out.append(_to_approx_zone(z))
         self._approx_zones = tuple(out)
+        self._approx_zones_sig = sig
         return self._approx_zones
+
+    @staticmethod
+    def _zones_signature(ws: WorldState) -> str:
+        """Stable signature of the static zones in ws. Two ws with the same
+        static-zone polygons + alt bands produce the same signature, so the
+        cache hits; any change (e.g. regenerate_zones) invalidates it."""
+        parts = []
+        for z in ws.zones:
+            if z.kind in _STATIC_ZONE_KINDS and not z.is_dynamic:
+                # polygon + alt band fully determine the approx zone output.
+                poly = tuple((round(p[0], 9), round(p[1], 9)) for p in z.polygon)
+                parts.append((z.kind, poly, z.alt_min, z.alt_max))
+        return repr(sorted(parts, key=str))
 
     # ── scoring ───────────────────────────────────────────────────────
 
@@ -313,18 +341,21 @@ def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
         quiet: bool = False, sim_binary: str | None = None,
         seed: int = 0, visualize: bool = False, viz_dir: str | None = None,
         open_browser: bool = True,
-        mode: str = "train", photo_enabled: bool = False,
+        mode: str = "train", photo_mode: str = "auto",
+        photo_enabled: bool | None = None,
         accuracy: float = 0.85, noise_sigma_m: float = 50.0,
         yolo_model_path: str = "") -> dict:
     """Convenience entry point. ``seed`` (>0) randomizes the scene + zones.
 
     spec 032 perception params (与赛题一 search_track.run() 完全一致):
       * ``mode`` — "train" (AccuracySimulator) | "eval" (YoloDetector)
-      * ``photo_enabled`` — start PhotoCache to pull UE camera frames
+      * ``photo_mode`` — 相机帧拉取模式：auto(默认)/on/off（见 ScenarioConfig）
+      * ``photo_enabled`` — 废弃布尔别名；与 photo_mode 冲突时 photo_mode 胜出
       * ``accuracy`` / ``noise_sigma_m`` — AccuracySimulator params
       * ``yolo_model_path`` — YOLO model path (eval mode)
     """
     from . import DEFAULT_SCENARIO_JSON
+    from competition.sdk.core.runner import resolve_photo_mode
     scenario_path = scenario or DEFAULT_SCENARIO_JSON
     cfg = ScenarioConfig(
         scenario_name="adversarial_swarm",
@@ -335,7 +366,8 @@ def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
         start_sim_flag=start_sim, dry_run=dry_run, quiet=quiet,
         seed=seed, visualize=visualize, viz_dir=viz_dir,
         open_browser=open_browser,
-        run_mode=mode, photo_enabled=photo_enabled,
+        run_mode=mode,
+        photo_mode=resolve_photo_mode(photo_mode, photo_enabled),
         accuracy=accuracy, noise_sigma_m=noise_sigma_m,
         yolo_model_path=yolo_model_path,
         weather=read_weather(scenario_path),

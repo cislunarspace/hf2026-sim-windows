@@ -42,7 +42,7 @@ export interface SimControlConfig {
 }
 export interface PerceptionOverrides {
     mode?: 'train' | 'eval';
-    photo?: boolean;
+    photoMode?: 'auto' | 'on' | 'off';
     yoloModel?: string;
 }
 export declare class SimControlClient {

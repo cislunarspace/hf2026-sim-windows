@@ -107,8 +107,14 @@ def main(argv=None) -> int:
     run_p.add_argument("--mode", choices=["train", "eval"], default="train",
                        help="感知层运行模式：train=AccuracySimulator(概率采样)，"
                             "eval=YoloDetector(真实YOLO)")
-    run_p.add_argument("--photo", action="store_true",
-                       help="启用 PhotoCache（拉取 UE 渲染的相机帧）")
+    run_p.add_argument("--photo-mode", choices=["auto", "on", "off"],
+                       default="auto",
+                       help="相机帧拉取模式：auto(默认,非 dry_run 自动拉取 UE 渲染的"
+                            "PNG 相机帧)/on(显式启用)/off(禁用,obs.self.photo 恒 None)")
+    run_p.add_argument("--photo", action="store_true", default=False,
+                       help="（废弃别名）等价于 --photo-mode on，保留向后兼容")
+    run_p.add_argument("--no-photo", action="store_true", default=False,
+                       help="等价于 --photo-mode off，显式关闭相机帧拉取")
     run_p.add_argument("--accuracy", type=float, default=0.85,
                        help="AccuracySimulator 检出概率 (train 模式)")
     run_p.add_argument("--noise-sigma", type=float, default=50.0,
@@ -137,6 +143,15 @@ def main(argv=None) -> int:
         print(f"[cli] --noise-sigma {args.noise_sigma} below 30m floor; clamped to 30.0")
         args.noise_sigma = 30.0
 
+    # 相机模式归一化：--photo-mode 优先；--photo（=on）/--no-photo（=off）作兼容别名。
+    # 二者同时给时显式 --photo-mode 胜出；--photo 与 --no-photo 互斥后者优先（更安全）。
+    if args.no_photo:
+        photo_mode = "off"
+    elif args.photo:
+        photo_mode = "on" if args.photo_mode == "auto" else args.photo_mode
+    else:
+        photo_mode = args.photo_mode
+
     agent_cls = _load_agent_class(args.agent)
 
     common = dict(
@@ -150,7 +165,7 @@ def main(argv=None) -> int:
     if args.scenario == "search_track":
         from competition.sdk.scenarios.search_track import run
         run(agent_cls, duration=args.duration or 600.0, seed=args.seed,
-            mode=args.mode, photo_enabled=args.photo,
+            mode=args.mode, photo_mode=photo_mode,
             accuracy=args.accuracy, noise_sigma_m=args.noise_sigma,
             yolo_model_path=args.yolo_model,
             **viz_kwargs, **common)
@@ -158,14 +173,14 @@ def main(argv=None) -> int:
         from competition.sdk.scenarios.coop_decoy import run
         run(agent_cls, duration=args.duration or 600.0,
             seed=args.seed,
-            mode=args.mode, photo_enabled=args.photo,
+            mode=args.mode, photo_mode=photo_mode,
             accuracy=args.accuracy, noise_sigma_m=args.noise_sigma,
             yolo_model_path=args.yolo_model,
             **viz_kwargs, **common)
     elif args.scenario == "adversarial_swarm":
         from competition.sdk.scenarios.adversarial_swarm import run
         run(agent_cls, duration=args.duration or 600.0, seed=args.seed,
-            mode=args.mode, photo_enabled=args.photo,
+            mode=args.mode, photo_mode=photo_mode,
             accuracy=args.accuracy, noise_sigma_m=args.noise_sigma,
             yolo_model_path=args.yolo_model,
             **viz_kwargs, **common)

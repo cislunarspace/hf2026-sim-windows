@@ -10,8 +10,24 @@
 // 设计为纯逻辑 + 最小 redis 接口(便于注入 mock 测试)。二进制 image 用
 // ioredis 的 hgetBuffer(返回 Buffer,二进制安全)。
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.readNextFrame = readNextFrame;
 exports.readLatestFrame = readLatestFrame;
 const FRAME_KEY_RE = /^sync_camera:([^:]+):frame:(\d+)$/;
+/**
+ * 按游标读取指定 UAV 的下一帧(假设帧号单调递增)。
+ * 仅当 `sync_camera:{uid}:frame:{lastFrameNo+1}` 存在且含 image 时返回。
+ * @returns 下一帧;无下一帧时返回 null。
+ */
+async function readNextFrame(redis, uid, lastFrameNo) {
+    const nextNo = lastFrameNo + 1;
+    const key = `sync_camera:${uid}:frame:${nextNo}`;
+    const image = await redis.hgetBuffer(key, 'image');
+    if (!image)
+        return null; // 下一帧尚未写入或已过期
+    const simBuf = await redis.hgetBuffer(key, 'sim_time');
+    const simTime = simBuf ? parseFloat(simBuf.toString('utf8')) : NaN;
+    return { frameNo: nextNo, simTime, image };
+}
 /**
  * 定位并读取指定 UAV 的最新相机帧。
  * @returns 最新帧;无帧/缺 image 字段时返回 null。

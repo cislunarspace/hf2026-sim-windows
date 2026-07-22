@@ -18,13 +18,14 @@ Set-Location $PACK_ROOT
 $OPENSIM_REDIS_PORT = if ($env:OPENSIM_REDIS_PORT) { [int]$env:OPENSIM_REDIS_PORT } else { 6379 }
 $OPENSIM_WS_PORT    = if ($env:OPENSIM_WS_PORT)    { [int]$env:OPENSIM_WS_PORT }    else { 8080 }
 $OPENSIM_CAM_PORT   = if ($env:OPENSIM_CAM_PORT)   { [int]$env:OPENSIM_CAM_PORT }   else { 8081 }
+$OPENSIM_CAM_WS_PORT = if ($env:OPENSIM_CAM_WS_PORT) { [int]$env:OPENSIM_CAM_WS_PORT } else { 8082 }
 $OPENSIM_WEB_PORT   = if ($env:OPENSIM_WEB_PORT)   { [int]$env:OPENSIM_WEB_PORT }   else { 3000 }
 
 $RUN_DIR  = Join-Path $PACK_ROOT 'run'
 $LOG_DIR  = Join-Path $RUN_DIR 'logs'
 $PID_DIR  = Join-Path $RUN_DIR 'pids'
 
-$dirs = @($LOG_DIR, $PID_DIR, (Join-Path $RUN_DIR 'sim-output'), (Join-Path $RUN_DIR 'redis'))
+$dirs = @($LOG_DIR, $PID_DIR, (Join-Path $RUN_DIR 'redis'))
 foreach ($d in $dirs) {
     if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
 }
@@ -175,6 +176,7 @@ if ($LASTEXITCODE -ne 0) {
 $OPENSIM_REDIS_PORT = Pick-FreePort -Start $OPENSIM_REDIS_PORT -Label 'REDIS'
 $OPENSIM_WS_PORT    = Pick-FreePort -Start $OPENSIM_WS_PORT    -Label 'WS'
 $OPENSIM_CAM_PORT   = Pick-FreePort -Start $OPENSIM_CAM_PORT   -Label 'CAM'
+$OPENSIM_CAM_WS_PORT = Pick-FreePort -Start $OPENSIM_CAM_WS_PORT -Label 'CAMWS'
 $OPENSIM_WEB_PORT   = Pick-FreePort -Start $OPENSIM_WEB_PORT   -Label 'WEB'
 
 # CAM HTTP 必须与 WS 错开(bridge 内部 WS / CAM 用两个独立 listen)。
@@ -226,6 +228,7 @@ $envContent = @"
 `$env:OPENSIM_REDIS_PORT = '$OPENSIM_REDIS_PORT'
 `$env:OPENSIM_WS_PORT = '$OPENSIM_WS_PORT'
 `$env:OPENSIM_CAM_PORT = '$OPENSIM_CAM_PORT'
+`$env:OPENSIM_CAM_WS_PORT = '$OPENSIM_CAM_WS_PORT'
 `$env:OPENSIM_WEB_PORT = '$OPENSIM_WEB_PORT'
 "@
 # 用 .NET WriteAllText + UTF8Encoding($false) 写无 BOM,保持仓库约定(见 CLAUDE.md 坑清单#2)
@@ -286,7 +289,7 @@ if (-not (Test-Alive -PidFile $redisPidFile)) {
 # ── 2. bridge ──
 $bridgePidFile = Join-Path $PID_DIR 'bridge.pid'
 if (-not (Test-Alive -PidFile $bridgePidFile)) {
-    Write-Host "[2/4] 启动 bridge (WS :$OPENSIM_WS_PORT, CAM :$OPENSIM_CAM_PORT)..."
+    Write-Host "[2/4] 启动 bridge (WS :$OPENSIM_WS_PORT, CAM :$OPENSIM_CAM_PORT, CAMWS :$OPENSIM_CAM_WS_PORT)..."
     $nodeExe = Join-Path $PACK_ROOT 'bin\node.exe'
     $bridgeJs = Join-Path $PACK_ROOT 'visualization\dist-bridge\bridge\index.js'
     if (-not (Test-Path $nodeExe)) {
@@ -305,6 +308,7 @@ if (-not (Test-Alive -PidFile $bridgePidFile)) {
     $env:PYTHON_BIN = $python
     $env:WS_PORT = $OPENSIM_WS_PORT.ToString()
     $env:CAM_HTTP_PORT = $OPENSIM_CAM_PORT.ToString()
+    $env:CAM_WS_PORT = $OPENSIM_CAM_WS_PORT.ToString()
     $env:REDIS_HOST = '127.0.0.1'
     $env:REDIS_PORT = $OPENSIM_REDIS_PORT.ToString()
     # OPENSIM_RENDER_CTL_BIN 不设（opensim-render-ctl.exe 缺失，bridge 自动降级）

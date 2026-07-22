@@ -24,13 +24,14 @@ fi
 OPENSIM_REDIS_PORT="${OPENSIM_REDIS_PORT:-6379}"
 OPENSIM_WS_PORT="${OPENSIM_WS_PORT:-8080}"
 OPENSIM_CAM_PORT="${OPENSIM_CAM_PORT:-8081}"
+OPENSIM_CAM_WS_PORT="${OPENSIM_CAM_WS_PORT:-8082}"
 OPENSIM_WEB_PORT="${OPENSIM_WEB_PORT:-3000}"
 
 RUN_DIR="$PACK_ROOT/run"
 LOG_DIR="$RUN_DIR/logs"
 PID_DIR="$RUN_DIR/pids"
 
-mkdir -p "$LOG_DIR" "$PID_DIR" "$RUN_DIR/sim-output" "$RUN_DIR/redis"
+mkdir -p "$LOG_DIR" "$PID_DIR" "$RUN_DIR/redis"
 
 # ── 0. 关闭本包的现存进程（上次异常退出留下的孤儿），复刻 start_3dweb.sh step 1 ──
 echo ""
@@ -109,6 +110,7 @@ pick_free_port() {
 OPENSIM_REDIS_PORT=$(pick_free_port "$OPENSIM_REDIS_PORT" "REDIS")
 OPENSIM_WS_PORT=$(pick_free_port "$OPENSIM_WS_PORT" "WS")
 OPENSIM_CAM_PORT=$(pick_free_port "$OPENSIM_CAM_PORT" "CAM")
+OPENSIM_CAM_WS_PORT=$(pick_free_port "$OPENSIM_CAM_WS_PORT" "CAMWS")
 OPENSIM_WEB_PORT=$(pick_free_port "$OPENSIM_WEB_PORT" "WEB")
 
 # 端口顺延后，必须把实际 REDIS 端口同步到所有 scenario.json。
@@ -133,6 +135,7 @@ cat > "$RUN_DIR/env.sh" <<EOF
 OPENSIM_REDIS_PORT=$OPENSIM_REDIS_PORT
 OPENSIM_WS_PORT=$OPENSIM_WS_PORT
 OPENSIM_CAM_PORT=$OPENSIM_CAM_PORT
+OPENSIM_CAM_WS_PORT=$OPENSIM_CAM_WS_PORT
 OPENSIM_WEB_PORT=$OPENSIM_WEB_PORT
 EOF
 
@@ -160,14 +163,14 @@ fi
 
 # 2. bridge（用包内 node + 编译产物）
 if ! alive "$PID_DIR/bridge.pid"; then
-    echo "[2/4] 启动 bridge (WS :$OPENSIM_WS_PORT, CAM :$OPENSIM_CAM_PORT)..."
+    echo "[2/4] 启动 bridge (WS :$OPENSIM_WS_PORT, CAM :$OPENSIM_CAM_PORT, CAMWS :$OPENSIM_CAM_WS_PORT)..."
     export NODE_PATH="$PACK_ROOT/lib/node_modules"
     export OPENSIM_RENDER_CTL_BIN="$PACK_ROOT/opensim-render-ctl"
     export OPENSIM_RENDERERS_DIR="$PACK_ROOT/config/renderers"
     export OPENSIM_SCENARIOS_DIR="$PACK_ROOT/competition/scenarios"
     export OPENSIM_SIM_BIN="$PACK_ROOT/opensim-sim"
     # PYTHON_BIN 已在脚本开头定义（指向捆绑 python），此处无需重复 export。
-    export WS_PORT="$OPENSIM_WS_PORT" CAM_HTTP_PORT="$OPENSIM_CAM_PORT"
+    export WS_PORT="$OPENSIM_WS_PORT" CAM_HTTP_PORT="$OPENSIM_CAM_PORT" CAM_WS_PORT="$OPENSIM_CAM_WS_PORT"
     export REDIS_HOST="127.0.0.1" REDIS_PORT="$OPENSIM_REDIS_PORT"
     nohup "$PACK_ROOT/bin/node" "$PACK_ROOT/visualization/dist-bridge/bridge/index.js" \
         < /dev/null > "$LOG_DIR/bridge.log" 2>&1 &

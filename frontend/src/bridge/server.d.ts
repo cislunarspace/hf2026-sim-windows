@@ -5,6 +5,8 @@ export interface BridgeConfig {
     redisPassword?: string;
     /** 相机帧 HTTP 端点端口(默认 8081)。 */
     camHttpPort?: number;
+    /** 相机帧 WebSocket 推送端口(默认 8082)。WS 推送替代 HTTP 拉取,支持多路。 */
+    camWsPort?: number;
     scenariosDir?: string;
     userAlgorithmsDir?: string;
     pythonBin?: string;
@@ -18,14 +20,21 @@ export declare class RedisWebSocketBridge {
     private camHttpServer;
     private camRedis;
     private frameStore;
+    private cameraWsServer;
     private clients;
     private subscriptions;
     private config;
     private simManager;
     constructor(config: BridgeConfig);
     start(): Promise<void>;
-    /** 启动相机帧 HTTP 端点 GET /cam/:uid/latest(消费 sync_camera hash)。 */
-    private startCameraHttp;
+    /**
+     * 启动相机帧服务:
+     *   - camHttpServer(:8081):仅服务 /api/ 仿真控制端点(原 camera HTTP 端点
+     *     已迁移到 WS 推送,见下方 cameraWsServer)。
+     *   - frameStore:后台游标追帧,WS 推送的数据源。
+     *   - cameraWsServer(:8082):相机帧 WS 推送,frameStore 新帧 → broadcast。
+     */
+    private startCameraService;
     stop(): Promise<void>;
     private handleClientMessage;
     private handleSubscribe;

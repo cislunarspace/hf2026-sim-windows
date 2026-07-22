@@ -144,8 +144,9 @@ class SelfView:
     gimbal_tilt: float
     gimbal_fov_deg: float
     detection: Detection
-    # spec 029: photo — 最新相机帧 JPEG bytes（UE 渲染，redis sync_camera）。
-    # 无渲染（赛题二/三、dry_run、UE 未 assign）时为 None。
+    # spec 029: photo — 最新相机帧 PNG bytes（UE 渲染，redis sync_camera）。
+    # 默认 photo_mode=auto：非 dry_run 且 Redis 有帧时由 PhotoCache 注入；
+    # 无渲染（dry_run、UE 未 assign、Redis 暂无帧）时为 None。
     photo: Optional[bytes] = None
     # spec 029 预留：多目标检测列表（赛题二/三将来上视觉通路时用）。默认空。
     detections: Tuple["Detection", ...] = ()

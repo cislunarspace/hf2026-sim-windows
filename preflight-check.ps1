@@ -284,7 +284,7 @@ else { Result "Windows build $build" 'FAIL' 'Windows 10+ required for bundled Py
 # [14] Write permission to run/ output dirs
 Write-Log ""
 Write-Log "[14] Write permission to run directories" Yellow
-$testDirs = @('run\logs', 'run\sim-output', 'run\pids', 'run\redis')
+$testDirs = @('run\logs', 'run\pids', 'run\redis')
 foreach ($d in $testDirs) {
     $p = Join-Path $PACK_ROOT $d
     try {

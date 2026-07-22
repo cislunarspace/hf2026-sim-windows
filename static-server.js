@@ -17,6 +17,7 @@ const port = parseInt(process.argv[3] || '3000', 10);
 
 const wsPort = parseInt(process.env.WS_PORT || '8080', 10);
 const camPort = parseInt(process.env.CAM_HTTP_PORT || '8081', 10);
+const camWsPort = parseInt(process.env.CAM_WS_PORT || '8082', 10);
 const camBaseUrlEnv = process.env.CAM_BASE_URL || '';
 
 const MIME = {
@@ -36,6 +37,7 @@ const injectScript = `<script>(function(){
 window.__OPENSIM__ = window.__OPENSIM__ || {};
 window.__OPENSIM__.wsPort = ${JSON.stringify(wsPort)};
 window.__OPENSIM__.camPort = ${JSON.stringify(camPort)};
+window.__OPENSIM__.camWsPort = ${JSON.stringify(camWsPort)};
 window.__OPENSIM__.camBaseUrl = ${JSON.stringify(camBaseUrlEnv)};
 })();</script>`;
 
@@ -82,5 +84,5 @@ function sendHtml(htmlBuf, res) {
 
 server.listen(port, () => {
     console.log(`Static server: ${rootResolved} on :${port}`);
-    console.log(`  Injected __OPENSIM__.wsPort=${wsPort} camPort=${camPort} camBaseUrl="${camBaseUrlEnv}"`);
+    console.log(`  Injected __OPENSIM__.wsPort=${wsPort} camPort=${camPort} camWsPort=${camWsPort} camBaseUrl="${camBaseUrlEnv}"`);
 });

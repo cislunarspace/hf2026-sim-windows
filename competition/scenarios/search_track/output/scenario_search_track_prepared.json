@@ -8,7 +8,7 @@
     "start_time_str": "2026-06-26 08:00:00",
     "redis_command_channel": "sim:commands",
     "redis_state_channel": "sim:state",
-    "redis_port": 6380
+    "redis_port": 6381
   },
   "weather": {
     "type": "Rain"
@@ -20,8 +20,8 @@
       "type": "TargetVehicle",
       "enabled": true,
       "params": {
-        "initial_latitude": 26.9959375,
-        "initial_longitude": 125.01052083333336,
+        "initial_latitude": 27.008854,
+        "initial_longitude": 124.99691,
         "initial_altitude": 0.0
       },
       "components": {

@@ -121,10 +121,16 @@ function createSimControlHandler(deps) {
                     return;
                 }
                 const agent = typeof body.agent === 'string' && body.agent.trim() ? body.agent.trim() : undefined;
-                // Spec 033: 感知参数白名单/类型守卫。未提供或非法值 → undefined（不追加 CLI flag）。
+                // Spec 033 + 相机流自动启用: 感知参数白名单/类型守卫。
+                // photoMode 三态优先；旧 body.photo 布尔回退映射（true→on, false→off）；
+                // 二者都未提供 → 'auto'（带 UE 标准环境自动拉取相机帧）。
                 const mode = body.mode === 'eval' ? 'eval'
                     : body.mode === 'train' ? 'train' : undefined;
-                const photo = typeof body.photo === 'boolean' ? body.photo : undefined;
+                const photoMode = body.photoMode === 'auto' || body.photoMode === 'on' || body.photoMode === 'off'
+                    ? body.photoMode
+                    : typeof body.photo === 'boolean'
+                        ? (body.photo ? 'on' : 'off')
+                        : 'auto';
                 const yoloModel = typeof body.yoloModel === 'string' && body.yoloModel.trim()
                     ? body.yoloModel.trim() : undefined;
                 // 防真值泄漏钳制：accuracy ∈ [0, 0.9]（杜绝 acc=1.0 退化等价真值），
@@ -151,7 +157,7 @@ function createSimControlHandler(deps) {
                         defaultDuration: sc.defaultDuration,
                         scenarioJson: sc.scenarioJson,
                         agent, // 选手算法（undefined 则回退 baselineAgent）
-                        mode, photo, yoloModel, // Spec 033: 感知参数透传
+                        mode, photoMode, yoloModel, // 感知参数透传（photoMode 三态，默认 auto）
                         accuracy, noiseSigma, // 防泄漏钳制后的 accuracy/noise（可选）
                         routeSeed, // 路线种子(可选): --seed 透传给后端
                     }, {

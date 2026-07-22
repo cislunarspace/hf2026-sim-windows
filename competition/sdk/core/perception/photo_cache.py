@@ -21,7 +21,7 @@ _FRAME_RE = re.compile(r"frame:(\d+)$")
 
 
 class PhotoCache:
-    """后台拉取每架 UAV 最新相机帧 JPEG bytes。
+    """后台拉取每架 UAV 最新相机帧 PNG bytes。
 
     Args:
         redis_client: 已连接的 redis 客户端（或 FakeRedis）。

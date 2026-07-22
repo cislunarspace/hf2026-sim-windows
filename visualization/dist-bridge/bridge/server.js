@@ -8,10 +8,10 @@ const http_1 = __importDefault(require("http"));
 const ws_1 = __importDefault(require("ws"));
 const redis_1 = require("redis");
 const ioredis_1 = __importDefault(require("ioredis"));
-const camera_endpoint_1 = require("./camera-endpoint");
 const sim_control_endpoint_1 = require("./sim-control-endpoint");
 const sim_process_manager_1 = require("./sim-process-manager");
 const frame_cache_1 = require("./frame-cache");
+const camera_ws_server_1 = require("./camera-ws-server");
 const constants_1 = require("../rendering/constants");
 class RedisWebSocketBridge {
     constructor(config) {
@@ -20,6 +20,7 @@ class RedisWebSocketBridge {
         this.camHttpServer = null;
         this.camRedis = null;
         this.frameStore = null;
+        this.cameraWsServer = null;
         this.clients = new Set();
         this.subscriptions = new Map();
         // Spec 024: 仿真会话编排器(子进程管理)。
@@ -82,11 +83,17 @@ class RedisWebSocketBridge {
         else {
             console.log('Sim session manager disabled (OPENSIM_SCENARIOS_DIR unset)');
         }
-        // 022: 相机帧 HTTP 端点(ioredis 二进制安全读 hash image)。
-        await this.startCameraHttp();
+        // 022: 相机帧服务(WS 推送 + HTTP /api/ 仿真控制)。
+        await this.startCameraService();
     }
-    /** 启动相机帧 HTTP 端点 GET /cam/:uid/latest(消费 sync_camera hash)。 */
-    async startCameraHttp() {
+    /**
+     * 启动相机帧服务:
+     *   - camHttpServer(:8081):仅服务 /api/ 仿真控制端点(原 camera HTTP 端点
+     *     已迁移到 WS 推送,见下方 cameraWsServer)。
+     *   - frameStore:后台游标追帧,WS 推送的数据源。
+     *   - cameraWsServer(:8082):相机帧 WS 推送,frameStore 新帧 → broadcast。
+     */
+    async startCameraService() {
         const port = this.config.camHttpPort ?? 8081;
         this.camRedis = new ioredis_1.default({
             host: this.config.redisHost,
@@ -94,20 +101,14 @@ class RedisWebSocketBridge {
             password: this.config.redisPassword,
             // 仅读,不订阅。
         });
-        // 后台缓存层:KEYS+hgetBuffer 每 200ms 一次(5Hz),
-        // HTTP handler 直接从内存返回(0 Redis 调用)。
-        // 避免 30Hz HTTP × 800ms KEYS 把 Redis 单线程打满。
+        // 后台缓存层:按 uid 游标追帧(优先 N+1 hget),每 ~33ms 刷新一次,
+        // 与 UE 30Hz 写帧对齐。WS 推送 server 据此 broadcast 给订阅者。
         const frameStore = new frame_cache_1.CachedFrameStore({
             keys: (p) => this.camRedis.keys(p),
             hgetBuffer: (k, f) => this.camRedis.hgetBuffer(k, f),
-        });
+        }, { refreshMs: 33 });
         frameStore.start();
         this.frameStore = frameStore;
-        const handler = (0, camera_endpoint_1.createCameraHandler)({
-            keys: (p) => this.camRedis.keys(p),
-            hgetBuffer: (k, f) => this.camRedis.hgetBuffer(k, f),
-            frameStore, // 注入缓存;camera-endpoint 优先用缓存,缺省回落 readLatestFrame
-        });
         const simHandler = this.simManager && this.config.scenariosDir
             ? (0, sim_control_endpoint_1.createSimControlHandler)({
                 manager: this.simManager,
@@ -122,17 +123,35 @@ class RedisWebSocketBridge {
             : null;
         this.camHttpServer = http_1.default.createServer((req, res) => {
             const url = req.url || '';
-            const dispatch = url.startsWith('/api/') && simHandler ? simHandler : handler;
-            dispatch(req, res).catch((err) => {
-                console.error('http handler error:', err);
-                if (!res.headersSent) {
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: 'internal' }));
-                }
-            });
+            // 仅服务 /api/ 仿真控制;相机帧已走 WS 推送(见下方 cameraWsServer)。
+            if (url.startsWith('/api/') && simHandler) {
+                simHandler(req, res).catch((err) => {
+                    console.error('http handler error:', err);
+                    if (!res.headersSent) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'internal' }));
+                    }
+                });
+                return;
+            }
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'not_found' }));
         });
         await new Promise((resolve) => this.camHttpServer.listen(port, resolve));
-        console.log(`Camera frame HTTP endpoint listening on port ${port} (GET /cam/:uid/latest)`);
+        console.log(`Camera HTTP (sim-control /api/) listening on port ${port}`);
+        // 022: 相机帧 WebSocket 推送 server(替代 HTTP 拉取,支持多路 + 10 路目标)。
+        // frameStore 刷新出新帧时,WS server 主动 broadcast 给订阅该 uid 的客户端。
+        // 前端一条长连接,无 HTTP 短连接的连接池饱和/700ms 尖刺问题。
+        const wsPort = this.config.camWsPort ?? 8082;
+        this.cameraWsServer = new camera_ws_server_1.CameraWsServer({
+            port: wsPort,
+            frameStore,
+            redis: {
+                keys: (p) => this.camRedis.keys(p),
+                hgetBuffer: (k, f) => this.camRedis.hgetBuffer(k, f),
+            },
+        });
+        await this.cameraWsServer.start();
     }
     async stop() {
         if (this.simManager) {
@@ -146,6 +165,10 @@ class RedisWebSocketBridge {
         if (this.camHttpServer) {
             await new Promise((resolve) => this.camHttpServer.close(() => resolve()));
             this.camHttpServer = null;
+        }
+        if (this.cameraWsServer) {
+            await this.cameraWsServer.stop();
+            this.cameraWsServer = null;
         }
         if (this.frameStore) {
             this.frameStore.stop();

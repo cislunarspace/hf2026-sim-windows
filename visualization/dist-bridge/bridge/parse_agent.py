@@ -58,7 +58,7 @@ def main() -> int:
     py_file = sys.argv[1]
     targets = [t.strip() for t in sys.argv[2].split(",") if t.strip()]
     try:
-        with open(py_file, "r", encoding="utf-8") as f:
+        with open(py_file, "r", encoding="utf-8-sig") as f:
             src = f.read()
         tree = ast.parse(src, filename=py_file)
     except (SyntaxError, OSError) as e:

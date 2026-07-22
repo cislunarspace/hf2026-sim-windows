@@ -16,6 +16,12 @@ export interface ManagedProcess {
     onExit(cb: (code: number | null) => void): void;
     /** 发送信号。Windows 上 SIGTERM/SIGKILL 均强制终止。 */
     kill(signal: string): boolean;
+    /**
+     * 探测进程是否仍存活(kill(pid,0) 语义)。exit 事件可能因 detached+unref
+     * 丢失,watchdog 用此方法兜底检测 competition 真正退出。
+     * exited 已置 true 时返回 false;否则向 pid 发信号 0 探测。
+     */
+    isAlive(): boolean;
 }
 export interface SimManagerDeps {
     spawn: (cmd: string, args: string[], opts?: {
@@ -49,7 +55,7 @@ export interface StartScenario {
     /** 选手自定义算法（'module:Class'）；优先于 baselineAgent。undefined 则用 baseline。 */
     agent?: string;
     mode?: 'train' | 'eval';
-    photo?: boolean;
+    photoMode?: 'auto' | 'on' | 'off';
     yoloModel?: string;
     accuracy?: number;
     noiseSigma?: number;
@@ -82,6 +88,12 @@ export declare class SimProcessManager {
     private readyCleanup;
     /** 036: ready 帧超时定时器。 */
     private readyTimeout;
+    /**
+     * 进程存活 watchdog 定时器:每 2 秒探测 competition 进程是否仍存活。
+     * 兜底 child exit 事件因 detached+unref 丢失的情况(实测 competition
+     * 10 分钟自然结束后 exit 事件未触发,UE 成孤儿)。检测到进程死亡即触发清理。
+     */
+    private watchdogTimer;
     constructor(deps: SimManagerDeps);
     getState(): SessionState;
     /** 订阅 sim:state 频道,感知外部启动的仿真(命令行启动)。 */
@@ -104,6 +116,7 @@ export declare class SimProcessManager {
     /**
      * Spec 028: 调 render-ctl plan → spawn UE 进程 → 装配 RenderScheduler。
      * 全程 best-effort:失败只 WARN,不抛错(仿真照跑)。
+     * UE stdout/stderr 重定向到 outDir/ue_<rendererId>.log。
      */
     private startRenderers;
     /** spawn 单个 UE 实例(按 plan 的 argv/cwd/env)。失败返回 null(降级)。 */
@@ -111,6 +124,23 @@ export declare class SimProcessManager {
     private warn;
     /** 注册子进程退出监听:非 stop 上下文退出 → error。 */
     private watchExit;
+    /**
+     * competition 退出的统一清理路径(由 exit 事件或 watchdog 触发)。
+     * code=null 表示 watchdog 探测到进程消失但未收到 exit 事件(按非 0 处理)。
+     *
+     * 关键:无论 session 当前状态如何,只要 competition 进程没了就必杀 UE。
+     * 旧逻辑的 `status === idle/stopping` guard 会在 sim:state 提前把状态切到
+     * idle 时跳过清理,导致 UE 孤儿。孤儿 UE 占 GPU/CPU 远比重复清理危害大。
+     */
+    private handleCompetitionExit;
+    /**
+     * 启动 competition 存活 watchdog(spawn 后调用)。
+     * 兜底 child exit 事件因 detached+unref 丢失的情况:每 2 秒用
+     * kill(pid,0) 探测 competition 进程,消失即触发清理。
+     */
+    private startWatchdog;
+    private stopWatchdog;
+    private watchdogTick;
     /** 暂停:发 pause 命令给引擎(competition 主循环空转检测自动跟随)。 */
     pause(): Promise<SessionState>;
     resume(): Promise<SessionState>;
@@ -118,7 +148,18 @@ export declare class SimProcessManager {
     stop(): Promise<SessionState>;
     /** 停止订阅 sim:state 频道(bridge 停止时调用)。 */
     unsubscribe(): Promise<void>;
-    /** Spec 028: 两段式 kill 所有 UE 进程(SIGTERM → stopGrace → SIGKILL)。 */
+    /**
+     * Spec 028: 两段式 kill 所有 UE 进程(SIGTERM → stopGrace → SIGKILL)。
+     *
+     * 关键:bridge spawn 的是 `bash run.sh`,run.sh 再 spawn testwl.sh,testwl.sh
+     * 再 spawn 真正的 UE 二进制。bash 收到 SIGTERM 退出后,其 exit 事件触发
+     * (`exited=true`),但**孙子进程 UE 仍在同一进程组里活着**(被 init 收养)。
+     * 旧逻辑用 `exited` 判断是否要 SIGKILL → 只看 bash,误以为全干净,UE 成孤儿。
+     *
+     * 修复:SIGTERM 后用 isAlive() 探测(而非 exited),且 SIGKILL 阶段对每个曾
+     * spawn 的进程**无条件**发信号(process.kill(-pgid) 给整个进程组,杀掉所有
+     * 后代无论多深,无论 bash 是否已 exited)。
+     */
     private killUeProcs;
     /** 两段式:SIGTERM → stopGrace → SIGKILL。 */
     private killProc;

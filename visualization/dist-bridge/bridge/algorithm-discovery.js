@@ -58,15 +58,29 @@ function parsePyFile(pyFile, baseClasses, pythonBin, scriptPath) {
         proc.stdout.on('data', (d) => { stdout += d.toString(); });
         proc.stderr.on('data', (d) => { stderr += d.toString(); });
         proc.on('error', () => resolve({ found: false, error: 'spawn_failed' }));
-        proc.on('close', () => {
+        proc.on('close', (code) => {
             // parse_agent.py 只输出一行 JSON; 容错:取最后一行非空。
             const lines = stdout.split('\n').filter((l) => l.trim());
             const last = lines[lines.length - 1];
+            // 未产生任何 stdout:几乎总是脚本不存在或 python 失败,把常见信号分类上报。
+            if (!last) {
+                if (code === 2) {
+                    resolve({ found: false, error: `script_not_found: ${stderr.slice(0, 200) || scriptPath}` });
+                    return;
+                }
+                // python 自身报 "can't open file '<scriptPath>'" / "No such file" → 脚本不存在。
+                if (/No such file|cannot open file|can't open file|找不到文件/i.test(stderr)) {
+                    resolve({ found: false, error: `script_not_found: ${scriptPath}` });
+                    return;
+                }
+                resolve({ found: false, error: `empty_output: rc=${code} stderr=${stderr.slice(0, 200)}` });
+                return;
+            }
             try {
-                resolve(JSON.parse(last ?? ''));
+                resolve(JSON.parse(last));
             }
             catch {
-                resolve({ found: false, error: `bad_json: ${stderr.slice(0, 200)}` });
+                resolve({ found: false, error: `bad_json: ${stderr.slice(0, 200) || last.slice(0, 200)}` });
             }
         });
     });

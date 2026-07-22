@@ -31,6 +31,7 @@ function loadConfig() {
         redisPort: parseInt(process.env.REDIS_PORT || '6379'),
         redisPassword: process.env.REDIS_PASSWORD || undefined,
         camHttpPort: parseInt(process.env.CAM_HTTP_PORT || '8081'),
+        camWsPort: parseInt(process.env.CAM_WS_PORT || '8082'),
         // competition 场景目录(默认 <repo>/competition/scenarios)。
         scenariosDir: process.env.OPENSIM_SCENARIOS_DIR ||
             path_1.default.join(REPO_ROOT, 'competition', 'scenarios'),
@@ -57,6 +58,9 @@ async function main() {
     // Spec 028: 确认 UE 渲染器编排是否武装(renderCtlBinary 缺省则休眠)。
     console.log(`  Render-ctl: ${config.renderCtlBinary ?? '(disabled — opensim-render-ctl not found)'}`);
     console.log(`  Renderers dir: ${config.renderersDir ?? '(default)'}`);
+    // Spec 020: 把启动用 python 一并打到 banner,排查"前端刷新不出参赛者算法"
+    // 时立刻能看出用的是包内捆绑 python 还是系统 python(script 不存在会静默丢)。
+    console.log(`  Python: ${config.pythonBin}`);
     const bridge = new server_1.RedisWebSocketBridge(config);
     process.on('SIGINT', async () => {
         console.log('\nShutting down bridge...');
