@@ -1,0 +1,9 @@
+{
+  "_comment": "6路相机性能测试配置：minimal主视口 + saveimage + scenario_perf_6cam",
+  "save_image": {
+    "enabled": true,
+    "output_dir": ""
+  },
+  "viewport_mode": "minimal",
+  "scenario_override": ""
+}

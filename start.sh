@@ -94,24 +94,35 @@ port_in_use() {
         (echo >/dev/tcp/127.0.0.1/"$p") >/dev/null 2>&1
     fi
 }
+# ASSIGNED_PORTS 累积本脚本已分配出去的端口。pick_free_port 只检测系统 listen 端口,
+# 看不到"本脚本即将启动但还没 listen"的端口;若不传递已分配集合,5 个端口会被分到
+# 同一空闲端口(如 8080/8081 被占用时 WS 与 CAM_WS 都会落在 8082,bridge 启动后
+# CameraWs listen 报 EADDRINUSE,相机画面起不来)。
+ASSIGNED_PORTS=()
+port_taken() {
+    # $1 = 端口。已被系统 listen 或已被本脚本分配则返回 0(真)。
+    local p="$1" taken
+    for taken in "${ASSIGNED_PORTS[@]}"; do [ "$taken" = "$p" ] && return 0; done
+    port_in_use "$p"
+}
 pick_free_port() {
     local start="$1" label="$2" p
     p="$start"
-    while port_in_use "$p" && [ "$p" -lt "$((start + 100))" ]; do
+    while port_taken "$p" && [ "$p" -lt "$((start + 100))" ]; do
         p=$((p + 1))
     done
-    if port_in_use "$p"; then
+    if port_taken "$p"; then
         echo "✗ $label 端口 ${start}~$((start+100)) 全被占用，请用环境变量指定" >&2
         exit 1
     fi
     [ "$p" != "$start" ] && echo "  $label 端口 $start 被占用，改用 $p" >&2
     echo "$p"
 }
-OPENSIM_REDIS_PORT=$(pick_free_port "$OPENSIM_REDIS_PORT" "REDIS")
-OPENSIM_WS_PORT=$(pick_free_port "$OPENSIM_WS_PORT" "WS")
-OPENSIM_CAM_PORT=$(pick_free_port "$OPENSIM_CAM_PORT" "CAM")
-OPENSIM_CAM_WS_PORT=$(pick_free_port "$OPENSIM_CAM_WS_PORT" "CAMWS")
-OPENSIM_WEB_PORT=$(pick_free_port "$OPENSIM_WEB_PORT" "WEB")
+OPENSIM_REDIS_PORT=$(pick_free_port "$OPENSIM_REDIS_PORT" "REDIS");  ASSIGNED_PORTS+=("$OPENSIM_REDIS_PORT")
+OPENSIM_WS_PORT=$(pick_free_port "$OPENSIM_WS_PORT" "WS");           ASSIGNED_PORTS+=("$OPENSIM_WS_PORT")
+OPENSIM_CAM_PORT=$(pick_free_port "$OPENSIM_CAM_PORT" "CAM");        ASSIGNED_PORTS+=("$OPENSIM_CAM_PORT")
+OPENSIM_CAM_WS_PORT=$(pick_free_port "$OPENSIM_CAM_WS_PORT" "CAMWS"); ASSIGNED_PORTS+=("$OPENSIM_CAM_WS_PORT")
+OPENSIM_WEB_PORT=$(pick_free_port "$OPENSIM_WEB_PORT" "WEB");        ASSIGNED_PORTS+=("$OPENSIM_WEB_PORT")
 
 # 端口顺延后，必须把实际 REDIS 端口同步到所有 scenario.json。
 # 引擎（opensim-sim）从 scenario.json 读 redis_port，不读环境变量；

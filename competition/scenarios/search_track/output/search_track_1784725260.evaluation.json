@@ -1,0 +1,2847 @@
+{
+  "profile": "uav_search_track_car",
+  "K": 1,
+  "dwell_target_s": 1e+18,
+  "grace_s": 2.0,
+  "n_targets": 1,
+  "n_destroyed": 0,
+  "completion_rate": null,
+  "kill_rate": 0.0,
+  "per_target": {
+    "10001": {
+      "destroyed": false,
+      "destroyed_at_s": null,
+      "dwell_accumulated_s": 43.266666650772095,
+      "resets": 0,
+      "coop_ticks": 545
+    }
+  },
+  "per_decoy": {},
+  "mission_done_time_s": null,
+  "undestroyed_decoy_misid_s": 0.0,
+  "targeting_rmse_m": 22.085280023540783,
+  "n_reports": 30,
+  "alive_rate": null,
+  "tick_count": 560,
+  "dimension_scores": {
+    "accuracy": 2.32
+  },
+  "base_score": 2.32,
+  "penalty": 0.0,
+  "penalty_breakdown": {
+    "proximity": {
+      "count": 0,
+      "unit": 0.0
+    },
+    "boundary": {
+      "count": 0,
+      "unit": 0.0
+    },
+    "cap": 0.0
+  },
+  "total_score": 2.32,
+  "passed": false,
+  "score_timeline": [
+    {
+      "sim_time": 0.6500000953674316,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 0.7333333492279053,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 0.7999999523162842,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 0.8833334445953369,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 0.9500000476837158,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.0166666507720947,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.0833332538604736,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.1500000953674316,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.2166666984558105,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.2999999523162842,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.3666667938232422,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.4500000476837158,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.5166666507720947,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.6166667938232422,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.683333396911621,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.7333333492279053,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.7999999523162842,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.883333444595337,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 1.9500000476837158,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.0166666507720947,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.0999999046325684,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.1500000953674316,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.2333333492279053,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.299999952316284,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.366666793823242,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.433333396911621,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.5166666507720947,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.5999999046325684,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.6666667461395264,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.75,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.799999952316284,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.9000000953674316,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 2.950000047683716,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.0166666507720947,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.0833332538604736,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.133333444595337,
+      "total_score": 0.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.2333333492279053,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.3499999046325684,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.433333396911621,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.5,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.549999952316284,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.5833332538604736,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.6666667461395264,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.75,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.816666603088379,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 3.9666666984558105,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.049999952316284,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.116666793823242,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.183333396911621,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.25,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.349999904632568,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.400000095367432,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.483333349227905,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.5333333015441895,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.599999904632568,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.683333396911621,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.75,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.833333253860474,
+      "total_score": 0.06,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.900000095367432,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 4.9666666984558105,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.066666603088379,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.133333444595337,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.183333396911621,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.266666650772095,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.333333253860474,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.433333396911621,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.516666650772095,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.583333253860474,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.666666746139526,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.75,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.816666603088379,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.883333444595337,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 5.9666666984558105,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.0,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.083333253860474,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.200000047683716,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.25,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.349999904632568,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.400000095367432,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.483333349227905,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.566666603088379,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.633333444595337,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.700000047683716,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.799999952316284,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.866666793823242,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 6.933333396911621,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.083333253860474,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.150000095367432,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.25,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.316666603088379,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.366666793823242,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.416666746139526,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.566666603088379,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.616666793823242,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.7166666984558105,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.7833333015441895,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.866666793823242,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 7.933333396911621,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.0,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.016666650772095,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.183333396911621,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.233333349227905,
+      "total_score": 0.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.349999904632568,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.433333396911621,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.5,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.583333253860474,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.666666746139526,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.700000047683716,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.733333349227905,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.766666650772095,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.799999952316284,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.833333253860474,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.866666793823242,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.916666746139526,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 8.96666669845581,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.03333330154419,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.099999904632568,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.183333396911621,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.233333349227905,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.266666650772095,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.349999904632568,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.433333396911621,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.549999952316284,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.599999904632568,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.666666746139526,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 9.883333444595337,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.083333253860474,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.116666793823242,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.133333444595337,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.183333396911621,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.266666650772095,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.316666603088379,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.450000047683716,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.5,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.633333444595337,
+      "total_score": 0.18,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.799999952316284,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.900000095367432,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.950000047683716,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 10.983333349227905,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 11.133333444595337,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 11.200000047683716,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 11.25,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 11.349999904632568,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 11.400000095367432,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 11.549999952316284,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 11.666666746139526,
+      "total_score": 0.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 11.900000095367432,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.0,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.03333330154419,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.066666603088379,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.116666793823242,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.166666746139526,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.366666793823242,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.483333349227905,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.53333330154419,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.566666603088379,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.733333349227905,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.799999952316284,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.833333253860474,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 12.916666746139526,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.0,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.099999904632568,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.21666669845581,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.28333330154419,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.366666793823242,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.433333396911621,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.516666650772095,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.583333253860474,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.666666746139526,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.733333349227905,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.816666603088379,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.883333444595337,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 13.950000047683716,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.03333330154419,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.099999904632568,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.183333396911621,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.266666650772095,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.349999904632568,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.433333396911621,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.5,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.549999952316284,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.633333444595337,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.700000047683716,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.766666650772095,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.833333253860474,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.900000095367432,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 14.96666669845581,
+      "total_score": 0.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.116666793823242,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.150000095367432,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.266666650772095,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.299999952316284,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.433333396911621,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.549999952316284,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.650000095367432,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.71666669845581,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.78333330154419,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.849999904632568,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.900000095367432,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 15.950000047683716,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.03333330154419,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.166666746139526,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.266666650772095,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.40000009536743,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.450000047683716,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.483333349227905,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.65000009536743,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.700000047683716,
+      "total_score": 0.5,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.766666650772095,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.799999952316284,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.883333444595337,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 16.983333349227905,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.03333330154419,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.083333253860474,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.09999990463257,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.15000009536743,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.18333339691162,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.21666669845581,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.43333339691162,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.549999952316284,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.700000047683716,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.766666650772095,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.81666660308838,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 17.866666793823242,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.0,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.049999952316284,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.233333349227905,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.266666650772095,
+      "total_score": 0.62,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.366666793823242,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.450000047683716,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.5,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.65000009536743,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.766666650772095,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.81666660308838,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.866666793823242,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.93333339691162,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 18.983333349227905,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.049999952316284,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.15000009536743,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.299999952316284,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.383333444595337,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.450000047683716,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.5,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.616666793823242,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.71666669845581,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.75,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.90000009536743,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 19.950000047683716,
+      "total_score": 0.76,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.03333330154419,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.116666793823242,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.166666746139526,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.266666650772095,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.34999990463257,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.416666746139526,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.450000047683716,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.583333253860474,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.666666746139526,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.75,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.766666650772095,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.833333253860474,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 20.916666746139526,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.016666650772095,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.049999952316284,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.266666650772095,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.34999990463257,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.450000047683716,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.483333349227905,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.616666793823242,
+      "total_score": 0.77,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.700000047683716,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.766666650772095,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.883333444595337,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 21.96666669845581,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.03333330154419,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.083333253860474,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.21666669845581,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.25,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.31666660308838,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.40000009536743,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.483333349227905,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.53333330154419,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.633333444595337,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.700000047683716,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.71666669845581,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.866666793823242,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 22.93333339691162,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.049999952316284,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.116666793823242,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.166666746139526,
+      "total_score": 0.8,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.28333330154419,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.366666793823242,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.43333339691162,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.5,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.56666660308838,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.633333444595337,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.700000047683716,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.75,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.766666650772095,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 23.883333444595337,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.016666650772095,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.09999990463257,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.15000009536743,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.200000047683716,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.233333349227905,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.416666746139526,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.5,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.583333253860474,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.633333444595337,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.78333330154419,
+      "total_score": 0.95,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 24.866666793823242,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.016666650772095,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.049999952316284,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.116666793823242,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.25,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.333333253860474,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.40000009536743,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.483333349227905,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.549999952316284,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.616666793823242,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.71666669845581,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.78333330154419,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.81666660308838,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.883333444595337,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 25.983333349227905,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.03333330154419,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.09999990463257,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.133333444595337,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.21666669845581,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.40000009536743,
+      "total_score": 1.03,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.450000047683716,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.5,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.516666650772095,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.59999990463257,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.733333349227905,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 26.950000047683716,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.03333330154419,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.09999990463257,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.166666746139526,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.21666669845581,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.366666793823242,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.46666669845581,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.5,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.56666660308838,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.65000009536743,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.68333339691162,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.733333349227905,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 27.799999952316284,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.0,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.03333330154419,
+      "total_score": 1.14,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.09999990463257,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.133333444595337,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.233333349227905,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.31666660308838,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.366666793823242,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.416666746139526,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.450000047683716,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.56666660308838,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.633333444595337,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.68333339691162,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.71666669845581,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.733333349227905,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.833333253860474,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.866666793823242,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 28.950000047683716,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.03333330154419,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.09999990463257,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.15000009536743,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.28333330154419,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.31666660308838,
+      "total_score": 1.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.383333444595337,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.43333339691162,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.483333349227905,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.53333330154419,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.633333444595337,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.833333253860474,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 29.983333349227905,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 30.15000009536743,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 30.43333339691162,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 30.53333330154419,
+      "total_score": 1.29,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 30.59999990463257,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 30.65000009536743,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 30.71666669845581,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 30.78333330154419,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 30.84999990463257,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 30.950000047683716,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.016666650772095,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.09999990463257,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.166666746139526,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.233333349227905,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.299999952316284,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.366666793823242,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.450000047683716,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.53333330154419,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.616666793823242,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.666666746139526,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.733333349227905,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.799999952316284,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.883333444595337,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 31.96666669845581,
+      "total_score": 1.34,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.03333330154419,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.09999990463257,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.18333339691162,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.25,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.333333253860474,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.40000009536743,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.46666669845581,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.549999952316284,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.61666679382324,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.700000047683716,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.75,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.833333253860474,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.90000009536743,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 32.983333349227905,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.049999952316284,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.13333344459534,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.200000047683716,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.266666650772095,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.333333253860474,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.40000009536743,
+      "total_score": 1.46,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.483333349227905,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.56666660308838,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.65000009536743,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.733333349227905,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.799999952316284,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.84999990463257,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.90000009536743,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 33.983333349227905,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.09999990463257,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.18333339691162,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.25,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.333333253860474,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.40000009536743,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.46666669845581,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.53333330154419,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.59999990463257,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.666666746139526,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.733333349227905,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.766666650772095,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.86666679382324,
+      "total_score": 1.51,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 34.916666746139526,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.06666660308838,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.13333344459534,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.21666669845581,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.31666660308838,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.40000009536743,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.46666669845581,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.53333330154419,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.61666679382324,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.65000009536743,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.71666669845581,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.84999990463257,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 35.93333339691162,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.0,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.083333253860474,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.166666746139526,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.25,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.31666660308838,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.38333344459534,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.450000047683716,
+      "total_score": 1.64,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.53333330154419,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.56666660308838,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.61666679382324,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.68333339691162,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.78333330154419,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.833333253860474,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.90000009536743,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.93333339691162,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 36.96666669845581,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.166666746139526,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.299999952316284,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.34999990463257,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.46666669845581,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.516666650772095,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.549999952316284,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.61666679382324,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.68333339691162,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.78333330154419,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.86666679382324,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 37.983333349227905,
+      "total_score": 1.73,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.03333330154419,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.11666679382324,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.18333339691162,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.36666679382324,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.516666650772095,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.56666660308838,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.65000009536743,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.75,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.81666660308838,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.90000009536743,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.93333339691162,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 38.983333349227905,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.06666660308838,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.166666746139526,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.25,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.333333253860474,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.36666679382324,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.40000009536743,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.483333349227905,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.53333330154419,
+      "total_score": 1.86,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.583333253860474,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.65000009536743,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.700000047683716,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.71666669845581,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.766666650772095,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 39.96666669845581,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 40.11666679382324,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 40.31666660308838,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 40.38333344459534,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 40.516666650772095,
+      "total_score": 1.98,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 40.666666746139526,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 40.733333349227905,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 40.766666650772095,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 40.916666746139526,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 40.983333349227905,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.049999952316284,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.11666679382324,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.15000009536743,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.299999952316284,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.416666746139526,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.5,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.549999952316284,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.59999990463257,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.71666669845581,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.78333330154419,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.88333344459534,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 41.950000047683716,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.0,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.13333344459534,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.200000047683716,
+      "total_score": 2.0,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.299999952316284,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.333333253860474,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.416666746139526,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.549999952316284,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.63333344459534,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.88333344459534,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 42.950000047683716,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.049999952316284,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.11666679382324,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.18333339691162,
+      "total_score": 2.13,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.31666660308838,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.38333344459534,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.483333349227905,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.549999952316284,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.61666679382324,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.700000047683716,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.766666650772095,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.84999990463257,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 43.93333339691162,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.016666650772095,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.083333253860474,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.166666746139526,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.233333349227905,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.299999952316284,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.36666679382324,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.43333339691162,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.516666650772095,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.59999990463257,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.666666746139526,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.733333349227905,
+      "total_score": 2.23,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.81666660308838,
+      "total_score": 2.32,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.88333344459534,
+      "total_score": 2.32,
+      "completion_rate": null
+    },
+    {
+      "sim_time": 44.950000047683716,
+      "total_score": 2.32,
+      "completion_rate": null
+    }
+  ],
+  "scenario": "search_track"
+}

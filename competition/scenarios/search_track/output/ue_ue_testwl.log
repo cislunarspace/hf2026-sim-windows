@@ -1,0 +1,1142 @@
+LogIoDispatcher: Display: Mounted container '../../../testwl/Content/Paks/global.utoc', Id='ffffffffffffffff', Order=0, Slot=0, Options=(None), Flags=(), HasSoftRefs=False
+LogPakFile: Display: Initialized I/O dispatcher file backend. Mounted the global container: ../../../testwl/Content/Paks/global.utoc
+LogPakFile: Display: Found Pak file ../../../testwl/Content/Paks/testwl-Windows.pak attempting to mount.
+LogPakFile: Display: Mounting pak file ../../../testwl/Content/Paks/testwl-Windows.pak.
+LogIoDispatcher: Display: Mounted container '../../../testwl/Content/Paks/testwl-Windows.utoc', Id='eed2433742e8be14', Order=4, Slot=0, Options=(None), Flags=(Compressed|Indexed), HasSoftRefs=False
+LogPakFile: Display: Mounted IoStore container "../../../testwl/Content/Paks/testwl-Windows.utoc"
+LogPakFile: Display: Mounted Pak file '../../../testwl/Content/Paks/testwl-Windows.pak', mount point: '../../../'
+LogCsvProfiler: Display: Metadata set : zenstreaming="0"
+LogCsvProfiler: Display: Metadata set : systemresolution.resx="1280"
+LogCsvProfiler: Display: Metadata set : systemresolution.resy="720"
+LogAudio: Display: Audio Device Manager not initializing due to all audio being disabled. If this is not intentional, please check command line arguments for "-nosound".
+RenderDocPlugin: Display: RenderDoc plugin will not be loaded. Use '-AttachRenderDoc' on the cmd line or enable 'renderdoc.AutoAttach' in the plugin settings.
+LogAnalytics: Display: Provider StudioTelemetry.Provider.Log is disabled for this application
+LogAnalytics: Display: Provider StudioTelemetry.Provider.CSV is disabled for this application
+LogAnalytics: Display: Provider StudioTelemetry.Provider.Horde is disabled for this application
+LogStreaming: Display: AsyncLoading2 - Created: Async Loading Thread: true, Async Post Load: true, Multithreaded: false
+LogCsvProfiler: Display: Metadata set : systemresolution.resx="1"
+LogCsvProfiler: Display: Metadata set : systemresolution.resy="1"
+LogConsoleManager: Warning: Setting the console variable 'r.Streaming.PoolSize' with 'SetByScalability' was ignored as it is lower priority than the previous 'SetByProjectSetting'. Value remains '4096'
+LogHAL: Display: Platform has ~ 32 GB [33970827264 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
+LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+LogD3D12RHI: Display: Creating D3D12 RHI with Max Feature Level SM6
+LogRHI: Display: Timeout Detection and Recovery (TDR) summary: 
+	- TDR settings OK - Level: Recover, Delay: 2, DdiDelay: 5
+LogD3D12RHI: Display: Not using pipeline state disk cache per r.D3D12.PSO.DiskCache=0
+LogD3D12RHI: Display: Not using driver-optimized pipeline state disk cache per r.D3D12.PSO.DriverOptimizedDiskCache=0
+LogCsvProfiler: Display: Metadata set : verbatimrhiname="D3D12"
+LogCsvProfiler: Display: Metadata set : rhiname="D3D12"
+LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+LogCsvProfiler: Display: Metadata set : gpu="NVIDIA Quadro RTX 3000"
+LogCsvProfiler: Display: Metadata set : gpudriver="580.92"
+LogShaderLibrary: Display: Using IoDispatcher for shader code library Global. Total 8905 unique shaders.
+LogShaderLibrary: Display: Cooked Context: Loaded Shared Shader Library Global
+LogShaderLibrary: Display: Logical shader library 'Global' has been created as a monolithic library, components 1
+LogTemp: Display: Clearing the OS Cache
+LogShaderLibrary: Display: Using IoDispatcher for shader code library testwl. Total 7840 unique shaders.
+LogShaderLibrary: Display: Cooked Context: Loaded Shared Shader Library testwl
+LogShaderLibrary: Display: Logical shader library 'testwl' has been created as a monolithic library, components 1
+LogShaderLibrary: Display: Tried to open again shader library 'testwl', but could not find new components for it (existing components: 1).
+LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
+LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
+LogCsvProfiler: Display: Metadata set : deviceprofile="Windows"
+LogStreaming: Display: FlushAsyncLoading(8): 8 QueuedPackages, 0 AsyncPackages
+LogStreaming: Display: Partially loaded package /Engine/EngineMaterials/WorldGridMaterial (state: WaitingForIo) to avoid deadlock when it was recursively flushed by package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: PostLoad). UniqueCallstack(-1).
+LogStreaming: Display: Partially loaded package /Engine/EngineMaterials/DefaultDeferredDecalMaterial (state: WaitingForIo) to avoid deadlock when it was recursively flushed by package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: PostLoad). UniqueCallstack(-1).
+LogStreaming: Display: Partially loaded package /Engine/EngineMaterials/DefaultLightFunctionMaterial (state: WaitingForIo) to avoid deadlock when it was recursively flushed by package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: PostLoad). UniqueCallstack(-1).
+LogStreaming: Display: Partially loaded package /Engine/EngineMaterials/DefaultPostProcessMaterial (state: WaitingForIo) to avoid deadlock when it was recursively flushed by package /Engine/EngineMaterials/DefaultTextMaterialOpaque (state: PostLoad). UniqueCallstack(-1).
+LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+LogMetaSound: Display: MetaSound Page Target Initialized to 'Default'
+LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+LogAudio: Display: Registering Engine Module Parameter Interfaces...
+LogImageCapture: Display: FImageCaptureModule::StartupModule
+LogMultiCameraCapture: Display: FMultiCameraCaptureModule::StartupModule
+LogSyncCamera: Display: FSyncCameraModule::StartupModule
+LogCsvProfiler: Display: Metadata set : largeworldcoordinates="1"
+LogInit: Display: Game Engine Initialized.
+LogCsvProfiler: Display: Metadata set : raytracing="0"
+LogInit: Display: Starting Game.
+LogRHI: Display: Encountered a new graphics PSO: 1379767832 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 109908385 (PSOPrecacheState: Missed)
+LogTemp: Display: [TEST] [PASS] TestGameMode: BeginPlay ??????????
+LogTemp: Display: [TEST] [PASS] MultiCam: warmup=10.0s?????????? FPS ???
+LogTemp: Display: [TEST] [PASS] RedisConfig: ??????? 127.0.0.1:6381
+LogTemp: Display: [TEST] [PASS] SpawnRedisPipeline: ?????? CesiumGeoreference??? Map ???
+LogRedisManager: Display: [RenderControl] ARedisManager: render_id=rend_8c17a7d1_21088 max_aircraft=2 gpu_index=0
+LogRedisManager: Display: [TEST] [PASS] ARedisManager: Actor????
+LogRedisManager: Display: [TEST] [PASS] Georeference: ??????CesiumGeoreference ??=(125.0000,27.0000,70.0) Scale=100.0
+LogRedisManager: Display: [TEST] [PASS] RedisConnect: ???127.0.0.1:6381??
+LogRedisManager: Display: [TEST] [PASS] ChannelSubscribe: ??sim:state??
+LogRedisManager: Display: [TEST] [PASS] ChannelSubscribe: ??sim:render_id??
+LogRedisManager: Display: [TEST] [PASS] ChannelSubscribe: ??sim:commands??
+LogRedisManager: Display: [TEST] [PASS] RedisWorker: ?????
+LogRedisManager: Display: [TEST] [PASS] ARedisManager: ???????
+LogRedisManager: Display: [TEST] [PASS] ARedisManager: SyncCamera ???? (Capacity=100)
+LogTemp: Display: [TEST] [PASS] FSyncCameraStorageRunnable: ???? 127.0.0.1:6381
+LogTemp: Display: [TEST] [PASS] FSyncCameraStorageRunnable: ?????
+LogTemp: Display: [TEST] [PASS] FSyncCameraStorageRunnable: ?????
+LogRedisManager: Display: [TEST] [PASS] ARedisManager: SyncCamera??????? Endpoint=127.0.0.1:6381
+LogTemp: Display: [RenderControl] FRenderPublisherRunnable: ???? 127.0.0.1:6381
+LogTemp: Display: [RenderControl] FRenderPublisherRunnable: ????? channel=sim:render_id
+LogTemp: Display: [RenderControl] FRenderPublisherRunnable: ?????
+LogRedisManager: Display: [RenderControl] ??????????? Endpoint=127.0.0.1:6381 Channel=sim:render_id
+LogRedisManager: Display: [RenderControl] ??? renderer_online render_id=rend_8c17a7d1_21088 max_aircraft=2 gpu_index=0
+LogTemp: Display: [TEST] [PASS] SpawnRedisPipeline: ARedisManager ????Deferred+Finish?Endpoint=127.0.0.1:6381 Channels=[sim:state, sim:render_id, sim:commands] render_id=rend_8c17a7d1_21088
+LogTemp: Display: [ActorStateSync] ??Applier: DefaultActor
+LogTemp: Display: [ActorStateSync] ??Applier: GimbalComponent
+LogTemp: Display: [TEST] [PASS] SpawnRedisPipeline: AEntityStateConsumer ??????2?Appliers (DefaultActor + GimbalComponent)
+LogTemp: Display: [TEST] [PASS] SpawnRedisPipeline: ???????? (OnRenderAssign/OnRenderStop ? Consumer ???)
+LogTemp: Display: [TEST] [PASS] SpawnRedisPipeline: ???????? (OnWeatherCommand ? WeatherManager)
+LogTemp: Display: [Scenario] SimEntityActor[10001] Configure: type=2 mesh=/Env_MultiBS_Data/Assets/Vehicle/Land/AcuraRL/SM_AcuraRl.SM_AcuraRl camera=N key=10001_2 loc=(19851,-22161,-7001)
+LogImageCapture: Display: ??Dispatcher: Redis
+LogTemp: Display: [TEST] [PASS] RegisterRedisDispatcher: SimEntityActor_2147482363 -> RedisManager_2147482366
+LogTemp: Display: [Scenario] SimEntityActor[10002]: ???????? Dispatcher
+LogTemp: Display: [Scenario] SimEntityActor[10002] Configure: type=1 mesh= camera=Y key=10002_1 loc=(0,0,43000)
+[CaptureConfig] try read: ../../../testwl/Content/Config/capture_config.json
+[CaptureConfig] max_view_distance=300000 cm (3.00 km)
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_Mode: Mode=PushToDispatchers Dispatchers=1
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_Init: W=1024 H=768 SaveImage=0 Dispatchers=1
+LogTemp: Display: [Scenario] ??????? 2 ???? 0 ????=../../../testwl/Content/Config/scenario.json
+LogTemp: Display: [TEST] [PASS] Weather: ????=Rain?3s ????? UltraDynamicSky ??????
+LogTemp: Display: [TEST] [PASS] MainViewport: ????? (-minimalviewport)???? Lumen/VSM/PostProcess/Atmo/Fog/AO/SSR/Bloom + ?????(StaticMesh/Skeletal/Landscape/Foliage/Particles/Decals/BSP)??? Lighting/Shadows/Tonemapper ????
+LogTemp: Display: [TEST] [PASS] TestGameMode: BeginPlay ?? (????=36000s ?????)
+LogRHI: Display: ShaderPipelineCache: Paused Batching. 1
+LogRHI: Display: ShaderPipelineCache: Resumed Batching. 0
+LogRHI: Display: ShaderPipelineCache: Batching Resumed.
+LogInit: Display: Engine is initialized. Leaving FEngineLoop::Init()
+LogRedisManager: Display: [RenderControl] ????? event=renderer_online render_id=rend_8c17a7d1_21088 aircraft=0
+LogRedisManager: Display: [RenderControl] ????? event=assign render_id=rend_8c17a7d1_21088 aircraft=1
+LogImageCapture: Display: [RenderControl] SetCaptureEnabled(1) EntityId=10002 ? ????
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogCsvProfiler: Display: Metadata set : streamingpoolsizemb="4096"
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogStreaming: Display: FlushAsyncLoading(84): 1 QueuedPackages, 1233 AsyncPackages
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogTrace: Display: Control listening on port 1985
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 641624658 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2525438854 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 384018395 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2216087314 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1447042632 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3300226689 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 3022363835 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 4269244915 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 4207262479 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 1552384039 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 1226233736 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 794912312 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 899534953 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 2400808945 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 758003301 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 607129278 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2110166719 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2678203639 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 3246318526 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 72865529 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2595574811 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2062715296 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 3228235678 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1148292887 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1389502587 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2476046188 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3263767055 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 4203117214 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1567633067 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 835453892 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3350720278 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 757723822 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3083178804 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3377589182 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 1077380092 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1852689759 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1362233952 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1440837915 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 364193861 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2878592197 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 692954462 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 4089058298 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 265281650 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2555770016 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 506405714 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3319100125 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3944000537 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3712544954 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 817357741 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 526433138 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 88387574 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3081239120 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1543615253 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1292639150 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1671079073 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1768260909 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2564370906 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2051203720 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1359393531 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3199082537 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1711487811 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2976868483 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2379197851 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3139972787 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 4219036332 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1324682108 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3629203212 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 854931546 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1027914620 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3211971116 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1907317867 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1612587209 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 638248243 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 50576013 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1997550551 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2930335487 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2773201829 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3900053265 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 283972961 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3991933331 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1051144774 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 4244760929 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1571617103 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1766406871 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3874497548 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2434048817 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3305211597 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3092895286 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 145977339 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1402917426 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2736645654 (PSOPrecacheState: Missed)
+LogTemp: Warning: [ActorStateSync] ??10002????678.73 > ??500.00
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=3 (delta=3) FPS=2.7 TotalSeconds=1.1
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 1551574069 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogStreaming: Warning: Took 131.52ms to ProcessLoadedPackages
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=180 ??=0 ??=0
+LogTemp: Display: [Consumer] Tick??=15 ????=3
+LogTemp: Display: [Perf] FPS=6.8 Frame=147.66ms | Game=138.29ms Render=145.10ms RHI=9.90ms GPU=27.56ms | Cams=2 SteadyAvg=0.0 (samples=0)
+[Perf] FPS=6.8 Frame=147.66ms | Game=138.29ms Render=145.10ms RHI=9.90ms GPU=27.56ms | Cams=2 SteadyAvg=0.0 (samples=0)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=15 (delta=12) FPS=12.2 TotalSeconds=2.1
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogTemp: Display: [Weather] ChangeWeatherType ??? type=Rain(2)
+LogTemp: Display: [TEST] [PASS] Weather: ???????=Rain
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=25 (delta=10) FPS=11.0 TotalSeconds=3.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=40 (delta=15) FPS=14.9 TotalSeconds=4.0
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=312 ??=0 ??=0
+LogTemp: Display: [Consumer] Tick??=40 ????=3
+LogTemp: Display: [Perf] FPS=17.3 Frame=57.81ms | Game=12.20ms Render=57.94ms RHI=9.94ms GPU=27.25ms | Cams=2 SteadyAvg=0.0 (samples=0)
+[Perf] FPS=17.3 Frame=57.81ms | Game=12.20ms Render=57.94ms RHI=9.94ms GPU=27.25ms | Cams=2 SteadyAvg=0.0 (samples=0)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=53 (delta=13) FPS=12.4 TotalSeconds=5.1
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=450 ??=0 ??=0
+LogTemp: Display: [Consumer] Tick??=66 ????=3
+LogTemp: Display: [Perf] FPS=14.2 Frame=70.56ms | Game=10.30ms Render=70.73ms RHI=9.58ms GPU=27.87ms | Cams=2 SteadyAvg=0.0 (samples=0)
+[Perf] FPS=14.2 Frame=70.56ms | Game=10.30ms Render=70.73ms RHI=9.58ms GPU=27.87ms | Cams=2 SteadyAvg=0.0 (samples=0)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=66 (delta=13) FPS=13.7 TotalSeconds=6.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=81 (delta=15) FPS=14.4 TotalSeconds=7.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=98 (delta=17) FPS=17.5 TotalSeconds=8.0
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=598 ??=0 ??=0
+LogTemp: Display: [Consumer] Tick??=98 ????=3
+LogTemp: Display: [Perf] FPS=17.1 Frame=58.41ms | Game=17.40ms Render=58.38ms RHI=8.49ms GPU=29.76ms | Cams=2 SteadyAvg=0.0 (samples=0)
+[Perf] FPS=17.1 Frame=58.41ms | Game=17.40ms Render=58.38ms RHI=8.49ms GPU=29.76ms | Cams=2 SteadyAvg=0.0 (samples=0)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 1801775765 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1326566189 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 1598414157 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 62296893 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 2711469197 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRHI: Display: Encountered a new graphics PSO: 4053371902 (PSOPrecacheState: Missed)
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=112 (delta=14) FPS=13.1 TotalSeconds=9.1
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 258661377 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3357036923 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=744 ??=3 ??=0
+LogTemp: Display: [Consumer] Tick??=126 ????=3
+LogTemp: Display: [Perf] FPS=17.3 Frame=57.74ms | Game=20.59ms Render=57.52ms RHI=7.30ms GPU=63.60ms | Cams=2 SteadyAvg=17.3 (samples=1)
+[Perf] FPS=17.3 Frame=57.74ms | Game=20.59ms Render=57.52ms RHI=7.30ms GPU=63.60ms | Cams=2 SteadyAvg=17.3 (samples=1)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=126 (delta=14) FPS=14.7 TotalSeconds=10.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=139 (delta=13) FPS=13.2 TotalSeconds=11.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=153 (delta=14) FPS=13.3 TotalSeconds=12.1
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=890 ??=3 ??=0
+LogTemp: Display: [Consumer] Tick??=153 ????=3
+LogTemp: Display: [Perf] FPS=9.6 Frame=103.74ms | Game=18.86ms Render=103.78ms RHI=9.69ms GPU=49.66ms | Cams=2 SteadyAvg=13.4 (samples=28)
+[Perf] FPS=9.6 Frame=103.74ms | Game=18.86ms Render=103.78ms RHI=9.69ms GPU=49.66ms | Cams=2 SteadyAvg=13.4 (samples=28)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 1389061281 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 3376673086 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=167 (delta=14) FPS=14.4 TotalSeconds=13.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=181 (delta=14) FPS=14.4 TotalSeconds=14.0
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=1020 ??=0 ??=0
+LogTemp: Display: [Consumer] Tick??=181 ????=3
+LogTemp: Display: [Perf] FPS=19.3 Frame=51.80ms | Game=22.18ms Render=52.27ms RHI=7.62ms GPU=62.29ms | Cams=2 SteadyAvg=13.8 (samples=56)
+[Perf] FPS=19.3 Frame=51.80ms | Game=22.18ms Render=52.27ms RHI=7.62ms GPU=62.29ms | Cams=2 SteadyAvg=13.8 (samples=56)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 1118592615 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRHI: Display: Encountered a new graphics PSO: 712910799 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=193 (delta=12) FPS=12.2 TotalSeconds=15.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 1725530079 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=1160 ??=3 ??=0
+LogTemp: Display: [Consumer] Tick??=204 ????=3
+LogTemp: Display: [Perf] FPS=10.6 Frame=94.16ms | Game=18.45ms Render=93.81ms RHI=10.03ms GPU=50.22ms | Cams=2 SteadyAvg=13.0 (samples=79)
+[Perf] FPS=10.6 Frame=94.16ms | Game=18.45ms Render=93.81ms RHI=10.03ms GPU=50.22ms | Cams=2 SteadyAvg=13.0 (samples=79)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=204 (delta=11) FPS=10.5 TotalSeconds=16.1
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 577956451 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new compute PSO: 2364680353 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=217 (delta=13) FPS=13.4 TotalSeconds=17.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=1300 ??=0 ??=0
+LogTemp: Display: [Consumer] Tick??=232 ????=3
+LogTemp: Display: [Perf] FPS=12.0 Frame=83.65ms | Game=20.70ms Render=83.51ms RHI=9.76ms GPU=27.89ms | Cams=2 SteadyAvg=13.2 (samples=107)
+[Perf] FPS=12.0 Frame=83.65ms | Game=20.70ms Render=83.51ms RHI=9.76ms GPU=27.89ms | Cams=2 SteadyAvg=13.2 (samples=107)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=232 (delta=15) FPS=14.5 TotalSeconds=18.1
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 3278352386 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=246 (delta=14) FPS=13.9 TotalSeconds=19.1
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 3937338608 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=1444 ??=0 ??=0
+LogTemp: Display: [Consumer] Tick??=259 ????=3
+LogTemp: Display: [Perf] FPS=15.9 Frame=62.76ms | Game=16.92ms Render=62.77ms RHI=9.51ms GPU=27.56ms | Cams=2 SteadyAvg=13.3 (samples=134)
+[Perf] FPS=15.9 Frame=62.76ms | Game=16.92ms Render=62.77ms RHI=9.51ms GPU=27.56ms | Cams=2 SteadyAvg=13.3 (samples=134)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=259 (delta=13) FPS=13.1 TotalSeconds=20.1
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=273 (delta=14) FPS=14.5 TotalSeconds=21.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new graphics PSO: 1988979135 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=286 (delta=13) FPS=12.4 TotalSeconds=22.1
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=1586 ??=3 ??=0
+LogTemp: Display: [Consumer] Tick??=286 ????=3
+LogTemp: Display: [Perf] FPS=10.5 Frame=95.15ms | Game=27.13ms Render=95.23ms RHI=7.72ms GPU=26.59ms | Cams=2 SteadyAvg=13.3 (samples=161)
+[Perf] FPS=10.5 Frame=95.15ms | Game=27.13ms Render=95.23ms RHI=7.72ms GPU=26.59ms | Cams=2 SteadyAvg=13.3 (samples=161)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=299 (delta=13) FPS=12.3 TotalSeconds=23.1
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRHI: Display: Encountered a new compute PSO: 2790537236 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new graphics PSO: 2092400391 (PSOPrecacheState: Missed)
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new compute PSO: 1296252479 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new compute PSO: 4204277297 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 1745502626 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new compute PSO: 4145687549 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=314 (delta=15) FPS=16.3 TotalSeconds=24.1
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=1726 ??=0 ??=0
+LogTemp: Display: [Consumer] Tick??=314 ????=3
+LogTemp: Display: [Perf] FPS=19.6 Frame=51.06ms | Game=27.11ms Render=51.54ms RHI=8.22ms GPU=29.66ms | Cams=2 SteadyAvg=13.5 (samples=190)
+[Perf] FPS=19.6 Frame=51.06ms | Game=27.11ms Render=51.54ms RHI=8.22ms GPU=29.66ms | Cams=2 SteadyAvg=13.5 (samples=190)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new compute PSO: 877277390 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new compute PSO: 3040417751 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRHI: Display: Encountered a new compute PSO: 2448540995 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 1090093110 (PSOPrecacheState: Missed)
+LogRHI: Display: Encountered a new compute PSO: 1563252588 (PSOPrecacheState: Missed)
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=327 (delta=13) FPS=13.7 TotalSeconds=25.0
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=set_destination params=
+LogJson: Error: Json Value of type 'Object' used as a 'String'.
+LogRedisManager: Display: [Command] ????? cmd=component.gimbal_tracking.set_orientation params=
+LogRedisManager: Display: [Command] ????? cmd=end params=
+LogTemp: Display: 
+LogTemp: Display: ==================== ????? ====================
+LogTemp: Display: [Redis] ??=? ???=1838 ??=0 ??=0
+LogTemp: Display: [Consumer] Tick??=337 ????=3
+LogTemp: Display: [Perf] FPS=12.2 Frame=81.76ms | Game=24.28ms Render=80.35ms RHI=7.85ms GPU=26.10ms | Cams=2 SteadyAvg=13.5 (samples=218)
+[Perf] FPS=12.2 Frame=81.76ms | Game=24.28ms Render=80.35ms RHI=7.85ms GPU=26.10ms | Cams=2 SteadyAvg=13.5 (samples=218)
+LogTemp: Display: ===================================================
+LogTemp: Display: 
+LogImageCapture: Display: [TEST] [PASS] ImageCapture_FPS: Captures=342 (delta=15) FPS=14.0 TotalSeconds=26.1

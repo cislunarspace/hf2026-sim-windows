@@ -1,0 +1,10 @@
+{
+  "_comment": "mesh_config.json — 场景 type → 静态网格资产配置（Shipping 包换模型不用重编译）。路径支持两种格式：裸 object-path 或编辑器复制引用完整串，运行时自动归一化为 LoadObject 能吃的裸 object-path。",
+  "_path_format_examples": "裸: /Env_MultiBS_Data/Assets/Vehicle/Land/AcuraRL/SM_AcuraRl.SM_AcuraRl | 完整引用: /Script/Engine.StaticMesh'/Env_MultiBS_Data/Assets/Vehicle/Land/AcuraRL/SM_AcuraRl.SM_AcuraRl'",
+  "_type_keys": "type 键对应 scenario.json 里 entities[].type：FixedWingUAV / TargetVehicle / DecoyVehicle",
+  "mesh_by_type": {
+    "FixedWingUAV":  "",
+    "TargetVehicle": "/Script/Engine.StaticMesh'/Env_MultiBS_Data/Assets/Vehicle/Land/AcuraRL/SM_AcuraRl.SM_AcuraRl'",
+    "DecoyVehicle":  "/Script/Engine.StaticMesh'/Env_MultiBS_Data/Assets/Vehicle/Land/MPV02/SM_MPV.SM_MPV'"
+  }
+}

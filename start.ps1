@@ -42,12 +42,16 @@ function Test-PortInUse {
 }
 
 function Pick-FreePort {
-    param([int]$Start, [string]$Label)
+    # -Taken 传入本脚本此前已分配的端口集合。Pick-FreePort 只检测系统 listen 端口,
+    # 看不到"本脚本即将启动但还没 listen"的端口;若不带上 -Taken,5 个端口会被
+    # 分到同一空闲端口(如 8080/8081 被系统占用时,WS 与 CAM_WS 都会落在 8082,
+    # bridge 启动后 CameraWs listen 报 EADDRINUSE,相机画面起不来)。
+    param([int]$Start, [string]$Label, [int[]]$Taken = @())
     $p = $Start
-    while ((Test-PortInUse -Port $p) -and $p -lt ($Start + 100)) {
+    while (((Test-PortInUse -Port $p) -or ($Taken -contains $p)) -and $p -lt ($Start + 100)) {
         $p++
     }
-    if ((Test-PortInUse -Port $p)) {
+    if ((Test-PortInUse -Port $p) -or ($Taken -contains $p)) {
         Write-Host "✗ $Label 端口 ${Start}~$($Start + 100) 全被占用，请用环境变量指定" -ForegroundColor Red
         exit 1
     }
@@ -173,20 +177,15 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # ── 端口冲突处理 ──
-$OPENSIM_REDIS_PORT = Pick-FreePort -Start $OPENSIM_REDIS_PORT -Label 'REDIS'
-$OPENSIM_WS_PORT    = Pick-FreePort -Start $OPENSIM_WS_PORT    -Label 'WS'
-$OPENSIM_CAM_PORT   = Pick-FreePort -Start $OPENSIM_CAM_PORT   -Label 'CAM'
-$OPENSIM_CAM_WS_PORT = Pick-FreePort -Start $OPENSIM_CAM_WS_PORT -Label 'CAMWS'
-$OPENSIM_WEB_PORT   = Pick-FreePort -Start $OPENSIM_WEB_PORT   -Label 'WEB'
-
-# CAM HTTP 必须与 WS 错开(bridge 内部 WS / CAM 用两个独立 listen)。
-# 若用户硬把两个 env 设成同一端口,Pick-FreePort 检测时 WS 还没起,
-# 都返回同一端口;启动 bridge 时 CAM listen 报 EADDRINUSE。
-# 这里强制 CAM > WS(且相邻)避免冲突。
-if ($OPENSIM_CAM_PORT -eq $OPENSIM_WS_PORT) {
-    $OPENSIM_CAM_PORT = $OPENSIM_WS_PORT + 1
-    Write-Host "  CAM 与 WS 端口冲突,CAM 改用 $OPENSIM_CAM_PORT" -ForegroundColor Yellow
-}
+# Pick-FreePort 的 -Taken 传入此前已分配的端口,保证 REDIS/WS/CAM/CAMWS/WEB
+# 五个端口两两不撞(否则 bridge 内多个 listen 会互相 EADDRINUSE,如 CAM_WS 撞 WS
+# 时相机画面通道起不来、仿真却照常 —— 症状与根因隔了好几层,极难排查)。
+$assigned = @()
+$OPENSIM_REDIS_PORT  = Pick-FreePort -Start $OPENSIM_REDIS_PORT  -Label 'REDIS' -Taken $assigned; $assigned += $OPENSIM_REDIS_PORT
+$OPENSIM_WS_PORT     = Pick-FreePort -Start $OPENSIM_WS_PORT     -Label 'WS'    -Taken $assigned; $assigned += $OPENSIM_WS_PORT
+$OPENSIM_CAM_PORT    = Pick-FreePort -Start $OPENSIM_CAM_PORT    -Label 'CAM'   -Taken $assigned; $assigned += $OPENSIM_CAM_PORT
+$OPENSIM_CAM_WS_PORT = Pick-FreePort -Start $OPENSIM_CAM_WS_PORT -Label 'CAMWS' -Taken $assigned; $assigned += $OPENSIM_CAM_WS_PORT
+$OPENSIM_WEB_PORT    = Pick-FreePort -Start $OPENSIM_WEB_PORT    -Label 'WEB'   -Taken $assigned; $assigned += $OPENSIM_WEB_PORT
 
 # ── 同步 redis_port 到 scenario.json ──
 # 引擎从 scenario.json 读 redis_port，不读环境变量；若不同步，两端在不同 Redis 上。

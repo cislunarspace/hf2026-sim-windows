@@ -1,5 +1,5 @@
 {
-  "_comment": "uav_search_track_car example scenario \u9225?1 FixedWingUAV + 1 TargetVehicle. Mirrors root config.json style.",
+  "_comment": "uav_search_track_car example scenario \u95b3?1 FixedWingUAV + 1 TargetVehicle. Mirrors root config.json style.",
   "config_version": "1.0",
   "simulation": {
     "tick_rate_hz": 60,
@@ -20,8 +20,8 @@
       "type": "TargetVehicle",
       "enabled": true,
       "params": {
-        "initial_latitude": 27.008854,
-        "initial_longitude": 124.99691,
+        "initial_latitude": 27.00941,
+        "initial_longitude": 124.99448,
         "initial_altitude": 0.0
       },
       "components": {

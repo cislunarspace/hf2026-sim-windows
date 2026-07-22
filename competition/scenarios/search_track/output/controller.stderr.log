@@ -46,3 +46,508 @@ SEARCH_TRACK COMPLETE
   completion  : 0/1  (rate=N/A)
   eval json   : C:\Coding\projects\openSim\dist\opensim-2.0.0-UE-win-x64\competition\scenarios\search_track\output\search_track_1784720204.evaluation.json
 ============================================================
+[search_track] progress 准备启动 C++ 引擎: 0.0%  (spawning opensim-sim)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] 实体 10001 起点设为路线 'road7' 的 Start (27.007340, 125.003140)
+[search_track] prepared scenario → C:\Coding\projects\openSim\dist\opensim-2.0.0-UE-win-x64\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] starting opensim-sim: C:\Coding\projects\openSim\dist\opensim-2.0.0-UE-win-x64\opensim-sim.exe --config C:\Coding\projects\openSim\dist\opensim-2.0.0-UE-win-x64\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[search_track] progress 等待引擎就绪: 0.0%  (已等 1s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 3s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 4s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 6s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 7s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 9s，引擎正在加载 terrain CSV (786MB))
+[run] opensim-sim ready (subscribed to sim:commands)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 初始化仿真: 0.0%  (感知层构建中)
+[search_track] first frame @ sim_time=1782432000.017
+[INJECT] 并发注入 1 辆车 (workers=1)
+[NAV] 实体 10001 使用路线 'road7'
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=7
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=3
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=3
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=1
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=1
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=10
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=19
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=11
+[NAV] 10001 A* 规划出 75 个路径点 (全程沿路网)
+[NAV] 10001 set_trajectory 已发送 (75 pts)
+[INJECT] 完成: ok=1 fail=0 耗时=0.89s
+[search_track] 1 agent(s) instantiated
+[search_track] ready frame published
+[search_track] status=ended; exiting
+
+============================================================
+SEARCH_TRACK COMPLETE
+  total score : 0.7 / 100  (passed=False)
+  completion  : 0/1  (rate=N/A)
+  eval json   : C:\Coding\projects\openSim\dist\opensim-2.0.0-UE-win-x64\competition\scenarios\search_track\output\search_track_1784721994.evaluation.json
+============================================================
+[search_track] progress 准备启动 C++ 引擎: 0.0%  (spawning opensim-sim)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] 实体 10001 起点设为路线 'road18' 的 Start (27.008576, 124.988229)
+[search_track] prepared scenario → C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] starting opensim-sim: C:\Coding\projects\hf2026-sim-windows\opensim-sim.exe --config C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[search_track] progress 等待引擎就绪: 0.0%  (已等 1s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 3s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 4s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 6s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 7s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 9s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 10s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 12s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 13s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 15s，引擎正在加载 terrain CSV (786MB))
+[run] opensim-sim ready (subscribed to sim:commands)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 初始化仿真: 0.0%  (感知层构建中)
+[search_track] first frame @ sim_time=1782432000.017
+[INJECT] 并发注入 1 辆车 (workers=1)
+[NAV] 实体 10001 使用路线 'road18'
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=11
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=4
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=3
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=9
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=9
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=3
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=7
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=16
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=19
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=16
+[NAV] 10001 A* 规划出 88 个路径点 (全程沿路网)
+[NAV] 10001 set_trajectory 已发送 (88 pts)
+[INJECT] 完成: ok=1 fail=0 耗时=0.50s
+[search_track] 1 agent(s) instantiated
+[search_track] ready frame published
+[search_track] status=ended; exiting
+
+============================================================
+SEARCH_TRACK COMPLETE
+  total score : 0.2 / 100  (passed=False)
+  completion  : 0/1  (rate=N/A)
+  eval json   : C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\search_track_1784723162.evaluation.json
+============================================================
+[search_track] progress 准备启动 C++ 引擎: 0.0%  (spawning opensim-sim)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] 实体 10001 起点设为路线 'road21' 的 Start (26.999479, 124.997535)
+[search_track] prepared scenario → C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] starting opensim-sim: C:\Coding\projects\hf2026-sim-windows\opensim-sim.exe --config C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[search_track] progress 等待引擎就绪: 0.0%  (已等 1s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 3s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 4s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 6s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 7s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 9s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 10s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 12s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 13s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 15s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 16s，引擎正在加载 terrain CSV (786MB))
+[run] opensim-sim ready (subscribed to sim:commands)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 初始化仿真: 0.0%  (感知层构建中)
+[search_track] first frame @ sim_time=1782432000.017
+[INJECT] 并发注入 1 辆车 (workers=1)
+[NAV] 实体 10001 使用路线 'road21'
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=11
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=4
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=3
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=9
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=9
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=5
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=13
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=21
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=7
+[NAV] 10001 A* 规划出 79 个路径点 (全程沿路网)
+[NAV] 10001 set_trajectory 已发送 (79 pts)
+[INJECT] 完成: ok=1 fail=0 耗时=0.50s
+[search_track] 1 agent(s) instantiated
+[search_track] ready frame published
+[search_track] status=ended; exiting
+
+============================================================
+SEARCH_TRACK COMPLETE
+  total score : 0.5 / 100  (passed=False)
+  completion  : 0/1  (rate=N/A)
+  eval json   : C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\search_track_1784723283.evaluation.json
+============================================================
+[search_track] progress 准备启动 C++ 引擎: 0.0%  (spawning opensim-sim)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] 实体 10001 起点设为路线 'road11' 的 Start (27.009560, 124.997270)
+[search_track] prepared scenario → C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] starting opensim-sim: C:\Coding\projects\hf2026-sim-windows\opensim-sim.exe --config C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[search_track] progress 等待引擎就绪: 0.0%  (已等 1s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 3s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 4s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 6s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 7s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 9s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 10s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 12s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 13s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 15s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 16s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 18s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 20s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 21s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 23s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 24s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 26s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 27s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 29s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 30s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 32s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 33s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 35s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 36s，引擎正在加载 terrain CSV (786MB))
+[run] opensim-sim ready (subscribed to sim:commands)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 初始化仿真: 0.0%  (感知层构建中)
+[search_track] first frame @ sim_time=1782432000.017
+[INJECT] 并发注入 1 辆车 (workers=1)
+[NAV] 实体 10001 使用路线 'road11'
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=3
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=11
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=7
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=4
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=15
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=9
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=8
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=7
+[NAV] 10001 A* 规划出 66 个路径点 (全程沿路网)
+[NAV] 10001 set_trajectory 已发送 (66 pts)
+[INJECT] 完成: ok=1 fail=0 耗时=0.42s
+[search_track] 1 agent(s) instantiated
+[search_track] ready frame published
+[search_track] status=ended; exiting
+
+============================================================
+SEARCH_TRACK COMPLETE
+  total score : 2.3 / 100  (passed=False)
+  completion  : 0/1  (rate=N/A)
+  eval json   : C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\search_track_1784725260.evaluation.json
+============================================================
+[search_track] progress 准备启动 C++ 引擎: 0.0%  (spawning opensim-sim)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] 实体 10001 起点设为路线 'road10' 的 Start (27.016410, 124.996500)
+[search_track] prepared scenario → C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] starting opensim-sim: C:\Coding\projects\hf2026-sim-windows\opensim-sim.exe --config C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[search_track] progress 等待引擎就绪: 0.0%  (已等 1s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 3s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 4s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 6s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 7s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 9s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 10s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 12s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 13s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 15s，引擎正在加载 terrain CSV (786MB))
+[run] opensim-sim ready (subscribed to sim:commands)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 初始化仿真: 0.0%  (感知层构建中)
+[search_track] first frame @ sim_time=1782432000.017
+[INJECT] 并发注入 1 辆车 (workers=1)
+[NAV] 实体 10001 使用路线 'road10'
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=7
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=3
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=1
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=1
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=11
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=8
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=27
+[NAV] 10001 A* 规划出 75 个路径点 (全程沿路网)
+[NAV] 10001 set_trajectory 已发送 (75 pts)
+[INJECT] 完成: ok=1 fail=0 耗时=0.93s
+[search_track] 1 agent(s) instantiated
+[search_track] ready frame published
+[search_track] status=ended; exiting
+
+============================================================
+SEARCH_TRACK COMPLETE
+  total score : 0.8 / 100  (passed=False)
+  completion  : 0/1  (rate=N/A)
+  eval json   : C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\search_track_1784728413.evaluation.json
+============================================================
+[search_track] progress 准备启动 C++ 引擎: 0.0%  (spawning opensim-sim)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] 实体 10001 起点设为路线 'road10' 的 Start (27.016410, 124.996500)
+[search_track] prepared scenario → C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] starting opensim-sim: C:\Coding\projects\hf2026-sim-windows\opensim-sim.exe --config C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[search_track] progress 等待引擎就绪: 0.0%  (已等 1s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 3s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 4s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 6s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 7s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 9s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 10s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 12s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 13s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 15s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 16s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 18s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 19s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 21s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 22s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 24s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 25s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 27s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 28s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 30s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 31s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 33s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 34s，引擎正在加载 terrain CSV (786MB))
+[run] opensim-sim ready (subscribed to sim:commands)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 初始化仿真: 0.0%  (感知层构建中)
+[search_track] first frame @ sim_time=1782432000.017
+[INJECT] 并发注入 1 辆车 (workers=1)
+[NAV] 实体 10001 使用路线 'road10'
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=7
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=3
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=1
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=1
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=11
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=8
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=27
+[NAV] 10001 A* 规划出 75 个路径点 (全程沿路网)
+[NAV] 10001 set_trajectory 已发送 (75 pts)
+[INJECT] 完成: ok=1 fail=0 耗时=0.89s
+[search_track] 1 agent(s) instantiated
+[search_track] ready frame published
+[search_track] status=ended; exiting
+
+============================================================
+SEARCH_TRACK COMPLETE
+  total score : 0.3 / 100  (passed=False)
+  completion  : 0/1  (rate=N/A)
+  eval json   : C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\search_track_1784728988.evaluation.json
+============================================================
+[search_track] progress 准备启动 C++ 引擎: 0.0%  (spawning opensim-sim)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] 实体 10001 起点设为路线 'road23' 的 Start (27.009410, 124.994480)
+[search_track] prepared scenario → C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[run] starting opensim-sim: C:\Coding\projects\hf2026-sim-windows\opensim-sim.exe --config C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\scenario_search_track_prepared.json
+[search_track] progress 等待引擎就绪: 0.0%  (已等 1s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 3s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 等待引擎就绪: 0.0%  (已等 4s，引擎正在加载 terrain CSV (786MB))
+[run] opensim-sim ready (subscribed to sim:commands)
+[search_track] progress 等待引擎就绪: 0.0%  (已等 0s，引擎正在加载 terrain CSV (786MB))
+[search_track] progress 初始化仿真: 0.0%  (感知层构建中)
+[search_track] first frame @ sim_time=1782432000.017
+[INJECT] 并发注入 1 辆车 (workers=1)
+[NAV] 实体 10001 使用路线 'road23'
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=22
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=8
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=4
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=6
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=4
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=2
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=9
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=23
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=17
+[DEBUG] _plan_segment 10001: astar_plan command sent
+[DEBUG] _plan_segment 10001: found astar_plan_result: success=True, count=7
+[NAV] 10001 A* 规划出 96 个路径点 (全程沿路网)
+[NAV] 10001 set_trajectory 已发送 (96 pts)
+[INJECT] 完成: ok=1 fail=0 耗时=0.39s
+[search_track] 1 agent(s) instantiated
+[search_track] ready frame published
+[search_track] status=ended; exiting
+
+============================================================
+SEARCH_TRACK COMPLETE
+  total score : 0.7 / 100  (passed=False)
+  completion  : 0/1  (rate=N/A)
+  eval json   : C:\Coding\projects\hf2026-sim-windows\competition\scenarios\search_track\output\search_track_1784729249.evaluation.json
+============================================================
