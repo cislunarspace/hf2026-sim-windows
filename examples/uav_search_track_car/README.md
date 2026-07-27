@@ -59,6 +59,7 @@ python -m examples.uav_search_track_car.run --start-sim --duration 60
 from search_track.controller import Controller
 from search_track.commands import CommandTarget, ControlCommand
 
+
 class MyController(Controller):
     def decide(self, state, dt):
         if state.detection.detected:

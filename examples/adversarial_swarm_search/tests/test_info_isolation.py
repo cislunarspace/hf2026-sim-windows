@@ -20,9 +20,9 @@ Runtime check: inject a synthetic peer status change and verify that
 FleetMembership does NOT use it (i.e. loss is decided purely by
 heartbeat freshness).
 """
+
 from __future__ import annotations
 
-import ast
 import sys
 import unittest
 from pathlib import Path
@@ -32,7 +32,7 @@ EXAMPLE_DIR = HERE.parent
 if str(EXAMPLE_DIR) not in sys.path:
     sys.path.insert(0, str(EXAMPLE_DIR))
 
-from search_track.fleet_membership import FleetMembership, Heartbeat  # noqa: E402
+from search_track.fleet_membership import FleetMembership, Heartbeat
 
 SEARCH_TRACK_DIR = EXAMPLE_DIR / "search_track"
 
@@ -41,7 +41,7 @@ SEARCH_TRACK_DIR = EXAMPLE_DIR / "search_track"
 FORBIDDEN_PATTERNS = [
     # scenario config zones
     ('cfg["zones"]', "scenario config zones dict access"),
-    ("cfg.get(\"zones\"", "scenario config zones .get()"),
+    ('cfg.get("zones"', "scenario config zones .get()"),
     ("cfg['zones']", "scenario config zones dict access"),
     ("cfg.get('zones'", "scenario config zones .get()"),
     ("self.cfg.zones", "scenario config zones attribute access"),
@@ -80,8 +80,7 @@ class InfoIsolationStaticTest(unittest.TestCase):
             for lineno, line, name in findings:
                 bad.append(f"{py_path.name}:{lineno}: {name}  | {line.strip()}")
         if bad:
-            self.fail("Forbidden info-isolation violation(s):\n" +
-                      "\n".join(bad))
+            self.fail("Forbidden info-isolation violation(s):\n" + "\n".join(bad))
 
 
 class InfoIsolationRuntimeTest(unittest.TestCase):
@@ -94,8 +93,7 @@ class InfoIsolationRuntimeTest(unittest.TestCase):
         fm = FleetMembership(my_uid="u1", heartbeat_timeout_s=5.0)
         # Even though status="destroyed", the heartbeat is recent (t=0)
         # so the peer is ACTIVE — not LOST.
-        hb = Heartbeat(uid="u2", sim_time=0.0, lat=27.0, lon=124.99,
-                       status="destroyed")
+        hb = Heartbeat(uid="u2", sim_time=0.0, lat=27.0, lon=124.99, status="destroyed")
         fm.observe_heartbeat(hb)
         fm.tick(sim_time=1.0)
         self.assertEqual(fm.state_of("u2").value, "active")
@@ -106,9 +104,9 @@ class InfoIsolationRuntimeTest(unittest.TestCase):
         """
         fm = FleetMembership(my_uid="u1", heartbeat_timeout_s=5.0)
         # u2 sends a fresh heartbeat with status='active'
-        fm.observe_heartbeat(Heartbeat(uid="u2", sim_time=0.0,
-                                       lat=27.0, lon=124.99,
-                                       status="active"))
+        fm.observe_heartbeat(
+            Heartbeat(uid="u2", sim_time=0.0, lat=27.0, lon=124.99, status="active")
+        )
         # ...then a "status change" event arrives (no sim_time impact).
         # The peer is still ACTIVE because we only consumed heartbeats.
         fm.tick(sim_time=1.0)

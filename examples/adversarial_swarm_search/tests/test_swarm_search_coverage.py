@@ -25,6 +25,7 @@ Acceptance goals (from the user's requirement #4):
   * >=50% of real targets discovered within 600 sim-seconds.
   * Each discovered target accumulates >=120 s of cumulative track.
 """
+
 from __future__ import annotations
 
 import math
@@ -37,11 +38,12 @@ EXAMPLE_DIR = HERE.parent
 if str(EXAMPLE_DIR) not in sys.path:
     sys.path.insert(0, str(EXAMPLE_DIR))
 
-from search_track.swarm_controller import SwarmController  # noqa: E402
-from search_track.state import (  # noqa: E402
-    SwarmState, UavView, GroundView,
+from search_track.state import (
+    GroundView,
+    SwarmState,
+    UavView,
 )
-
+from search_track.swarm_controller import SwarmController
 
 # ── scenario constants ─────────────────────────────────────────────────────
 
@@ -51,7 +53,7 @@ N_TARGET = 10
 N_DECOY = 20
 SEARCH_RADIUS_M = 2500.0
 ACQUIRE_RANGE_M = 600.0
-CRUISE_SPEED_MPS = 60.0        # how fast the runner flies UAVs to cmds
+CRUISE_SPEED_MPS = 60.0  # how fast the runner flies UAVs to cmds
 CONTROL_PERIOD_S = 1.0 / 10.0  # 10 Hz
 SIM_DURATION_S = 600.0
 
@@ -73,8 +75,9 @@ def _destination(lat, lon, bearing_deg, dist_m):
     theta = math.radians(bearing_deg)
     cd, sd = math.cos(delta), math.sin(delta)
     phi2 = math.asin(math.sin(phi1) * cd + math.cos(phi1) * sd * math.cos(theta))
-    lam2 = lam1 + math.atan2(math.sin(theta) * sd * math.cos(phi1),
-                             cd - math.sin(phi1) * math.sin(phi2))
+    lam2 = lam1 + math.atan2(
+        math.sin(theta) * sd * math.cos(phi1), cd - math.sin(phi1) * math.sin(phi2)
+    )
     return math.degrees(phi2), ((math.degrees(lam2) + 540.0) % 360.0) - 180.0
 
 
@@ -84,8 +87,9 @@ def _build_targets():
     for i in range(N_TARGET):
         brng = 360.0 * i / N_TARGET
         lat, lon = _destination(CENTER_LAT, CENTER_LON, brng, 1800.0)
-        out[f"T{i:03d}"] = GroundView(uid=f"T{i:03d}", name=f"target_{i}",
-                                       latitude=lat, longitude=lon)
+        out[f"T{i:03d}"] = GroundView(
+            uid=f"T{i:03d}", name=f"target_{i}", latitude=lat, longitude=lon
+        )
     return out
 
 
@@ -95,9 +99,13 @@ def _build_decoys():
     for i in range(N_DECOY):
         brng = 17.0 * i + 5.0
         lat, lon = _destination(CENTER_LAT, CENTER_LON, brng, 1200.0)
-        out[f"D{i:03d}"] = GroundView(uid=f"D{i:03d}", name=f"decoy_{i}",
-                                       latitude=lat, longitude=lon,
-                                       is_decoy=True)
+        out[f"D{i:03d}"] = GroundView(
+            uid=f"D{i:03d}",
+            name=f"decoy_{i}",
+            latitude=lat,
+            longitude=lon,
+            is_decoy=True,
+        )
     return out
 
 
@@ -105,9 +113,13 @@ def _build_uavs():
     out = {}
     for i in range(N_UAV):
         uid = f"U{i:03d}"
-        out[uid] = UavView(uid=uid, name=f"uav_{i}",
-                           latitude=CENTER_LAT, longitude=CENTER_LON,
-                           altitude=600.0)
+        out[uid] = UavView(
+            uid=uid,
+            name=f"uav_{i}",
+            latitude=CENTER_LAT,
+            longitude=CENTER_LON,
+            altitude=600.0,
+        )
     return out
 
 
@@ -141,7 +153,9 @@ class CooperativeSearchCoverageTest(unittest.TestCase):
         phi1, phi2 = math.radians(uav.latitude), math.radians(dest_lat)
         dl = math.radians(dest_lon - uav.longitude)
         y = math.sin(dl) * math.cos(phi2)
-        x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(dl)
+        x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(
+            phi2
+        ) * math.cos(dl)
         brng = (math.degrees(math.atan2(y, x)) + 360.0) % 360.0
         lat, lon = _destination(uav.latitude, uav.longitude, brng, dist_m)
         uav.latitude = lat
@@ -174,20 +188,24 @@ class CooperativeSearchCoverageTest(unittest.TestCase):
             for uid, u in uavs.items():
                 u.detected = False
                 for t in targets.values():
-                    if _haversine_m(u.latitude, u.longitude,
-                                     t.latitude, t.longitude) <= ACQUIRE_RANGE_M:
+                    if (
+                        _haversine_m(u.latitude, u.longitude, t.latitude, t.longitude)
+                        <= ACQUIRE_RANGE_M
+                    ):
                         u.detected = True
                         break
-            state = SwarmState(sim_time=sim_t, uavs=uavs, targets=targets,
-                                decoys=decoys, zones=[])
+            state = SwarmState(
+                sim_time=sim_t, uavs=uavs, targets=targets, decoys=decoys, zones=[]
+            )
             for uid, sc in controllers.items():
                 cmds = sc.decide(state, CONTROL_PERIOD_S)
                 # Apply the set_destination by flying the UAV towards it.
                 for c in cmds:
                     if c["cmd"] == "set_destination":
                         p = c["params"]
-                        self._fly_towards(uavs[uid], p["latitude"],
-                                          p["longitude"], per_tick_dist)
+                        self._fly_towards(
+                            uavs[uid], p["latitude"], p["longitude"], per_tick_dist
+                        )
                         waypoint_samples.append((p["latitude"], p["longitude"]))
             # Cross-controller cooperation: when a UAV is tracking T, tell
             # peers (simulating the broadcast).
@@ -205,7 +223,7 @@ class CooperativeSearchCoverageTest(unittest.TestCase):
         return uavs, targets, controllers, waypoint_samples, discovered_history
 
     def test_discovers_at_least_half_of_targets_within_10min(self):
-        _, _, controllers, _, history = self._run_simulation()
+        _, _, _controllers, _, history = self._run_simulation()
         # Find the first sim_time at which >=50% were discovered.
         half = N_TARGET // 2
         first_t = None
@@ -214,10 +232,10 @@ class CooperativeSearchCoverageTest(unittest.TestCase):
             if len(real_disc) >= half:
                 first_t = t
                 break
-        self.assertIsNotNone(first_t,
-                             "Never discovered >=50% of real targets")
-        self.assertLessEqual(first_t, SIM_DURATION_S,
-                             f"Discovery of 50% happened at {first_t}s > 600s")
+        self.assertIsNotNone(first_t, "Never discovered >=50% of real targets")
+        self.assertLessEqual(
+            first_t, SIM_DURATION_S, f"Discovery of 50% happened at {first_t}s > 600s"
+        )
 
     def test_each_discovered_target_tracked_at_least_2min(self):
         _, _, controllers, _, _ = self._run_simulation()
@@ -230,14 +248,17 @@ class CooperativeSearchCoverageTest(unittest.TestCase):
         for sc in controllers.values():
             discovered |= sc.discovered_targets
         discovered_real = discovered & set(f"T{i:03d}" for i in range(N_TARGET))
-        self.assertGreaterEqual(len(discovered_real), N_TARGET // 2,
-                                "Fewer than half of targets discovered")
-        under_tracked = [t for t in discovered_real
-                         if track_dur.get(t, 0.0) < 120.0]
-        self.assertEqual(under_tracked, [],
-                         f"Targets tracked < 120s: {under_tracked} "
-                         f"(durations: "
-                         f"{ {t: round(track_dur.get(t,0),1) for t in under_tracked} })")
+        self.assertGreaterEqual(
+            len(discovered_real), N_TARGET // 2, "Fewer than half of targets discovered"
+        )
+        under_tracked = [t for t in discovered_real if track_dur.get(t, 0.0) < 120.0]
+        self.assertEqual(
+            under_tracked,
+            [],
+            f"Targets tracked < 120s: {under_tracked} "
+            f"(durations: "
+            f"{ {t: round(track_dur.get(t, 0), 1) for t in under_tracked} })",
+        )
 
     def test_fleet_covers_at_least_half_of_search_box(self):
         _, _, _, samples, _ = self._run_simulation()
@@ -246,17 +267,18 @@ class CooperativeSearchCoverageTest(unittest.TestCase):
         grid_n = 5
         covered = set()
         for lat, lon in samples:
-            gx = int((lon - (CENTER_LON - box_half_deg))
-                     / (2 * box_half_deg) * grid_n)
-            gy = int((lat - (CENTER_LAT - box_half_deg))
-                     / (2 * box_half_deg) * grid_n)
+            gx = int((lon - (CENTER_LON - box_half_deg)) / (2 * box_half_deg) * grid_n)
+            gy = int((lat - (CENTER_LAT - box_half_deg)) / (2 * box_half_deg) * grid_n)
             gx = max(0, min(grid_n - 1, gx))
             gy = max(0, min(grid_n - 1, gy))
             covered.add((gx, gy))
         coverage = len(covered) / (grid_n * grid_n)
-        self.assertGreaterEqual(coverage, 0.5,
-                                f"Fleet only covered {coverage*100:.0f}% "
-                                f"of the search box (samples={len(samples)})")
+        self.assertGreaterEqual(
+            coverage,
+            0.5,
+            f"Fleet only covered {coverage * 100:.0f}% "
+            f"of the search box (samples={len(samples)})",
+        )
 
     def test_decoys_never_counted_as_discoveries(self):
         _, _, controllers, _, _ = self._run_simulation()
@@ -264,8 +286,9 @@ class CooperativeSearchCoverageTest(unittest.TestCase):
         for sc in controllers.values():
             all_disc |= sc.discovered_targets
         decoy_uids = set(f"D{i:03d}" for i in range(N_DECOY))
-        self.assertEqual(all_disc & decoy_uids, set(),
-                         "Decoys leaked into discovered_targets")
+        self.assertEqual(
+            all_disc & decoy_uids, set(), "Decoys leaked into discovered_targets"
+        )
 
 
 if __name__ == "__main__":

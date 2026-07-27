@@ -4,10 +4,10 @@ Reuses the parsing shape from spec 017 (`multi_state.parse_multi_sim_state`)
 but exposes a small, focused API for the swarm controller: read UAV
 position/HP/comm stats, and read the published `zones` bucket.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -24,10 +24,10 @@ class UavView:
     detected: bool = False
     misid_flag: bool = False
     target_type: str = ""
-    target_lat: Optional[float] = None
-    target_lon: Optional[float] = None
+    target_lat: float | None = None
+    target_lon: float | None = None
     confidence: float = 0.0
-    target_uid: Optional[str] = None
+    target_uid: str | None = None
 
 
 @dataclass
@@ -42,8 +42,9 @@ class GroundView:
 @dataclass
 class ZoneView:
     """One published zone entry — used by the controller for blind avoidance."""
-    type: str             # "air_defense" | "comm_jam_static" | "comm_jam_random"
-    polygon: list         # [(lat, lon), ...]
+
+    type: str  # "air_defense" | "comm_jam_static" | "comm_jam_random"
+    polygon: list  # [(lat, lon), ...]
     alt_min: float = 0.0
     alt_max: float = 1e9
 
@@ -76,12 +77,14 @@ def parse_swarm_state(raw: dict) -> SwarmState:
     zones_obj = raw.get("zones", {}) or {}
     for kind in ("air_defense", "comm_jam_static", "comm_jam_random"):
         for z in zones_obj.get(kind, []) or []:
-            st.zones.append(ZoneView(
-                type=kind,
-                polygon=[(float(p[0]), float(p[1])) for p in z.get("polygon", [])],
-                alt_min=float(z.get("alt_min", 0.0)),
-                alt_max=float(z.get("alt_max", 1e9)),
-            ))
+            st.zones.append(
+                ZoneView(
+                    type=kind,
+                    polygon=[(float(p[0]), float(p[1])) for p in z.get("polygon", [])],
+                    alt_min=float(z.get("alt_min", 0.0)),
+                    alt_max=float(z.get("alt_max", 1e9)),
+                )
+            )
 
     for uid, ent in raw.items():
         if not isinstance(ent, dict):
@@ -94,10 +97,15 @@ def parse_swarm_state(raw: dict) -> SwarmState:
         alt = float(pos.get("altitude", 0.0))
 
         if ent_type == "fixed_wing_uav" or (plat and plat.get("entity_type") == "uav"):
-            u = UavView(uid=uid, name=ent.get("name", uid),
-                        latitude=lat, longitude=lon, altitude=alt)
+            u = UavView(
+                uid=uid,
+                name=ent.get("name", uid),
+                latitude=lat,
+                longitude=lon,
+                altitude=alt,
+            )
             comm = ent.get("comm", {}) or {}
-            stats = (comm.get("stats", {}) or {})
+            stats = comm.get("stats", {}) or {}
             u.comm_sent = int(stats.get("sent", 0))
             u.comm_delivered = int(stats.get("delivered", 0))
             u.jammed = bool(comm.get("external_jammed", False))
@@ -114,12 +122,16 @@ def parse_swarm_state(raw: dict) -> SwarmState:
             tgt = track.get("target_entity", "")
             if tgt:
                 u.target_uid = str(tgt)
-            u.destroyed = (plat.get("status") == "destroyed")
+            u.destroyed = plat.get("status") == "destroyed"
             st.uavs[uid] = u
         elif ent_type in ("ground_vehicle", "decoy_vehicle"):
-            g = GroundView(uid=uid, name=ent.get("name", uid),
-                           latitude=lat, longitude=lon,
-                           is_decoy=(ent_type == "decoy_vehicle"))
+            g = GroundView(
+                uid=uid,
+                name=ent.get("name", uid),
+                latitude=lat,
+                longitude=lon,
+                is_decoy=(ent_type == "decoy_vehicle"),
+            )
             if g.is_decoy:
                 st.decoys[uid] = g
             else:

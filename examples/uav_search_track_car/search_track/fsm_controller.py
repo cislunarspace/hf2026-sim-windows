@@ -1,14 +1,14 @@
 """FSM controller — Search ↔ Track with hysteresis."""
+
 from __future__ import annotations
 
-import time
 from typing import Any
 
 from .commands import CommandTarget, ControlCommand
 from .controller import Controller
 from .search_strategies import SpiralParams, spiral_next_waypoint, sweep_orientation
-from .tracking_strategy import LoiterTracker, TrackerParams
 from .state import SimState
+from .tracking_strategy import LoiterTracker, TrackerParams
 
 
 class FsmSearchTrackController(Controller):
@@ -52,12 +52,16 @@ class FsmSearchTrackController(Controller):
         """Called once before the first decide() with AlgorithmConfig."""
         self._k_acquire = int(cfg.get("k_acquire", self._k_acquire))
         self._k_lost = int(cfg.get("k_lost", self._k_lost))
-        self._spiral_growth_rate = float(cfg.get("spiral_growth_rate", self._spiral_growth_rate))
+        self._spiral_growth_rate = float(
+            cfg.get("spiral_growth_rate", self._spiral_growth_rate)
+        )
         self._sweep_pitch_min = float(cfg.get("sweep_pitch_min", self._sweep_pitch_min))
         self._sweep_pitch_max = float(cfg.get("sweep_pitch_max", self._sweep_pitch_max))
         self._sweep_period = float(cfg.get("sweep_period", self._sweep_period))
         self._search_radius = float(cfg.get("search_radius", self._search_radius))
-        self._search_altitude_agl = float(cfg.get("search_altitude_agl", self._search_altitude_agl))
+        self._search_altitude_agl = float(
+            cfg.get("search_altitude_agl", self._search_altitude_agl)
+        )
         self._loiter_radius = float(cfg.get("loiter_radius", self._loiter_radius))
         self._loiter_refresh_period = float(
             cfg.get("loiter_refresh_period", self._loiter_refresh_period)
@@ -165,6 +169,8 @@ class FsmSearchTrackController(Controller):
                 self._last_tilt = float(c["params"].get("tilt", self._last_tilt))
                 break
         return [
-            ControlCommand(target=CommandTarget(c["target"]), cmd=c["cmd"], params=c["params"])
+            ControlCommand(
+                target=CommandTarget(c["target"]), cmd=c["cmd"], params=c["params"]
+            )
             for c in cmds_dict
         ]

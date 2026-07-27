@@ -1,0 +1,53 @@
+[project]
+name = "hf2026-sim-windows"
+version = "2.0.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["competition", "examples"]
+
+exclude = [
+    "python/",
+    ".venv/",
+    "__pycache__/",
+    "visualization/dist-bridge/",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import 排序)
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff 自有规则
+]
+ignore = [
+    "E501",   # 行长度由 formatter 管，不由 linter 报
+    "E402",   # sys.path 操作后的延迟 import 是项目常见模式
+    "RUF001", # 中文项目的字符串含 Unicode 字符是正常的
+    "RUF002", # 中文项目的 docstring 含 Unicode 字符是正常的
+    "RUF003", # 中文项目的注释含 Unicode 字符是正常的
+    # ── 以下规则需要较大重构，暂不强制 ──
+    "SIM105", # try/except/pass → contextlib.suppress（风格偏好）
+    "SIM102", # 可合并的嵌套 if（风格偏好）
+    "SIM110", # for 循环 → any()/all()（风格偏好）
+    "SIM115", # open() → with 语句（需逐个评估）
+    "B007",   # 未使用的循环控制变量（改用 _）
+    "UP042",  # str enum → StrEnum（需评估兼容性）
+    "RUF013", # 隐式 Optional（需逐个评估）
+]
+
+[tool.ruff.lint.per-file-ignores]
+"competition/sdk/_vendored/*" = ["F821", "E701"]  # 第三方 vendored 代码，不改
+
+[tool.ruff.lint.isort]
+known-first-party = ["competition", "examples"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

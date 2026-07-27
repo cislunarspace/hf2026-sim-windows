@@ -16,6 +16,7 @@ without a client wrapper). The SimClient-based examples keep their own
 client (its subscribe is not duplicated glue worth pulling here); only
 the standalone subscribe-ack pattern is shared.
 """
+
 from __future__ import annotations
 
 import time
@@ -44,6 +45,4 @@ def connect_redis(host: str, port: int, channel: str, timeout: float = 5.0):
         msg = pubsub.get_message(timeout=0.1)
         if msg and msg.get("type") == "subscribe":
             return r, pubsub
-    raise RuntimeError(
-        f"Redis subscribe timed out ({channel} on {host}:{port})"
-    )
+    raise RuntimeError(f"Redis subscribe timed out ({channel} on {host}:{port})")

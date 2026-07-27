@@ -13,12 +13,12 @@ laps), so the per-tick ``_summarise(state)`` stays in each example.
 This module factors only the two genuinely-identical steps: writing the
 JSON file and emitting the completion banner.
 """
+
 from __future__ import annotations
 
 import json
 import time
 from pathlib import Path
-from typing import Any
 
 
 def write_summary_json(summary: dict, output_dir: str, *, log=None) -> Path:
@@ -34,8 +34,9 @@ def write_summary_json(summary: dict, output_dir: str, *, log=None) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
     j_path = out_dir / f"run_{ts}.json"
-    j_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False),
-                      encoding="utf-8")
+    j_path.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     return j_path
 
 
@@ -49,8 +50,7 @@ def write_json(payload: dict, output_dir: str, filename: str, *, log=None) -> Pa
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     p = out_dir / filename
-    p.write_text(json.dumps(payload, indent=2, ensure_ascii=False),
-                 encoding="utf-8")
+    p.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return p
 
 

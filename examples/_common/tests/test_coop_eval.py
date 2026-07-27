@@ -5,25 +5,29 @@ per-tick UAV->target maps and feed them to CoopTrackingEvaluator, then
 assert the continuous-tracking state machine, scoring, and the
 UAV->target nearest-neighbour resolver behave as specified.
 """
+
 from __future__ import annotations
 
 import sys
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[3]   # examples/_common/tests -> repo
+REPO_ROOT = Path(__file__).resolve().parents[3]  # examples/_common/tests -> repo
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from examples._common.coop_eval import (  # noqa: E402
-    CoopTrackingEvaluator, ScoringProfile,
-    profile_uav_search_track_car, profile_multi_uav_coop_decoy,
+from examples._common.coop_eval import (
+    CoopTrackingEvaluator,
+    ScoringProfile,
     profile_adversarial_swarm_search,
+    profile_multi_uav_coop_decoy,
+    profile_uav_search_track_car,
 )
-from examples._common.uav_target_map import (  # noqa: E402
-    UavDetection, TargetMatch, resolve_uav_to_target,
+from examples._common.uav_target_map import (
+    TargetMatch,
+    UavDetection,
+    resolve_uav_to_target,
 )
-
 
 # ── helpers ───────────────────────────────────────────────────────────────
 
@@ -36,17 +40,19 @@ def _tick(sim_time, trackers, destroyed=()):
     uav_map = {}
     for tgt, uavs in trackers.items():
         for u in uavs:
-            uav_map[u] = TargetMatch(target_uid=tgt, is_effective=True,
-                                     was_misid=False, confidence=1.0)
+            uav_map[u] = TargetMatch(
+                target_uid=tgt, is_effective=True, was_misid=False, confidence=1.0
+            )
     return (float(sim_time), uav_map, set(destroyed))
 
 
 def _misid_tick(sim_time, uav, decoy_uid, destroyed=()):
     """One tick where ``uav`` is mis-tracking a decoy."""
-    return (float(sim_time),
-            {uav: TargetMatch(target_uid=decoy_uid, is_effective=False,
-                              was_misid=True)},
-            set(destroyed))
+    return (
+        float(sim_time),
+        {uav: TargetMatch(target_uid=decoy_uid, is_effective=False, was_misid=True)},
+        set(destroyed),
+    )
 
 
 def _run(ev, ticks):
@@ -74,14 +80,20 @@ def _lost_range(t0, t1, dt=1.0):
     return out
 
 
-def _test_profile(dwell: float = 20.0, K: int = 1,
-                  linear: bool = False) -> ScoringProfile:
+def _test_profile(
+    dwell: float = 20.0, K: int = 1, linear: bool = False
+) -> ScoringProfile:
     """Minimal profile for state-machine tests (independent of the real
     example profiles, whose dwell_target / weights may change)."""
-    return ScoringProfile(name="test", K=K, dwell_target_s=dwell,
-                          grace_s=2.0, duration_s=60.0,
-                          linear_completion=linear,
-                          weights={"completion": 1.0})
+    return ScoringProfile(
+        name="test",
+        K=K,
+        dwell_target_s=dwell,
+        grace_s=2.0,
+        duration_s=60.0,
+        linear_completion=linear,
+        weights={"completion": 1.0},
+    )
 
 
 # ── continuous-tracking state machine ────────────────────────────────────
@@ -120,7 +132,7 @@ class ContinuousTrackingTest(unittest.TestCase):
         st = ev.states["T1"]
         self.assertEqual(st.resets, 1)
         self.assertFalse(st.completed)
-        self.assertAlmostEqual(st.max_dwell_run, 10.0)   # best run before reset
+        self.assertAlmostEqual(st.max_dwell_run, 10.0)  # best run before reset
         # fresh attempt resumes from the second coop window
         self.assertAlmostEqual(st.first_coop_at, 15.0)
 
@@ -149,10 +161,16 @@ class CoopThresholdTest(unittest.TestCase):
     def test_destroyed_uav_does_not_count(self):
         prof = profile_multi_uav_coop_decoy(K=2)
         ev = CoopTrackingEvaluator(prof, {"T1"})
-        _run(ev, _track_range(0, 25, "T1", {"U1", "U2"},
-                              )[:0] + [_tick(t, {"T1": {"U1", "U2"}},
-                                             destroyed={"U2"})
-                                       for t in range(0, 26)])
+        _run(
+            ev,
+            _track_range(
+                0,
+                25,
+                "T1",
+                {"U1", "U2"},
+            )[:0]
+            + [_tick(t, {"T1": {"U1", "U2"}}, destroyed={"U2"}) for t in range(0, 26)],
+        )
         # U2 destroyed -> only U1 effective -> not cooperative.
         self.assertFalse(ev.states["T1"].completed)
 
@@ -164,10 +182,12 @@ class ScoringTest(unittest.TestCase):
     def test_score_is_pure_and_repeatable(self):
         ev = CoopTrackingEvaluator(profile_uav_search_track_car(), {"T1"})
         _run(ev, _track_range(0, 10, "T1", {"U1"}))
-        s1 = ev.score({"search_time": 5.0, "track_in_view_fraction": 1.0,
-                       "sim_t0": 0.0})
-        s2 = ev.score({"search_time": 5.0, "track_in_view_fraction": 1.0,
-                       "sim_t0": 0.0})
+        s1 = ev.score(
+            {"search_time": 5.0, "track_in_view_fraction": 1.0, "sim_t0": 0.0}
+        )
+        s2 = ev.score(
+            {"search_time": 5.0, "track_in_view_fraction": 1.0, "sim_t0": 0.0}
+        )
         self.assertEqual(s1, s2)
         # scoring must not mutate observed state -> observe still advances.
         before = ev.states["T1"].dwell_accumulated
@@ -177,8 +197,7 @@ class ScoringTest(unittest.TestCase):
     def test_total_score_in_range(self):
         ev = CoopTrackingEvaluator(profile_uav_search_track_car(), {"T1"})
         _run(ev, _track_range(0, 25, "T1", {"U1"}))
-        s = ev.score({"search_time": 3.0, "track_in_view_fraction": 1.0,
-                      "sim_t0": 0.0})
+        s = ev.score({"search_time": 3.0, "track_in_view_fraction": 1.0, "sim_t0": 0.0})
         self.assertGreaterEqual(s["total_score"], 0.0)
         self.assertLessEqual(s["total_score"], 100.0)
 
@@ -209,12 +228,15 @@ class ScoringTest(unittest.TestCase):
 
     def test_misid_accounting(self):
         ev = CoopTrackingEvaluator(profile_multi_uav_coop_decoy(), {"T1"})
-        _run(ev, [
-            _tick(0, {"T1": {"U1", "U2"}}),
-            _tick(1, {"T1": {"U1", "U2"}}),
-            _tick(2, {"T1": {"U1", "U2"}}),
-            _misid_tick(3, "U1", "D1"),
-        ])
+        _run(
+            ev,
+            [
+                _tick(0, {"T1": {"U1", "U2"}}),
+                _tick(1, {"T1": {"U1", "U2"}}),
+                _tick(2, {"T1": {"U1", "U2"}}),
+                _misid_tick(3, "U1", "D1"),
+            ],
+        )
         self.assertEqual(ev.misid_ticks, 1)
         # 3 effective frames (U1+U2 each = 2 detections/frame = 6) + 1 misid
         self.assertEqual(ev.total_detected_ticks, 7)
@@ -226,18 +248,16 @@ class ScoringTest(unittest.TestCase):
         # "time_to_all", both of which divide by profile.duration_s.
         # duration_s==0 -> ZeroDivisionError in _dimension -> runner crash
         # -> controller_exited. score() must stay bounded [0,100] instead.
-        ev = CoopTrackingEvaluator(
-            profile_uav_search_track_car(duration_s=0.0), {"T1"})
+        ev = CoopTrackingEvaluator(profile_uav_search_track_car(duration_s=0.0), {"T1"})
         _run(ev, _track_range(0, 10, "T1", {"U1"}))
-        s = ev.score({"search_time": 5.0, "track_in_view_fraction": 1.0,
-                      "sim_t0": 0.0})
+        s = ev.score({"search_time": 5.0, "track_in_view_fraction": 1.0, "sim_t0": 0.0})
         self.assertGreaterEqual(s["total_score"], 0.0)
         self.assertLessEqual(s["total_score"], 100.0)
 
 
 class FullCoopTest(unittest.TestCase):
     def test_full_coop_counts_three_trackers(self):
-        prof = profile_multi_uav_coop_decoy(K=2)   # full_coop_K=3
+        prof = profile_multi_uav_coop_decoy(K=2)  # full_coop_K=3
         ev = CoopTrackingEvaluator(prof, {"T1"})
         # 5 ticks with 3 trackers -> full coop every tick.
         _run(ev, [_tick(t, {"T1": {"U1", "U2", "U3"}}) for t in range(5)])
@@ -260,8 +280,7 @@ class TrackQualityTest(unittest.TestCase):
             }
             ev.observe(float(t), uav_map, set())
         s = ev.score({})
-        self.assertAlmostEqual(s["dimension_scores"]["track_quality"], 75.0,
-                               places=1)
+        self.assertAlmostEqual(s["dimension_scores"]["track_quality"], 75.0, places=1)
 
     def test_quality_zero_when_no_effective_track(self):
         ev = CoopTrackingEvaluator(profile_multi_uav_coop_decoy(), {"T1"})
@@ -276,40 +295,64 @@ class TrackQualityTest(unittest.TestCase):
 class ResolveTest(unittest.TestCase):
     def setUp(self):
         self.true_targets = {"T1": (27.0000, 125.0000)}
-        self.decoys = {"D1": (27.0005, 125.0000)}   # ~55 m north of T1
+        self.decoys = {"D1": (27.0005, 125.0000)}  # ~55 m north of T1
 
     def test_matches_real_target(self):
-        uavs = [UavDetection(uid="U1", detected=True, confidence=0.9,
-                             target_lat=27.0000, target_lon=125.0000,
-                             target_type="ground_vehicle")]
+        uavs = [
+            UavDetection(
+                uid="U1",
+                detected=True,
+                confidence=0.9,
+                target_lat=27.0000,
+                target_lon=125.0000,
+                target_type="ground_vehicle",
+            )
+        ]
         m = resolve_uav_to_target(uavs, self.true_targets, self.decoys)
         self.assertEqual(m["U1"].target_uid, "T1")
         self.assertTrue(m["U1"].is_effective)
         self.assertFalse(m["U1"].was_misid)
-        self.assertAlmostEqual(m["U1"].confidence, 0.9)   # flows through
+        self.assertAlmostEqual(m["U1"].confidence, 0.9)  # flows through
 
     def test_decoy_match_has_zero_confidence(self):
-        uavs = [UavDetection(uid="U1", detected=True, confidence=0.9,
-                             target_lat=27.0005, target_lon=125.0000,
-                             target_type="decoy_vehicle", misid_flag=True)]
+        uavs = [
+            UavDetection(
+                uid="U1",
+                detected=True,
+                confidence=0.9,
+                target_lat=27.0005,
+                target_lon=125.0000,
+                target_type="decoy_vehicle",
+                misid_flag=True,
+            )
+        ]
         m = resolve_uav_to_target(uavs, self.true_targets, self.decoys)
         self.assertEqual(m["U1"].target_uid, "D1")
-        self.assertAlmostEqual(m["U1"].confidence, 0.0)   # misid -> no quality
+        self.assertAlmostEqual(m["U1"].confidence, 0.0)  # misid -> no quality
 
     def test_matches_decoy_as_misid(self):
-        uavs = [UavDetection(uid="U1", detected=True,
-                             target_lat=27.0005, target_lon=125.0000,
-                             target_type="decoy_vehicle", misid_flag=True)]
+        uavs = [
+            UavDetection(
+                uid="U1",
+                detected=True,
+                target_lat=27.0005,
+                target_lon=125.0000,
+                target_type="decoy_vehicle",
+                misid_flag=True,
+            )
+        ]
         m = resolve_uav_to_target(uavs, self.true_targets, self.decoys)
         self.assertEqual(m["U1"].target_uid, "D1")
         self.assertFalse(m["U1"].is_effective)
         self.assertTrue(m["U1"].was_misid)
 
     def test_too_far_is_no_match(self):
-        uavs = [UavDetection(uid="U1", detected=True,
-                             target_lat=27.5, target_lon=125.5)]   # far away
-        m = resolve_uav_to_target(uavs, self.true_targets, self.decoys,
-                                  max_match_m=120.0)
+        uavs = [
+            UavDetection(uid="U1", detected=True, target_lat=27.5, target_lon=125.5)
+        ]  # far away
+        m = resolve_uav_to_target(
+            uavs, self.true_targets, self.decoys, max_match_m=120.0
+        )
         self.assertIsNone(m["U1"].target_uid)
         self.assertFalse(m["U1"].is_effective)
 
@@ -319,8 +362,15 @@ class ResolveTest(unittest.TestCase):
         self.assertIsNone(m["U1"].target_uid)
 
     def test_destroyed_is_no_match(self):
-        uavs = [UavDetection(uid="U1", detected=True, destroyed=True,
-                             target_lat=27.0000, target_lon=125.0000)]
+        uavs = [
+            UavDetection(
+                uid="U1",
+                detected=True,
+                destroyed=True,
+                target_lat=27.0000,
+                target_lon=125.0000,
+            )
+        ]
         m = resolve_uav_to_target(uavs, self.true_targets, self.decoys)
         self.assertIsNone(m["U1"].target_uid)
 

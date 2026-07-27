@@ -19,9 +19,9 @@ Run with:
 or:
     /c/Python314/python.exe examples/uav_search_track_car/integration_smoke.py
 """
+
 from __future__ import annotations
 
-import json
 import math
 import sys
 import time
@@ -33,16 +33,10 @@ if str(HERE.parents[1]) not in sys.path:
     sys.path.insert(0, str(HERE.parents[1]))
 
 from search_track.client import SimClient
-from search_track.commands import CommandTarget, ControlCommand
 from search_track.config import from_yaml
 from search_track.controller import load_controller
 from search_track.geometry import haversine_m
 from search_track.metrics import MetricsRecorder
-from search_track.state import (
-    Attitude, Detection, GeoPosition, GimbalState, SimState,
-    TargetState, UavState,
-)
-
 
 UAV_ID = "10002"
 TARGET_ID = "10001"
@@ -59,8 +53,13 @@ FOV_DEG = 60.0
 HALF_FOV = FOV_DEG / 2.0
 
 
-def make_synthetic_state(t: float, *, target_visible: bool, target_lat: float = TARGET_HOME[0],
-                          target_lon: float = TARGET_HOME[1]) -> dict:
+def make_synthetic_state(
+    t: float,
+    *,
+    target_visible: bool,
+    target_lat: float = TARGET_HOME[0],
+    target_lon: float = TARGET_HOME[1],
+) -> dict:
     """Build a raw sim:state dict for time t, on a simple uav spiral path."""
     # Spiral: bearing(t) = 30 deg/s, radius grows linearly until SPIRAL_RADIUS.
     ang = (30.0 * t) % 360.0
@@ -93,7 +92,11 @@ def make_synthetic_state(t: float, *, target_visible: bool, target_lat: float = 
         "sim_time": t,
         UAV_ID: {
             "platform": {
-                "position": {"latitude": uav_lat, "longitude": uav_lon, "altitude": uav_alt},
+                "position": {
+                    "latitude": uav_lat,
+                    "longitude": uav_lon,
+                    "altitude": uav_alt,
+                },
                 "attitude": {"yaw": uav_yaw, "pitch": 0.0, "roll": 0.0},
             },
             "heading": uav_yaw,
@@ -107,8 +110,13 @@ def make_synthetic_state(t: float, *, target_visible: bool, target_lat: float = 
                     "detected": detected,
                     "confidence": 0.9 if detected else 0.0,
                     "target_position": (
-                        {"latitude": target_lat, "longitude": target_lon, "altitude": 0.0}
-                        if detected else None
+                        {
+                            "latitude": target_lat,
+                            "longitude": target_lon,
+                            "altitude": 0.0,
+                        }
+                        if detected
+                        else None
                     ),
                     "azimuth_error": azimuth_error,
                 },
@@ -116,7 +124,11 @@ def make_synthetic_state(t: float, *, target_visible: bool, target_lat: float = 
         },
         TARGET_ID: {
             "platform": {
-                "position": {"latitude": target_lat, "longitude": target_lon, "altitude": 0.0}
+                "position": {
+                    "latitude": target_lat,
+                    "longitude": target_lon,
+                    "altitude": 0.0,
+                }
             },
             "speed": 0.0,
             "heading": 0.0,
@@ -129,12 +141,16 @@ def bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dlam = math.radians(lon2 - lon1)
     y = math.sin(dlam) * math.cos(phi2)
-    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(dlam)
+    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(
+        dlam
+    )
     return (math.degrees(math.atan2(y, x)) + 360.0) % 360.0
 
 
-def main(controller_spec: str = "search_track.fsm_controller:FsmSearchTrackController",
-         duration: float = 30.0) -> int:
+def main(
+    controller_spec: str = "search_track.fsm_controller:FsmSearchTrackController",
+    duration: float = 30.0,
+) -> int:
     print("=" * 70)
     print("INTEGRATION SMOKE (T035 / T042 / T050 / T059 equivalent)")
     print("=" * 70)
@@ -144,8 +160,10 @@ def main(controller_spec: str = "search_track.fsm_controller:FsmSearchTrackContr
 
     cfg = from_yaml(HERE / "config" / "algorithm.yaml")
     cfg.controller = controller_spec
-    print(f"[smoke] loaded config: search_radius={cfg.search_radius}, "
-          f"loiter_radius={cfg.loiter_radius}")
+    print(
+        f"[smoke] loaded config: search_radius={cfg.search_radius}, "
+        f"loiter_radius={cfg.loiter_radius}"
+    )
 
     controller = load_controller(cfg.controller)
     if hasattr(controller, "configure"):
@@ -171,7 +189,6 @@ def main(controller_spec: str = "search_track.fsm_controller:FsmSearchTrackContr
 
     recorder = MetricsRecorder()
     period = 1.0 / float(cfg.get("control_rate_hz", 10))
-    last_state: SimState | None = None
     issued_target_entity = False  # invariant I-7
     set_enabled_calls: list[bool] = []
     set_orientation_calls = 0
@@ -188,8 +205,8 @@ def main(controller_spec: str = "search_track.fsm_controller:FsmSearchTrackContr
             raw = make_synthetic_state(target_t, target_visible=True)
             # Parse the synthetic state as if it came from the sim
             from search_track.state import parse_sim_state
+
             state = parse_sim_state(raw, uav_id=UAV_ID, target_id=TARGET_ID)
-            last_state = state
             # Feed controller with stripped state
             cmds = controller.decide(state.without_truth(), period)
             # Publish each command
@@ -210,7 +227,10 @@ def main(controller_spec: str = "search_track.fsm_controller:FsmSearchTrackContr
                         event_type="state.enter_track",
                         entity_uid=UAV_ID,
                         sim_time=state.sim_time,
-                        payload={"target_type": "real", "confidence": state.detection.confidence},
+                        payload={
+                            "target_type": "real",
+                            "confidence": state.detection.confidence,
+                        },
                     )
                     events_published += 1
                 elif cur_mode == "SEARCH" and prev_mode == "TRACK":
@@ -224,8 +244,16 @@ def main(controller_spec: str = "search_track.fsm_controller:FsmSearchTrackContr
                 prev_mode = cur_mode
             # Record metrics
             tgt = state.target_truth.position
-            dist = haversine_m(state.uav.position.latitude, state.uav.position.longitude,
-                               tgt.latitude, tgt.longitude) if state.target_truth else None
+            dist = (
+                haversine_m(
+                    state.uav.position.latitude,
+                    state.uav.position.longitude,
+                    tgt.latitude,
+                    tgt.longitude,
+                )
+                if state.target_truth
+                else None
+            )
             recorder.record_tick(
                 sim_time=state.sim_time,
                 mode=getattr(controller, "mode", "?"),
@@ -241,11 +269,13 @@ def main(controller_spec: str = "search_track.fsm_controller:FsmSearchTrackContr
             target_t += period
             if int(state.sim_time) > last_print:
                 last_print = int(state.sim_time)
-                print(f"  t={state.sim_time:5.1f}  mode={getattr(controller, 'mode', '?'):6s}  "
-                      f"detected={state.detection.detected}  cmds={len(cmds)}  "
-                      f"target_entity={issued_target_entity}")
+                print(
+                    f"  t={state.sim_time:5.1f}  mode={getattr(controller, 'mode', '?'):6s}  "
+                    f"detected={state.detection.detected}  cmds={len(cmds)}  "
+                    f"target_entity={issued_target_entity}"
+                )
             # Read back any echoed commands (sanity)
-            msg = pubsub.get_message(timeout=0.001)
+            pubsub.get_message(timeout=0.001)
     except KeyboardInterrupt:
         print("\n[smoke] ^C")
 
@@ -266,17 +296,27 @@ def main(controller_spec: str = "search_track.fsm_controller:FsmSearchTrackContr
     print("=" * 70)
     print(f"  ticks executed      : {n_ticks}")
     print(f"  wall-clock duration : {elapsed:.2f} s")
-    print(f"  search time         : {final.search_time:.2f} s  (success={final.searched_successfully})")
+    print(
+        f"  search time         : {final.search_time:.2f} s  (success={final.searched_successfully})"
+    )
     print(f"  total track time    : {final.total_track_time:.2f} s")
-    print(f"  track in view       : {final.track_in_view_fraction*100:.1f} %")
+    print(f"  track in view       : {final.track_in_view_fraction * 100:.1f} %")
     print(f"  mode switches       : {final.mode_switches}")
     print()
     print("INVARIANT CHECKS")
-    print(f"  I-7 (no set_target_entity issued)         : {'PASS' if not issued_target_entity else 'FAIL'}")
-    print(f"  I-2 (all set_enabled=False)               : {'PASS' if all(e is False for e in set_enabled_calls) else 'FAIL'}")
-    print(f"  I-4 (set_orientation called ≥ once in TRACK): {'PASS' if set_orientation_calls > 0 else 'WARN (mode never entered TRACK)'}")
+    print(
+        f"  I-7 (no set_target_entity issued)         : {'PASS' if not issued_target_entity else 'FAIL'}"
+    )
+    print(
+        f"  I-2 (all set_enabled=False)               : {'PASS' if all(e is False for e in set_enabled_calls) else 'FAIL'}"
+    )
+    print(
+        f"  I-4 (set_orientation called ≥ once in TRACK): {'PASS' if set_orientation_calls > 0 else 'WARN (mode never entered TRACK)'}"
+    )
     # Spec 018: verify events were published without errors
-    print(f"  T038 (sim:events published, no errors)     : {'PASS' if events_published > 0 or final.mode_switches == 0 else 'WARN (no mode transitions)'}")
+    print(
+        f"  T038 (sim:events published, no errors)     : {'PASS' if events_published > 0 or final.mode_switches == 0 else 'WARN (no mode transitions)'}"
+    )
     print(f"  T038 (events published count)               : {events_published}")
     print()
     print(f"metrics json   : {j}")
@@ -285,10 +325,21 @@ def main(controller_spec: str = "search_track.fsm_controller:FsmSearchTrackContr
 
     pubsub.close()
     c.close()
-    return 0 if (not issued_target_entity and (set_orientation_calls > 0 or final.searched_successfully)) else 1
+    return (
+        0
+        if (
+            not issued_target_entity
+            and (set_orientation_calls > 0 or final.searched_successfully)
+        )
+        else 1
+    )
 
 
 if __name__ == "__main__":
-    spec = sys.argv[1] if len(sys.argv) > 1 else "search_track.fsm_controller:FsmSearchTrackController"
+    spec = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else "search_track.fsm_controller:FsmSearchTrackController"
+    )
     dur = float(sys.argv[2]) if len(sys.argv) > 2 else 30.0
     sys.exit(main(spec, dur))

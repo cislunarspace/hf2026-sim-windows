@@ -17,11 +17,12 @@ the peer's uid.  When a previously-lost peer sends a new heartbeat
 ACTIVE.  Callbacks are deduplicated: a single ACTIVE→LOST edge produces
 exactly one on_lost invocation, even across multiple ticks.
 """
+
 from __future__ import annotations
 
 import enum
-from dataclasses import dataclass, field
-from typing import Callable, Optional
+from collections.abc import Callable
+from dataclasses import dataclass
 
 
 class PeerState(str, enum.Enum):
@@ -40,6 +41,7 @@ class Heartbeat:
     purposes ONLY.  FleetMembership MUST NOT use it to make liveness
     decisions (SC-010 info-isolation).
     """
+
     uid: str
     sim_time: float
     lat: float
@@ -80,7 +82,7 @@ class FleetMembership:
             return  # never self-track
         prev = self._peers.get(hb.uid)
         new_pos = (hb.lat, hb.lon, hb.alt)
-        new_state = (prev[2] if prev else PeerState.UNKNOWN)
+        new_state = prev[2] if prev else PeerState.UNKNOWN
         # A fresh heartbeat moves a peer to ACTIVE — regardless of any
         # status string the peer happened to send.  (SC-010 info-isolation.)
         new_state = PeerState.ACTIVE
@@ -120,13 +122,11 @@ class FleetMembership:
             return PeerState.UNKNOWN
         return self._peers[uid][2]
 
-    def last_position_of(self, uid: str) -> Optional[tuple[float, float, float]]:
+    def last_position_of(self, uid: str) -> tuple[float, float, float] | None:
         return self._last_pos.get(uid)
 
     def active_uids(self) -> list[str]:
-        return [u for u, (_, _, s) in self._peers.items()
-                if s == PeerState.ACTIVE]
+        return [u for u, (_, _, s) in self._peers.items() if s == PeerState.ACTIVE]
 
     def lost_uids(self) -> list[str]:
-        return [u for u, (_, _, s) in self._peers.items()
-                if s == PeerState.LOST]
+        return [u for u, (_, _, s) in self._peers.items() if s == PeerState.LOST]

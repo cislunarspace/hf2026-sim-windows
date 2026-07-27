@@ -4,6 +4,7 @@ Fixed top-level (self/comm_inbox/briefing). ``obs.self.jammed`` is the
 self-perception channel for dynamic comm-jam regions; pre-match-known
 static threats live in ``obs.briefing.known_threats``.
 """
+
 from __future__ import annotations
 
 from ...core.observation import Observation
@@ -16,4 +17,5 @@ class SwarmObs(Observation):
     environment via ``obs.self.jammed``/``obs.self.comm_stats`` and
     coordinate via ``obs.comm_inbox``.
     """
+
     pass

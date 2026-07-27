@@ -3,6 +3,7 @@
 Provides the same minimal API used by SimClient (publish/subscribe/get_message)
 without requiring a running Redis server.
 """
+
 import json
 import threading
 from collections import defaultdict, deque

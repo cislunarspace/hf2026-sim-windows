@@ -21,10 +21,10 @@ Info-isolation contract (SC-010):
   * The air-defense zones used by the blind-avoidance layer come from
     the published ``state.zones`` bucket, not the scenario config.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .auction_allocator import AuctionAllocator
 from .blind_avoidance_planner import BlindAvoidancePlanner
@@ -45,6 +45,7 @@ class DistributedCoopController:
     auction, sector assignment, suspect-threat recording, and
     line-of-sight detour around suspect-threat circles.
     """
+
     my_uid: str
     inner: SwarmController
     fleet: FleetMembership
@@ -53,31 +54,41 @@ class DistributedCoopController:
     blind_planner: BlindAvoidancePlanner
 
     @classmethod
-    def create(cls, my_uid: str, *, heartbeat_timeout_s: float = 5.0,
-               network_available: bool = True,
-               threat_safe_radius_m: float = 600.0) -> "DistributedCoopController":
+    def create(
+        cls,
+        my_uid: str,
+        *,
+        heartbeat_timeout_s: float = 5.0,
+        network_available: bool = True,
+        threat_safe_radius_m: float = 600.0,
+    ) -> DistributedCoopController:
         c = cls(
             my_uid=my_uid,
             inner=SwarmController(my_uid=my_uid),
-            fleet=FleetMembership(my_uid=my_uid,
-                                  heartbeat_timeout_s=heartbeat_timeout_s),
-            auction=AuctionAllocator(my_uid=my_uid,
-                                     network_available=network_available),
-            threat_intel=ThreatIntel(my_uid=my_uid,
-                                     safe_radius_m=threat_safe_radius_m),
+            fleet=FleetMembership(
+                my_uid=my_uid, heartbeat_timeout_s=heartbeat_timeout_s
+            ),
+            auction=AuctionAllocator(
+                my_uid=my_uid, network_available=network_available
+            ),
+            threat_intel=ThreatIntel(my_uid=my_uid, safe_radius_m=threat_safe_radius_m),
             blind_planner=BlindAvoidancePlanner(
-                my_uid=my_uid, safe_radius_m=threat_safe_radius_m),
+                my_uid=my_uid, safe_radius_m=threat_safe_radius_m
+            ),
         )
+
         # Wire: when a peer is declared LOST, record a suspect-threat
         # point at its last known position.  When a peer is RECOVERED,
         # clear the corresponding suspect point.
         def _on_lost(uid, pos):
             if pos is not None:
                 c.threat_intel.add_suspect(pos[0], pos[1])
+
         def _on_recovered(uid):
             pos = c.fleet.last_position_of(uid)
             if pos is not None:
                 c.threat_intel.clear_suspect(pos[0], pos[1])
+
         c.fleet.on_lost(_on_lost)
         c.fleet.on_recovered(_on_recovered)
         return c
@@ -90,7 +101,7 @@ class DistributedCoopController:
     # ── perception API (called per tick) ──────────────────────────────────
 
     def observe_heartbeat(self, hb: Heartbeat) -> None:
-        prev_state = self.fleet.state_of(hb.uid)
+        self.fleet.state_of(hb.uid)
         self.fleet.observe_heartbeat(hb)
         # If a peer is fresh ACTIVE, no intel change.  If a peer is
         # LOST, record a suspect-threat point at the last position.

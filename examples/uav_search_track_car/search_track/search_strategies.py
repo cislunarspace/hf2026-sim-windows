@@ -1,9 +1,9 @@
 """Search strategies — expanding-square spiral and gimbal sweep."""
+
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-
 
 EARTH_RADIUS_M = 6_371_000.0
 
@@ -38,7 +38,9 @@ def spiral_next_waypoint(t: float, p: SpiralParams) -> tuple[float, float, float
     return p.base_lat + dlat, p.base_lon + dlon, p.base_alt
 
 
-def sweep_orientation(t: float, period: float, pitch_min: float, pitch_max: float) -> tuple[float, float]:
+def sweep_orientation(
+    t: float, period: float, pitch_min: float, pitch_max: float
+) -> tuple[float, float]:
     """Return (pan, tilt) for a sinusoidal pitch + pan sweep.
 
     Pan oscillates slowly (1 revolution per 2 periods) over a ±90° range
@@ -49,7 +51,9 @@ def sweep_orientation(t: float, period: float, pitch_min: float, pitch_max: floa
         period = 0.1
     phase = (t % period) / period
     # 0 -> pitch_min, 0.5 -> pitch_max, 1 -> pitch_min
-    tilt = pitch_min + (pitch_max - pitch_min) * 0.5 * (1 - math.cos(2 * math.pi * phase))
+    tilt = pitch_min + (pitch_max - pitch_min) * 0.5 * (
+        1 - math.cos(2 * math.pi * phase)
+    )
     # Pan: half-period, full ±90° so we cover both sides.
     pan_phase = (t % (period * 2)) / (period * 2)
     pan = -90.0 + 180.0 * 0.5 * (1 - math.cos(2 * math.pi * pan_phase))

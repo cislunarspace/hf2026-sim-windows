@@ -10,17 +10,17 @@ but uses :func:`parse_world_state` instead of the single-uav SimState
 parser, and takes the ``unique_id`` at publish time rather than at
 construction.
 """
+
 from __future__ import annotations
 
 import json
 import time
-from typing import Any, Optional
+from typing import Any
 
 import redis
 
 from .commands import Command
 from .world_state import WorldState, parse_world_state
-
 
 CMD_CHANNEL = "sim:commands"
 STATE_CHANNEL = "sim:state"
@@ -32,13 +32,12 @@ class SimClient:
     def __init__(self, *, host: str = "127.0.0.1", port: int = 6379) -> None:
         self.host = host
         self.port = port
-        self._redis: Optional[redis.Redis] = None
+        self._redis: redis.Redis | None = None
         self._pubsub: Any = None
-        self._latest: Optional[WorldState] = None
+        self._latest: WorldState | None = None
 
     def connect(self) -> None:
-        self._redis = redis.Redis(host=self.host, port=self.port,
-                                  decode_responses=True)
+        self._redis = redis.Redis(host=self.host, port=self.port, decode_responses=True)
         self._redis.ping()
         self._pubsub = self._redis.pubsub(ignore_subscribe_messages=True)
         self._pubsub.subscribe(STATE_CHANNEL)
@@ -75,7 +74,7 @@ class SimClient:
             f"no sim:state received within {timeout}s — is opensim-sim running?"
         )
 
-    def poll_latest(self, timeout: float = 0.05) -> Optional[WorldState]:
+    def poll_latest(self, timeout: float = 0.05) -> WorldState | None:
         """Drain pending frames and return the most recent (or None)."""
         if self._pubsub is None:
             raise RuntimeError("SimClient not connected")
@@ -110,8 +109,7 @@ class SimClient:
         """Publish an engine-level command (pause/resume/step/end)."""
         if self._redis is None:
             raise RuntimeError("SimClient not connected")
-        return self._redis.publish(CMD_CHANNEL,
-                                   json.dumps({"cmd": verb, "params": {}}))
+        return self._redis.publish(CMD_CHANNEL, json.dumps({"cmd": verb, "params": {}}))
 
     def publish_raw(self, d: dict) -> int:
         """Publish a pre-built dict (for scenario trajectory injection)."""
@@ -119,7 +117,7 @@ class SimClient:
             raise RuntimeError("SimClient not connected")
         return self._redis.publish(CMD_CHANNEL, json.dumps(d))
 
-    def __enter__(self) -> "SimClient":
+    def __enter__(self) -> SimClient:
         self.connect()
         return self
 

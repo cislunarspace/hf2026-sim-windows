@@ -39,11 +39,11 @@ Edit `decide()`:
 class MyAgent(SearchTrackAgent):
     def decide(self, obs, dt):
         if obs.self.detection.detected:
-            return [point_gimbal(0.0, -45.0),
-                    fly_to(obs.self.detection.target_lat,
-                           obs.self.detection.target_lon)]
-        return [fly_to(obs.self.lat + 0.001, obs.self.lon),
-                point_gimbal(0.0, -45.0)]
+            return [
+                point_gimbal(0.0, -45.0),
+                fly_to(obs.self.detection.target_lat, obs.self.detection.target_lon),
+            ]
+        return [fly_to(obs.self.lat + 0.001, obs.self.lon), point_gimbal(0.0, -45.0)]
 ```
 
 ## 3. Run
@@ -61,9 +61,9 @@ The SDK starts the engine, runs the loop at ~10 Hz, scores, and writes
 Every `decide(obs, dt)` call gives you exactly:
 
 ```python
-obs.self         # YOUR UAV's pose, gimbal, camera detection, jammed/status
-obs.comm_inbox   # messages teammates sent you (their payload, not their pose)
-obs.briefing     # pre-match static info (mission area, known static threats)
+obs.self  # YOUR UAV's pose, gimbal, camera detection, jammed/status
+obs.comm_inbox  # messages teammates sent you (their payload, not their pose)
+obs.briefing  # pre-match static info (mission area, known static threats)
 ```
 
 **You cannot see** teammate poses, target ground-truth, or dynamic threat

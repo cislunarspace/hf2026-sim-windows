@@ -23,12 +23,12 @@ appeared to never maneuver. ``start_sim`` now polls the Redis
 ``PUBSUB NUMSUB`` count on the command channel and only returns once the
 sim has actually subscribed (or ``ready_timeout`` elapses).
 """
+
 from __future__ import annotations
 
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional
 
 # Unified boot delay (was 2.0 in three examples, 3.0 in
 # uav_track_road_target). 2.0s is the historical majority and is enough
@@ -43,8 +43,12 @@ DEFAULT_READY_TIMEOUT = 180.0
 
 
 def _wait_sim_ready(
-    redis_host: str, redis_port: int, channel: str,
-    timeout: float, log, proc: "subprocess.Popen | None",
+    redis_host: str,
+    redis_port: int,
+    channel: str,
+    timeout: float,
+    log,
+    proc: subprocess.Popen | None,
 ) -> None:
     """Block until ``opensim-sim`` has subscribed to ``channel``.
 
@@ -68,8 +72,10 @@ def _wait_sim_ready(
     poll_interval = 1.0
     while time.time() < deadline:
         if proc is not None and proc.poll() is not None:
-            log(f"[run] opensim-sim exited (code {proc.returncode}) before "
-                "becoming ready")
+            log(
+                f"[run] opensim-sim exited (code {proc.returncode}) before "
+                "becoming ready"
+            )
             return
         try:
             n = r.execute_command("PUBSUB", "NUMSUB", channel)
@@ -80,8 +86,10 @@ def _wait_sim_ready(
         except Exception:
             pass  # redis not up yet, or transient error — keep waiting
         time.sleep(poll_interval)
-    log(f"[run] WARNING: opensim-sim did not subscribe to {channel} within "
-        f"{timeout:.0f}s (still loading terrain?); proceeding anyway.")
+    log(
+        f"[run] WARNING: opensim-sim did not subscribe to {channel} within "
+        f"{timeout:.0f}s (still loading terrain?); proceeding anyway."
+    )
 
 
 def start_sim(
@@ -94,8 +102,8 @@ def start_sim(
     redis_port: int = 6379,
     ready_channel: str = "sim:commands",
     ready_timeout: float = DEFAULT_READY_TIMEOUT,
-    stderr_file: Optional[str] = None,
-) -> Optional[subprocess.Popen]:
+    stderr_file: str | None = None,
+) -> subprocess.Popen | None:
     """Spawn opensim-sim as a subprocess and wait until it is ready.
 
     On success returns the Popen handle. On failure (binary missing) logs an
@@ -126,7 +134,8 @@ def start_sim(
         stderr = subprocess.DEVNULL
     proc = subprocess.Popen(
         [str(bin_path), "--config", scenario],
-        stdout=subprocess.DEVNULL, stderr=stderr,
+        stdout=subprocess.DEVNULL,
+        stderr=stderr,
     )
     time.sleep(boot_delay)
     if proc.poll() is not None:
@@ -136,7 +145,7 @@ def start_sim(
     return proc
 
 
-def stop_sim(proc: Optional[subprocess.Popen]) -> None:
+def stop_sim(proc: subprocess.Popen | None) -> None:
     """Terminate the sim subprocess: terminate → wait(5s) → kill.
 
     Safe to call with ``None`` (no-op) and on an already-exited process.

@@ -1,4 +1,5 @@
 """Helpers for constructing SimState fixtures in tests."""
+
 from search_track.state import (
     Attitude,
     Detection,

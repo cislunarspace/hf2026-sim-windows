@@ -11,32 +11,39 @@ v2 用新的 ACQUIRE 态打破死循环：SEARCH 中 detected 任意一帧即停
 严格遵守数据隔离：只读 ``obs.self`` / ``obs.comm_inbox`` / ``obs.briefing``。
 设计见 docs/superpowers/specs/2026-07-15-swarm-coordinated-redesign.md
 """
+
 from __future__ import annotations
 
 import hashlib
 import math
 from collections import deque
-from typing import Deque, List, Optional, Tuple
 
-from competition.sdk.core.commands import (Command, broadcast, fly_to,
-                                           point_gimbal, report_target,
-                                           set_gimbal_fov)
+from competition.sdk.core.commands import (
+    Command,
+    broadcast,
+    fly_to,
+    point_gimbal,
+    report_target,
+    set_gimbal_fov,
+)
 from competition.sdk.scenarios.adversarial_swarm import SwarmAgent
 from competition.sdk.scenarios.adversarial_swarm.observation import SwarmObs
 
 # ── mission geometry (real scenario.json — v1 had these WRONG) ─────────────
 # UAV altitude = 500 m, camera FOV = 30° (not 60), auto_track=false.
 # Terrain bbox mirrors the scenario boundary (pre-match constants, not truth).
-_BBOX: Tuple[Tuple[float, float], Tuple[float, float]] = (
-    (26.982, 124.980), (27.025, 125.020))
-_SAFEBOX_MARGIN_M = 600.0          # > penalty_boundary_margin_m (500)
-_SEARCH_ALT = 500.0                # real UAV altitude
-_TRACK_LOITER = 330.0              # K=3 环半径，两两 330·√3≈572m > 200 近罚线
-_PROXIMITY_FLOOR_M = 200.0         # penalty threshold
+_BBOX: tuple[tuple[float, float], tuple[float, float]] = (
+    (26.982, 124.980),
+    (27.025, 125.020),
+)
+_SAFEBOX_MARGIN_M = 600.0  # > penalty_boundary_margin_m (500)
+_SEARCH_ALT = 500.0  # real UAV altitude
+_TRACK_LOITER = 330.0  # K=3 环半径，两两 330·√3≈572m > 200 近罚线
+_PROXIMITY_FLOOR_M = 200.0  # penalty threshold
 
 # scoring-rule constants (mirrors profile_adversarial_swarm_search; read-only)
-_K = 3                             # ≥K simultaneous effective trackers to destroy
-_DWELL_TARGET_S = 20.0             # sustained dwell to destroy
+_K = 3  # ≥K simultaneous effective trackers to destroy
+_DWELL_TARGET_S = 20.0  # sustained dwell to destroy
 
 
 def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -44,8 +51,7 @@ def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp = math.radians(lat2 - lat1)
     dl = math.radians(lon2 - lon1)
-    a = (math.sin(dp / 2) ** 2
-         + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * R * math.asin(math.sqrt(a))
 
 
@@ -54,7 +60,7 @@ def _bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dl = math.radians(lon2 - lon1)
     y = math.sin(dl) * math.cos(p2)
-    x = (math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl))
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl)
     return (math.degrees(math.atan2(y, x)) + 360.0) % 360.0
 
 
@@ -69,10 +75,9 @@ def _bbox_inset(bbox, margin_m: float):
 _SAFEBOX = _bbox_inset(_BBOX, _SAFEBOX_MARGIN_M)
 
 
-def _clamp_to_safebox(lat: float, lon: float) -> Tuple[float, float]:
+def _clamp_to_safebox(lat: float, lon: float) -> tuple[float, float]:
     (lat_min, lon_min), (lat_max, lon_max) = _SAFEBOX
-    return (min(max(lat, lat_min), lat_max),
-            min(max(lon, lon_min), lon_max))
+    return (min(max(lat, lat_min), lat_max), min(max(lon, lon_min), lon_max))
 
 
 def _uid_rank(uid: str) -> int:
@@ -86,8 +91,13 @@ def _uid_rank(uid: str) -> int:
     if uid.isdigit():
         return int(uid)
     # foo_6 / uav-6 / uav 6 → trailing integer
-    tail = uid.rsplit("_", 1)[-1] if "_" in uid else \
-        uid.rsplit("-", 1)[-1] if "-" in uid else uid.rsplit(" ", 1)[-1]
+    tail = (
+        uid.rsplit("_", 1)[-1]
+        if "_" in uid
+        else uid.rsplit("-", 1)[-1]
+        if "-" in uid
+        else uid.rsplit(" ", 1)[-1]
+    )
     if tail.isdigit():
         return int(tail)
     return int(hashlib.md5(uid.encode()).hexdigest(), 16)
@@ -101,21 +111,20 @@ def _grid_cells(bbox, rows: int = 2, cols: int = 5):
     cells = []
     for r in range(rows):
         for c in range(cols):
-            cells.append((lat_min + dlat * (r + 0.5),
-                          lon_min + dlon * (c + 0.5)))
+            cells.append((lat_min + dlat * (r + 0.5), lon_min + dlon * (c + 0.5)))
     return cells
 
 
-_GRID = _grid_cells(_BBOX, rows=2, cols=5)   # 10 cells, one per UAV
+_GRID = _grid_cells(_BBOX, rows=2, cols=5)  # 10 cells, one per UAV
 
 
-def _uid_cell(uid: str, n_cells: int = 10) -> Tuple[float, float]:
+def _uid_cell(uid: str, n_cells: int = 10) -> tuple[float, float]:
     """Deterministic uid → search cell so the fleet fans out across the
     whole area on tick 0 (no comm needed for the initial sweep)."""
     return _GRID[_uid_rank(uid) % n_cells]
 
 
-def _in_any_approx_zone(lat, lon, briefing) -> Optional[object]:
+def _in_any_approx_zone(lat, lon, briefing) -> object | None:
     """Is (lat,lon) inside any briefing approx-zone bbox? Returns the zone
     (to read alt_max) or None. The bbox is pre-expanded ~20% larger than the
     true region, so entering it is a conservative threat trigger."""
@@ -157,10 +166,10 @@ class _EMATracker:
 
     def __init__(self, alpha: float = 0.3, history: int = 80):
         self._alpha = alpha
-        self._lat: Optional[float] = None
-        self._lon: Optional[float] = None
+        self._lat: float | None = None
+        self._lon: float | None = None
         # smoothed-position snapshots (lat only — speed is a latitude slope)
-        self._smooth: Deque[float] = deque(maxlen=history)
+        self._smooth: deque[float] = deque(maxlen=history)
 
     def append(self, lat: float, lon: float) -> None:
         if self._lat is None:
@@ -172,7 +181,7 @@ class _EMATracker:
         self._smooth.append(self._lat)
 
     @property
-    def value(self) -> Optional[Tuple[float, float]]:
+    def value(self) -> tuple[float, float] | None:
         if self._lat is None:
             return None
         return (self._lat, self._lon)
@@ -193,11 +202,11 @@ class _EMATracker:
         sx = sum(ts)
         sy = sum(self._smooth)
         sxx = sum(t * t for t in ts)
-        sxy = sum(t * la for t, la in zip(ts, self._smooth))
+        sxy = sum(t * la for t, la in zip(ts, self._smooth, strict=False))
         denom = ns * sxx - sx * sx
         if abs(denom) < 1e-20:
             return 0.0
-        slope = (ns * sxy - sx * sy) / denom   # deg per tick
+        slope = (ns * sxy - sx * sy) / denom  # deg per tick
         return abs(slope) * 111320.0 * tick_hz  # → m/s
 
     def reset(self) -> None:
@@ -236,40 +245,40 @@ class SwarmCoordinatedAgent(SwarmAgent):
     def configure(self, config) -> None:
         # search
         self._search_alt: float = _SEARCH_ALT
-        self._search_fov: float = 30.0          # real camera FOV
+        self._search_fov: float = 30.0  # real camera FOV
         self._search_speed: float = 24.0
         self._sweep_period: float = 4.0
-        self._sweep_deg: float = 25.0           # ±pan sweep around cell bearing
+        self._sweep_deg: float = 25.0  # ±pan sweep around cell bearing
         # ACQUIRE (decoy discrimination by regression speed)
         self._acquire_timeout: float = 8.0
-        self._acquire_warmup: float = 3.0       # need ~30 samples for stable slope
-        self._acquire_speed_confirm: float = 3.0   # m/s → real target
-        self._acquire_speed_reject: float = 2.0    # m/s → decoy
+        self._acquire_warmup: float = 3.0  # need ~30 samples for stable slope
+        self._acquire_speed_confirm: float = 3.0  # m/s → real target
+        self._acquire_speed_reject: float = 2.0  # m/s → decoy
         self._ema_alpha: float = 0.3
         # TRACK
         self._track_fov: float = 30.0
         self._track_speed: float = 26.0
         self._track_loiter: float = _TRACK_LOITER
-        self._track_timeout: float = 45.0       # abandon a target that won't die
+        self._track_timeout: float = 45.0  # abandon a target that won't die
         # comms / report
-        self._bc_period: int = 8            # broadcast cadence (≤4Hz window safe)
-        self._report_period: int = 12       # ~1Hz judge rate-limit friendly
+        self._bc_period: int = 8  # broadcast cadence (≤4Hz window safe)
+        self._report_period: int = 12  # ~1Hz judge rate-limit friendly
         # runtime state
         self._t: float = 0.0
         self._tick: int = 0
         self._home_lat: float = 0.0
         self._home_lon: float = 0.0
-        self._cell: Tuple[float, float] = _uid_cell(self.my_uid)
+        self._cell: tuple[float, float] = _uid_cell(self.my_uid)
         self._phase: float = (_uid_rank(self.my_uid) % 100) / 100.0
         self._state = self.SEARCH
-        self._candidate: Optional[Tuple[float, float]] = None
+        self._candidate: tuple[float, float] | None = None
         self._ema = _EMATracker(self._ema_alpha)
         self._acquire_t: float = 0.0
         self._track_t: float = 0.0
         # shared knowledge built from comms (each UAV maintains its own copy)
-        self._confirmed: List[Tuple[float, float]] = []   # real targets seen
-        self._known_decoys: List[Tuple[float, float]] = []
-        self._claims: dict = {}        # tgt_idx → set of claiming uav ranks
+        self._confirmed: list[tuple[float, float]] = []  # real targets seen
+        self._known_decoys: list[tuple[float, float]] = []
+        self._claims: dict = {}  # tgt_idx → set of claiming uav ranks
         self._last_report_t: float = -1e9
 
     def reset(self) -> None:
@@ -312,18 +321,21 @@ class SwarmCoordinatedAgent(SwarmAgent):
                     idx, rank = p[2:].split(",")
                     self._claims.setdefault(int(idx), set()).add(int(rank))
             except Exception:
-                pass   # malformed payload — ignore, never crash
+                pass  # malformed payload — ignore, never crash
 
     @staticmethod
     def _near_any(pos, lst, thr_m: float) -> bool:
-        return any(_haversine_m(pos[0], pos[1], p[0], p[1]) < thr_m
-                   for p in lst) if lst else False
+        return (
+            any(_haversine_m(pos[0], pos[1], p[0], p[1]) < thr_m for p in lst)
+            if lst
+            else False
+        )
 
-    def _confirm_real(self, pos: Tuple[float, float]) -> None:
+    def _confirm_real(self, pos: tuple[float, float]) -> None:
         if not self._near_any(pos, self._confirmed, 200.0):
             self._confirmed.append(pos)
 
-    def _confirm_decoy(self, pos: Tuple[float, float]) -> None:
+    def _confirm_decoy(self, pos: tuple[float, float]) -> None:
         if not self._near_any(pos, self._known_decoys, 150.0):
             self._known_decoys.append(pos)
 
@@ -334,7 +346,7 @@ class SwarmCoordinatedAgent(SwarmAgent):
     # ranked by distance-to-self; a target is "open" if it has <K announced
     # claimants. The slot is this UAV's ordinal position among the target's
     # claimants (lower rank claims earlier slots).
-    def _tgt_index(self, tgt: Tuple[float, float]) -> int:
+    def _tgt_index(self, tgt: tuple[float, float]) -> int:
         """Stable index of a confirmed target (its position in the sorted
         confirmed list). All UAVs that ingest the same T: messages build the
         same list ordering, so they agree on indices."""
@@ -346,8 +358,7 @@ class SwarmCoordinatedAgent(SwarmAgent):
     def _claim_count(self, tgt_idx: int) -> int:
         return len(self._claims.get(tgt_idx, ()))
 
-    def _record_own_claim(self, tgt: Tuple[float, float],
-                          fleet_size: int) -> None:
+    def _record_own_claim(self, tgt: tuple[float, float], fleet_size: int) -> None:
         """Record THIS UAV's own claim on a target in ``_claims`` (I2).
 
         Without this, ``_claim_count`` under-counts by 1: a UAV that has
@@ -360,24 +371,26 @@ class SwarmCoordinatedAgent(SwarmAgent):
         idx = self._tgt_index(tgt)
         if idx >= 0:
             self._claims.setdefault(idx, set()).add(
-                _uid_rank(self.my_uid) % max(1, fleet_size))
+                _uid_rank(self.my_uid) % max(1, fleet_size)
+            )
 
-    def _select_target(self, self_pos: Tuple[float, float]
-                       ) -> Optional[Tuple[float, float]]:
+    def _select_target(
+        self, self_pos: tuple[float, float]
+    ) -> tuple[float, float] | None:
         """Greedy: pick the NEAREST confirmed target that has <K claimants.
         Falls back to nearest overall if every target is saturated (better to
         over-claim a near target than fly to a far one)."""
         if not self._confirmed:
             return None
-        open_tgts = [p for p in self._confirmed
-                     if self._claim_count(self._tgt_index(p)) < _K]
+        open_tgts = [
+            p for p in self._confirmed if self._claim_count(self._tgt_index(p)) < _K
+        ]
         pool = open_tgts if open_tgts else self._confirmed
-        return min(pool,
-                   key=lambda p: _haversine_m(self_pos[0], self_pos[1],
-                                              p[0], p[1]))
+        return min(
+            pool, key=lambda p: _haversine_m(self_pos[0], self_pos[1], p[0], p[1])
+        )
 
-    def _slot_for_target(self, tgt: Tuple[float, float],
-                         fleet_size: int) -> int:
+    def _slot_for_target(self, tgt: tuple[float, float], fleet_size: int) -> int:
         """This UAV's azimuth slot for a target. The slot is its ordinal
         position among the target's announced claimants, ordered by rank
         (lower rank → earlier slot). Claimants include this UAV's own rank
@@ -393,8 +406,9 @@ class SwarmCoordinatedAgent(SwarmAgent):
         slot = ordered.index(my_rank) if my_rank in ordered else len(ordered)
         return slot % _K
 
-    def _team_aim_point(self, tgt: Tuple[float, float], slot: int
-                        ) -> Tuple[float, float]:
+    def _team_aim_point(
+        self, tgt: tuple[float, float], slot: int
+    ) -> tuple[float, float]:
         """Place this UAV on a distinct azimuth of the loiter ring so a 3-UAV
         team spreads out (pairwise ≈ R·√3 ≈ 572m > 200m at R=330). The sector
         base is a FIXED bearing from the target to the scene centre (same for
@@ -405,29 +419,37 @@ class SwarmCoordinatedAgent(SwarmAgent):
         sector_base = _bearing_deg(tgt[0], tgt[1], scene_c_lat, scene_c_lon)
         approach_brg = (sector_base + slot * (360.0 / _K)) % 360.0
         dlat = (self._track_loiter * math.cos(math.radians(approach_brg))) / 111320.0
-        dlon = (self._track_loiter * math.sin(math.radians(approach_brg))) / \
-               (111320.0 * math.cos(math.radians(tgt[0])))
+        dlon = (self._track_loiter * math.sin(math.radians(approach_brg))) / (
+            111320.0 * math.cos(math.radians(tgt[0]))
+        )
         return _clamp_to_safebox(tgt[0] + dlat, tgt[1] + dlon)
 
     # ── gimbal / search geometry ─────────────────────────────────────────
-    def _jam_evasion(self, obs: SwarmObs) -> List[Command]:
+    def _jam_evasion(self, obs: SwarmObs) -> list[Command]:
         """Dynamic-jam evasion (spec §3.5): when this UAV senses it is jammed,
         broadcast a J: warning to teammates and fly 600m away from the current
         position (toward the scene centre, which is outside any local jam
         region) to break out of the jam footprint. Uses a fixed retreat
         bearing (current pos → home/scene centre) so every UAV retreats the
         same direction and stays in formation."""
-        cmds: List[Command] = []
+        cmds: list[Command] = []
         slat, slon = obs.self.lat, obs.self.lon
         # retreat toward home if known, else toward the bbox centre
-        tgt_lat = self._home_lat if self._home_lat != 0.0 else \
-            (_BBOX[0][0] + _BBOX[1][0]) / 2.0
-        tgt_lon = self._home_lon if self._home_lon != 0.0 else \
-            (_BBOX[0][1] + _BBOX[1][1]) / 2.0
+        tgt_lat = (
+            self._home_lat
+            if self._home_lat != 0.0
+            else (_BBOX[0][0] + _BBOX[1][0]) / 2.0
+        )
+        tgt_lon = (
+            self._home_lon
+            if self._home_lon != 0.0
+            else (_BBOX[0][1] + _BBOX[1][1]) / 2.0
+        )
         brg = _bearing_deg(slat, slon, tgt_lat, tgt_lon)
         dlat = (600.0 * math.cos(math.radians(brg))) / 111320.0
-        dlon = (600.0 * math.sin(math.radians(brg))) / \
-            (111320.0 * math.cos(math.radians(slat)))
+        dlon = (600.0 * math.sin(math.radians(brg))) / (
+            111320.0 * math.cos(math.radians(slat))
+        )
         rlat, rlon = _clamp_to_safebox(slat + dlat, slon + dlon)
         alt = _safe_alt_for(rlat, rlon, obs.briefing, self._search_alt)
         cmds.append(broadcast(f"J:{slat:.5f},{slon:.5f}"))
@@ -435,8 +457,9 @@ class SwarmCoordinatedAgent(SwarmAgent):
         cmds.append(set_gimbal_fov(self._search_fov))
         return cmds
 
-    def _tracking_gimbal(self, self_lat, self_lon, self_heading,
-                         tgt_lat, tgt_lon) -> Tuple[float, float]:
+    def _tracking_gimbal(
+        self, self_lat, self_lon, self_heading, tgt_lat, tgt_lon
+    ) -> tuple[float, float]:
         """Body-frame (pan, tilt) to point the optical axis at a target.
 
         pan is relative to heading (body frame) so the gimbal stays on the
@@ -448,8 +471,7 @@ class SwarmCoordinatedAgent(SwarmAgent):
         tilt = -math.degrees(math.atan2(self._search_alt, ground))
         return pan, tilt
 
-    def _search_geometry(self, obs: SwarmObs
-                         ) -> Tuple[float, float, float, float]:
+    def _search_geometry(self, obs: SwarmObs) -> tuple[float, float, float, float]:
         """Loiter over my uid-claimed cell while sweeping the gimbal.
         Returns ``(aim_lat, aim_lon, pan, tilt)``."""
         clat, clon = self._cell
@@ -464,7 +486,7 @@ class SwarmCoordinatedAgent(SwarmAgent):
         return clat, clon, pan, tilt
 
     # ── decide ───────────────────────────────────────────────────────────
-    def decide(self, obs: SwarmObs, dt: float) -> List[Command]:
+    def decide(self, obs: SwarmObs, dt: float) -> list[Command]:
         self._tick += 1
         self._t += dt
         if self._home_lat == 0.0:
@@ -472,7 +494,7 @@ class SwarmCoordinatedAgent(SwarmAgent):
             self._home_lon = obs.self.lon
 
         det = obs.self.detection
-        cmds: List[Command] = []
+        cmds: list[Command] = []
         self._ingest_comms(obs.comm_inbox)
         fleet = getattr(obs.briefing, "fleet_size", 10) or 10
 
@@ -486,11 +508,14 @@ class SwarmCoordinatedAgent(SwarmAgent):
         # The defining v2 fix: any single detected frame → ACQUIRE, so the
         # gimbal stops sweeping and detection becomes continuous.
         if self._state == self.SEARCH:
-            if (det.detected and det.target_lat is not None
-                    and det.target_lon is not None
-                    and not self._near_any(
-                        (det.target_lat, det.target_lon),
-                        self._known_decoys, 150.0)):
+            if (
+                det.detected
+                and det.target_lat is not None
+                and det.target_lon is not None
+                and not self._near_any(
+                    (det.target_lat, det.target_lon), self._known_decoys, 150.0
+                )
+            ):
                 self._state = self.ACQUIRE
                 self._candidate = (det.target_lat, det.target_lon)
                 self._ema = _EMATracker(self._ema_alpha)
@@ -503,10 +528,18 @@ class SwarmCoordinatedAgent(SwarmAgent):
                 tgt = self._candidate
                 tlat, tlon = tgt
                 alt = _safe_alt_for(tlat, tlon, obs.briefing, self._search_alt)
-                cmds.append(fly_to(tlat, tlon, alt=alt, speed=self._track_speed,
-                                   loiter_radius=150.0))
+                cmds.append(
+                    fly_to(
+                        tlat,
+                        tlon,
+                        alt=alt,
+                        speed=self._track_speed,
+                        loiter_radius=150.0,
+                    )
+                )
                 pan, tilt = self._tracking_gimbal(
-                    obs.self.lat, obs.self.lon, obs.self.heading_deg, tlat, tlon)
+                    obs.self.lat, obs.self.lon, obs.self.heading_deg, tlat, tlon
+                )
                 cmds.append(point_gimbal(pan, tilt))
                 cmds.append(set_gimbal_fov(self._track_fov))
                 return cmds
@@ -522,8 +555,8 @@ class SwarmCoordinatedAgent(SwarmAgent):
                 # since this UAV has eyes on its own contact.
                 tgt = self._select_target((obs.self.lat, obs.self.lon))
                 if tgt is not None:
-                    self._confirm_real(tgt)        # idempotent; ensures index
-                    self._record_own_claim(tgt, fleet)   # I2: count ourselves
+                    self._confirm_real(tgt)  # idempotent; ensures index
+                    self._record_own_claim(tgt, fleet)  # I2: count ourselves
                     self._candidate = tgt
                     self._ema = _EMATracker(self._ema_alpha)
                     self._track_t = 0.0
@@ -534,11 +567,16 @@ class SwarmCoordinatedAgent(SwarmAgent):
                 else:
                     slat, slon, pan, tilt = self._search_geometry(obs)
                     slat, slon = _clamp_to_safebox(slat, slon)
-                    alt = _safe_alt_for(slat, slon, obs.briefing,
-                                        self._search_alt)
-                    cmds.append(fly_to(slat, slon, alt=alt,
-                                       speed=self._search_speed,
-                                       loiter_radius=400.0))
+                    alt = _safe_alt_for(slat, slon, obs.briefing, self._search_alt)
+                    cmds.append(
+                        fly_to(
+                            slat,
+                            slon,
+                            alt=alt,
+                            speed=self._search_speed,
+                            loiter_radius=400.0,
+                        )
+                    )
                     cmds.append(point_gimbal(pan, tilt))
                     cmds.append(set_gimbal_fov(self._search_fov))
                     return cmds
@@ -554,19 +592,25 @@ class SwarmCoordinatedAgent(SwarmAgent):
             self._acquire_t += dt
             tgt = self._candidate or (obs.self.lat, obs.self.lon)
             # adopt fresh detections that track the same object
-            if (det.detected and det.target_lat is not None
-                    and _haversine_m(det.target_lat, det.target_lon,
-                                     tgt[0], tgt[1]) < 250.0):
+            if (
+                det.detected
+                and det.target_lat is not None
+                and _haversine_m(det.target_lat, det.target_lon, tgt[0], tgt[1]) < 250.0
+            ):
                 self._ema.append(det.target_lat, det.target_lon)
                 if self._ema.value is not None:
                     self._candidate = self._ema.value
                     tgt = self._ema.value
             tlat, tlon = tgt
             alt = _safe_alt_for(tlat, tlon, obs.briefing, self._search_alt)
-            cmds.append(fly_to(tlat, tlon, alt=alt, speed=self._track_speed,
-                               loiter_radius=150.0))
+            cmds.append(
+                fly_to(
+                    tlat, tlon, alt=alt, speed=self._track_speed, loiter_radius=150.0
+                )
+            )
             pan, tilt = self._tracking_gimbal(
-                obs.self.lat, obs.self.lon, obs.self.heading_deg, tlat, tlon)
+                obs.self.lat, obs.self.lon, obs.self.heading_deg, tlat, tlon
+            )
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(self._track_fov))
 
@@ -580,8 +624,7 @@ class SwarmCoordinatedAgent(SwarmAgent):
                     self._state = self.TRACK
                     self._track_t = 0.0
                     return cmds
-                if (spd <= self._acquire_speed_reject
-                        and self._acquire_t >= 5.0):
+                if spd <= self._acquire_speed_reject and self._acquire_t >= 5.0:
                     # DECOY: record, share D:, back to SEARCH
                     self._confirm_decoy(tgt)
                     cmds.append(broadcast(f"D:{tlat:.5f},{tlon:.5f}"))
@@ -613,9 +656,11 @@ class SwarmCoordinatedAgent(SwarmAgent):
             # A: broadcast lands or is re-ingested by teammates.
             self._record_own_claim(tgt, fleet)
             # feed fresh detections into the EMA (keeps the report denoised)
-            if (det.detected and det.target_lat is not None
-                    and _haversine_m(det.target_lat, det.target_lon,
-                                     tgt[0], tgt[1]) < 250.0):
+            if (
+                det.detected
+                and det.target_lat is not None
+                and _haversine_m(det.target_lat, det.target_lon, tgt[0], tgt[1]) < 250.0
+            ):
                 self._ema.append(det.target_lat, det.target_lon)
                 if self._ema.value is not None:
                     tgt = self._ema.value
@@ -626,7 +671,7 @@ class SwarmCoordinatedAgent(SwarmAgent):
             # bbox → don't dive into a SAM zone (would tilt the gimbal shallow
             # and risk destruction); abandon and pick the next target.
             if _in_any_approx_zone(tlat, tlon, obs.briefing) is not None:
-                self._confirm_decoy(tgt)   # tag so we don't re-acquire it
+                self._confirm_decoy(tgt)  # tag so we don't re-acquire it
                 self._state = self.SEARCH
                 self._candidate = None
                 self._ema.reset()
@@ -636,10 +681,18 @@ class SwarmCoordinatedAgent(SwarmAgent):
             slot = self._slot_for_target(tgt, fleet)
             alat, alon = self._team_aim_point(tgt, slot)
             alt = _safe_alt_for(alat, alon, obs.briefing, self._search_alt)
-            cmds.append(fly_to(alat, alon, alt=alt, speed=self._track_speed,
-                               loiter_radius=self._track_loiter))
+            cmds.append(
+                fly_to(
+                    alat,
+                    alon,
+                    alt=alt,
+                    speed=self._track_speed,
+                    loiter_radius=self._track_loiter,
+                )
+            )
             pan, tilt = self._tracking_gimbal(
-                obs.self.lat, obs.self.lon, obs.self.heading_deg, tlat, tlon)
+                obs.self.lat, obs.self.lon, obs.self.heading_deg, tlat, tlon
+            )
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(self._track_fov))
             if self._tick % self._report_period == 0:
@@ -649,8 +702,7 @@ class SwarmCoordinatedAgent(SwarmAgent):
             # announce our claim so teammates know the slot is filling
             idx = self._tgt_index(tgt)
             if idx >= 0 and self._tick % self._bc_period == 0:
-                cmds.append(broadcast(
-                    f"A:{idx},{_uid_rank(self.my_uid) % fleet}"))
+                cmds.append(broadcast(f"A:{idx},{_uid_rank(self.my_uid) % fleet}"))
             # abandon a target that won't die (can't assemble K trackers)
             if self._track_t > self._track_timeout:
                 self._state = self.SEARCH

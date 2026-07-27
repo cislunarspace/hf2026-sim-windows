@@ -10,6 +10,7 @@ test (no mock). Run with:
 
     python -m examples._common.tests.score_e2e_smoke
 """
+
 from __future__ import annotations
 
 import json
@@ -81,12 +82,15 @@ def main() -> int:
 
     print(f"[smoke] received {len(received)} messages")
     for m in received:
-        print(f"  - type={m.get('type')} total_score={m.get('total_score')} "
-              f"final={m.get('final')}")
+        print(
+            f"  - type={m.get('type')} total_score={m.get('total_score')} "
+            f"final={m.get('final')}"
+        )
 
     if len(received) < 6:
-        print(f"[smoke] FAIL: expected 6 messages, got {len(received)}",
-              file=sys.stderr)
+        print(
+            f"[smoke] FAIL: expected 6 messages, got {len(received)}", file=sys.stderr
+        )
         return 4
 
     # Assertions

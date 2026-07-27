@@ -1,4 +1,5 @@
 """Tests for the in-memory MockSimClient (T012)."""
+
 import json
 import time
 
@@ -37,8 +38,12 @@ def test_subscriber_receives_published_message():
 def test_published_commands_recorded():
     m = MockSimClient()
     try:
-        m.publish("sim:commands", {"target": "uav", "cmd": "set_destination", "params": {}})
-        m.publish("sim:commands", {"target": "gimbal", "cmd": "set_orientation", "params": {}})
+        m.publish(
+            "sim:commands", {"target": "uav", "cmd": "set_destination", "params": {}}
+        )
+        m.publish(
+            "sim:commands", {"target": "gimbal", "cmd": "set_orientation", "params": {}}
+        )
         cmds = m.published_commands()
         assert len(cmds) == 2
         assert cmds[0]["cmd"] == "set_destination"

@@ -1,4 +1,5 @@
 """Algorithm config loader (YAML)."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -6,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
 
 # Range bounds — kept in one place to mirror data-model.md §6
 RANGES: dict[str, tuple[float, float]] = {
@@ -70,9 +70,7 @@ def _coerce_and_check(d: dict[str, Any]) -> dict[str, Any]:
             except (TypeError, ValueError) as exc:
                 raise ValueError(f"config field {key!r} not numeric: {v!r}") from exc
             if v < lo or v > hi:
-                raise ValueError(
-                    f"config field {key!r}={v} out of range [{lo}, {hi}]"
-                )
+                raise ValueError(f"config field {key!r}={v} out of range [{lo}, {hi}]")
             out[key] = v
     return out
 
@@ -95,11 +93,15 @@ def from_yaml(path: str | Path) -> AlgorithmConfig:
         controller=controller,
         seed=merged.get("seed"),
         mode=str(merged.get("mode", "spiral")),
-        search_radius=float(top_checked.get("search_radius", DEFAULTS["search_radius"])),
+        search_radius=float(
+            top_checked.get("search_radius", DEFAULTS["search_radius"])
+        ),
         search_altitude_agl=float(
             top_checked.get("search_altitude_agl", DEFAULTS["search_altitude_agl"])
         ),
         sweep_period=float(top_checked.get("sweep_period", DEFAULTS["sweep_period"])),
-        loiter_radius=float(top_checked.get("loiter_radius", DEFAULTS["loiter_radius"])),
+        loiter_radius=float(
+            top_checked.get("loiter_radius", DEFAULTS["loiter_radius"])
+        ),
         advanced={**DEFAULTS["advanced"], **advanced_checked},
     )

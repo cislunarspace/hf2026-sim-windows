@@ -9,20 +9,21 @@
   * inject_astar_target: 注入真目标（TargetVehicle），从 points.json 随机选路
   * inject_astar_decoy:   注入诱饵（DecoyVehicle），从 random_routes_20.json 随机选路
 """
+
 from __future__ import annotations
 
 import json
 import random
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
 
 CMD_CHANNEL = "sim:commands"
 STATE_CHANNEL = "sim:state"
 
 
-def _load_routes(path: Path) -> List[dict]:
+def _load_routes(path: Path) -> list[dict]:
     try:
         # utf-8-sig 容忍 BOM: routes json 可能被 PS/编辑器写入 BOM(见 CLAUDE.md 跨平台坑清单#1)
         data = json.loads(path.read_text(encoding="utf-8-sig"))
@@ -31,31 +32,37 @@ def _load_routes(path: Path) -> List[dict]:
         return []
 
 
-def _build_waypoints(route: dict) -> List[dict]:
-    wps: List[dict] = []
+def _build_waypoints(route: dict) -> list[dict]:
+    wps: list[dict] = []
     start = route.get("Start", {})
     if start:
-        wps.append({
-            "lat": float(start["Latitude"]),
-            "lon": float(start["Longitude"]),
-            "wait": float(start.get("WaitTime", 0.0)),
-            "label": "Start",
-        })
+        wps.append(
+            {
+                "lat": float(start["Latitude"]),
+                "lon": float(start["Longitude"]),
+                "wait": float(start.get("WaitTime", 0.0)),
+                "label": "Start",
+            }
+        )
     for i, wp in enumerate(route.get("Waypoints", [])):
-        wps.append({
-            "lat": float(wp["Latitude"]),
-            "lon": float(wp["Longitude"]),
-            "wait": float(wp.get("WaitTime", 0.0)),
-            "label": f"WPT[{i}]",
-        })
+        wps.append(
+            {
+                "lat": float(wp["Latitude"]),
+                "lon": float(wp["Longitude"]),
+                "wait": float(wp.get("WaitTime", 0.0)),
+                "label": f"WPT[{i}]",
+            }
+        )
     end = route.get("End", {})
     if end:
-        wps.append({
-            "lat": float(end["Latitude"]),
-            "lon": float(end["Longitude"]),
-            "wait": float(end.get("WaitTime", 0.0)),
-            "label": "End",
-        })
+        wps.append(
+            {
+                "lat": float(end["Latitude"]),
+                "lon": float(end["Longitude"]),
+                "wait": float(end.get("WaitTime", 0.0)),
+                "label": "End",
+            }
+        )
     return wps
 
 
@@ -69,6 +76,7 @@ def _publish_cmd(client, unique_id: str, cmd: str, params: dict) -> int:
         return client.publish_raw(msg)
     if hasattr(client, "publish"):
         from .commands import Command
+
         c = Command(verb=cmd, params=params)
         return client.publish(unique_id, c)
     if hasattr(client, "_redis") and client._redis is not None:
@@ -93,7 +101,7 @@ def publish_regenerate_zones(client) -> int:
 
 # 段级进度回调签名: (本实体已规划段数, 本实体总段数, uid)。
 # 用于把 inject_startup 串行规划路线的进度上报到前端进度条。
-ProgressCb = Optional[Callable[[int, int, str], None]]
+ProgressCb = Callable[[int, int, str], None] | None
 
 # 路线规划进度映射到进度条 85%-98% (引擎加载占 0%-85%, 前端缩放; 98%-100%
 # 由 RunnerBase 主循环就绪帧占用)。
@@ -119,7 +127,7 @@ def make_route_progress_cb(client, total_segs: int, log=print):
     """
     if total_segs <= 0:
         return lambda done, total, uid: None
-    done_by_uid: Dict[str, int] = {}
+    done_by_uid: dict[str, int] = {}
 
     def cb(done_in_entity: int, total_in_entity: int, uid: str) -> None:
         # 绝对计数: 直接记录本 uid 当前的累计完成段数 (而非 +1 自增),
@@ -130,7 +138,8 @@ def make_route_progress_cb(client, total_segs: int, log=print):
         # "dictionary changed size during iteration" RuntimeError。
         global_done = sum(list(done_by_uid.values()))
         pct = PROGRESS_ROUTE_START + (PROGRESS_ROUTE_END - PROGRESS_ROUTE_START) * (
-            global_done / total_segs)
+            global_done / total_segs
+        )
         pct = max(PROGRESS_ROUTE_START, min(PROGRESS_ROUTE_END, pct))
         payload = {
             "type": "load_progress",
@@ -149,9 +158,11 @@ def make_route_progress_cb(client, total_segs: int, log=print):
     return cb
 
 
-def count_route_segments(entities: List[dict],
-                         routes_by_type: Dict[str, str],
-                         route_assignment: Dict[str, str]) -> int:
+def count_route_segments(
+    entities: list[dict],
+    routes_by_type: dict[str, str],
+    route_assignment: dict[str, str],
+) -> int:
     """Sum of A* segments (``len(waypoints) - 1``) across all injectable vehicles.
 
     在 runner 的 inject_startup 里一次性算出 *所有实体合计* 的路线段总数,
@@ -172,15 +183,15 @@ def count_route_segments(entities: List[dict],
     避免对同一文件重复解析。
     """
     # 按 path 缓存解析结果: 同一 routes_path 可能被多个 etype 引用。
-    routes_cache: Dict[str, List[dict]] = {}
+    routes_cache: dict[str, list[dict]] = {}
 
-    def _routes_for(path: str) -> List[dict]:
+    def _routes_for(path: str) -> list[dict]:
         if path not in routes_cache:
             routes_cache[path] = _load_routes(Path(path))
         return routes_cache[path]
 
     # fallback path: _INJECTABLE_TYPES 中第一个在 routes_by_type 出现的。
-    fallback_path: Optional[str] = None
+    fallback_path: str | None = None
     for t in _INJECTABLE_TYPES:
         if t in routes_by_type:
             fallback_path = routes_by_type[t]
@@ -216,7 +227,7 @@ def count_route_segments(entities: List[dict],
     return total
 
 
-def _extract_astar_result(ent: dict) -> Optional[dict]:
+def _extract_astar_result(ent: dict) -> dict | None:
     if not isinstance(ent, dict):
         return None
     if "astar_plan_result" in ent and isinstance(ent["astar_plan_result"], dict):
@@ -228,9 +239,16 @@ def _extract_astar_result(ent: dict) -> Optional[dict]:
     return None
 
 
-def _plan_segment(client, uid: str, start_lat: float, start_lon: float,
-                  end_lat: float, end_lon: float, timeout: float = 2.0,
-                  log=print) -> Optional[List[dict]]:
+def _plan_segment(
+    client,
+    uid: str,
+    start_lat: float,
+    start_lon: float,
+    end_lat: float,
+    end_lon: float,
+    timeout: float = 2.0,
+    log=print,
+) -> list[dict] | None:
     """通过引擎的 astar_plan 命令规划一段路径。
 
     返回路径点列表 [{"lat", "lon"}, ...]，失败返回 None。
@@ -240,12 +258,17 @@ def _plan_segment(client, uid: str, start_lat: float, start_lon: float,
         log(f"[DEBUG] _plan_segment {uid}: no redis client")
         return None
 
-    _publish_cmd(client, uid, "astar_plan", {
-        "start_lat": start_lat,
-        "start_lon": start_lon,
-        "end_lat": end_lat,
-        "end_lon": end_lon,
-    })
+    _publish_cmd(
+        client,
+        uid,
+        "astar_plan",
+        {
+            "start_lat": start_lat,
+            "start_lon": start_lon,
+            "end_lat": end_lat,
+            "end_lon": end_lon,
+        },
+    )
     log(f"[DEBUG] _plan_segment {uid}: astar_plan command sent")
 
     deadline = time.time() + timeout
@@ -262,22 +285,23 @@ def _plan_segment(client, uid: str, start_lat: float, start_lon: float,
                 state = json.loads(msg["data"])
             except (json.JSONDecodeError, TypeError):
                 continue
-            found = False
             for key in (uid, str(uid)):
                 if key in state:
                     ent = state[key]
                     if isinstance(ent, dict):
                         result = _extract_astar_result(ent)
                         if result and isinstance(result, dict):
-                            log(f"[DEBUG] _plan_segment {uid}: found astar_plan_result: success={result.get('success')}, count={result.get('count', 'N/A')}")
+                            log(
+                                f"[DEBUG] _plan_segment {uid}: found astar_plan_result: success={result.get('success')}, count={result.get('count', 'N/A')}"
+                            )
                             if result.get("success"):
                                 wps = result.get("waypoints", [])
-                                return [{"lat": float(p["lat"]), "lon": float(p["lon"])}
-                                        for p in wps]
+                                return [
+                                    {"lat": float(p["lat"]), "lon": float(p["lon"])}
+                                    for p in wps
+                                ]
                             return None
-                        found = True
                         break
-                    found = True
                     break
                 ents = state.get("entities", {}) or {}
                 if key in ents:
@@ -285,15 +309,23 @@ def _plan_segment(client, uid: str, start_lat: float, start_lon: float,
                     if isinstance(ent, dict):
                         result = _extract_astar_result(ent)
                         if result and isinstance(result, dict):
-                            log(f"[DEBUG] _plan_segment {uid}: found astar_plan_result in entities: success={result.get('success')}")
+                            log(
+                                f"[DEBUG] _plan_segment {uid}: found astar_plan_result in entities: success={result.get('success')}"
+                            )
                             if result.get("success"):
                                 wps = result.get("waypoints", [])
-                                return [{"lat": float(p["lat"]), "lon": float(p["lon"])}
-                                        for p in wps]
+                                return [
+                                    {"lat": float(p["lat"]), "lon": float(p["lon"])}
+                                    for p in wps
+                                ]
                             return None
             if msg_count % 10 == 0:
-                log(f"[DEBUG] _plan_segment {uid}: received {msg_count} messages, no result yet")
-        log(f"[DEBUG] _plan_segment {uid}: timeout after {timeout}s, received {msg_count} messages")
+                log(
+                    f"[DEBUG] _plan_segment {uid}: received {msg_count} messages, no result yet"
+                )
+        log(
+            f"[DEBUG] _plan_segment {uid}: timeout after {timeout}s, received {msg_count} messages"
+        )
         return None
     finally:
         try:
@@ -302,8 +334,9 @@ def _plan_segment(client, uid: str, start_lat: float, start_lon: float,
             pass
 
 
-def _plan_full_route(client, uid: str, waypoints: List[dict], log=print,
-                     progress_cb: ProgressCb = None) -> Tuple[List[dict], bool]:
+def _plan_full_route(
+    client, uid: str, waypoints: list[dict], log=print, progress_cb: ProgressCb = None
+) -> tuple[list[dict], bool]:
     """用引擎 A* 逐段规划完整路线。
 
     返回 ``(pts, ok)``: ``ok=True`` 表示所有段都 A* 成功 (全程沿路网);
@@ -318,12 +351,14 @@ def _plan_full_route(client, uid: str, waypoints: List[dict], log=print,
         return [], False
 
     n_segs = len(waypoints) - 1
-    all_pts: List[dict] = []
+    all_pts: list[dict] = []
     # 从 waypoints[1] 开始（跳过起点）
     for i in range(1, len(waypoints)):
         prev = waypoints[i - 1]
         cur = waypoints[i]
-        path = _plan_segment(client, uid, prev["lat"], prev["lon"], cur["lat"], cur["lon"], log=log)
+        path = _plan_segment(
+            client, uid, prev["lat"], prev["lon"], cur["lat"], cur["lon"], log=log
+        )
         if not path:
             # 比赛要求车必须沿路网: A* 失败禁止直线 fallback, 直接停车。
             log(f"[NAV] {uid} 段 {i} 无路网路径, 停车 (禁止 off-road)")
@@ -343,8 +378,9 @@ def _plan_full_route(client, uid: str, waypoints: List[dict], log=print,
     return all_pts, True
 
 
-def pick_route(routes_path: str, rng: Optional[random.Random] = None,
-               route_name: Optional[str] = None) -> Optional[dict]:
+def pick_route(
+    routes_path: str, rng: random.Random | None = None, route_name: str | None = None
+) -> dict | None:
     """单条随机选路（无种子，仅用于无种子的单实体场景）。
 
     本函数不保证多实体间的路线互不相同 —— 多实体场景请用
@@ -362,8 +398,9 @@ def pick_route(routes_path: str, rng: Optional[random.Random] = None,
     return rng.choice(routes)
 
 
-def assign_routes(routes_path: str, count: int, seed: int = 0,
-                  rng: Optional[random.Random] = None) -> List[dict]:
+def assign_routes(
+    routes_path: str, count: int, seed: int = 0, rng: random.Random | None = None
+) -> list[dict]:
     """为 ``count`` 个实体一次性分配路线，同次仿真内互不相同。
 
     返回长度为 ``count`` 的路线列表（实体数 > 路线数时取模回绕，必然
@@ -392,13 +429,17 @@ def assign_routes(routes_path: str, count: int, seed: int = 0,
     return [shuffled[i % n] for i in range(count)]
 
 
-def inject_astar_target(client, entity: dict, routes_path: str,
-                        target_speed: Optional[float] = None,
-                        arrive_threshold: float = 15.0,
-                        rng: Optional[random.Random] = None,
-                        route_name: Optional[str] = None,
-                        log=print,
-                        progress_cb: ProgressCb = None) -> None:
+def inject_astar_target(
+    client,
+    entity: dict,
+    routes_path: str,
+    target_speed: float | None = None,
+    arrive_threshold: float = 15.0,
+    rng: random.Random | None = None,
+    route_name: str | None = None,
+    log=print,
+    progress_cb: ProgressCb = None,
+) -> None:
     if rng is None:
         rng = random
 
@@ -431,8 +472,9 @@ def inject_astar_target(client, entity: dict, routes_path: str,
     log(f"[NAV] 实体 {uid} 使用路线 '{route.get('Name', 'unnamed')}'")
 
     # 用引擎 A* 规划整条路线 (任一段失败即停车, 禁止 off-road)
-    astar_pts, ok = _plan_full_route(client, uid, waypoints, log=log,
-                                     progress_cb=progress_cb)
+    astar_pts, ok = _plan_full_route(
+        client, uid, waypoints, log=log, progress_cb=progress_cb
+    )
     if not ok or not astar_pts:
         # A* 有失败段 → 直接停车 (比赛要求车必须沿路网, 不走直线 fallback)
         try:
@@ -445,21 +487,23 @@ def inject_astar_target(client, entity: dict, routes_path: str,
     log(f"[NAV] {uid} A* 规划出 {len(astar_pts)} 个路径点 (全程沿路网)")
     try:
         _publish_cmd(client, uid, "set_speed", {"speed": target_speed})
-        _publish_cmd(client, uid, "set_trajectory", {
-            "waypoints": astar_pts
-        })
+        _publish_cmd(client, uid, "set_trajectory", {"waypoints": astar_pts})
         log(f"[NAV] {uid} set_trajectory 已发送 ({len(astar_pts)} pts)")
     except Exception as e:
         log(f"[NAV] {uid} 命令发送失败: {e}")
 
 
-def inject_astar_decoy(client, entity: dict, routes_path: str,
-                       decoy_speed: float = 5.0,
-                       arrive_threshold: float = 15.0,
-                       rng: Optional[random.Random] = None,
-                       route_name: Optional[str] = None,
-                       log=print,
-                       progress_cb: ProgressCb = None) -> None:
+def inject_astar_decoy(
+    client,
+    entity: dict,
+    routes_path: str,
+    decoy_speed: float = 5.0,
+    arrive_threshold: float = 15.0,
+    rng: random.Random | None = None,
+    route_name: str | None = None,
+    log=print,
+    progress_cb: ProgressCb = None,
+) -> None:
     if decoy_speed <= 0:
         return
 
@@ -475,8 +519,9 @@ def inject_astar_decoy(client, entity: dict, routes_path: str,
 
     uid = str(entity.get("id") or entity.get("name") or "30001")
 
-    astar_pts, ok = _plan_full_route(client, uid, waypoints, log=log,
-                                     progress_cb=progress_cb)
+    astar_pts, ok = _plan_full_route(
+        client, uid, waypoints, log=log, progress_cb=progress_cb
+    )
     if not ok or not astar_pts:
         # A* 有失败段 → 直接停车 (比赛要求车必须沿路网, 不走直线 fallback)
         try:
@@ -506,12 +551,12 @@ _INJECTABLE_TYPES = ("TargetVehicle", "DecoyVehicle", "ground_vehicle")
 
 def inject_startup_concurrent(
     client,
-    entities: List[dict],
+    entities: list[dict],
     *,
     inject_fn,
     max_workers: int = 8,
     log=print,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """并发注入多实体的 A* 路线。
 
     把 N 辆车的注入从串行循环改为线程池并发。每个 worker 内部
@@ -541,8 +586,9 @@ def inject_startup_concurrent(
     t0 = time.time()
     ok = 0
     fail = 0
-    with ThreadPoolExecutor(max_workers=workers,
-                            thread_name_prefix="astar-inject") as ex:
+    with ThreadPoolExecutor(
+        max_workers=workers, thread_name_prefix="astar-inject"
+    ) as ex:
         futs = {ex.submit(inject_fn, e): e for e in vehicles}
         for fut in as_completed(futs):
             ent = futs[fut]
@@ -550,8 +596,8 @@ def inject_startup_concurrent(
             try:
                 fut.result()
                 ok += 1
-            except Exception as e:  # noqa: BLE001 — 容错: 单实体失败不中断
+            except Exception as e:
                 fail += 1
                 log(f"[INJECT] 实体 {uid} 注入异常: {e}")
-    log(f"[INJECT] 完成: ok={ok} fail={fail} 耗时={time.time()-t0:.2f}s")
+    log(f"[INJECT] 完成: ok={ok} fail={fail} 耗时={time.time() - t0:.2f}s")
     return ok, fail

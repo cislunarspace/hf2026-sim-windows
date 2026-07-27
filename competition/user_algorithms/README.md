@@ -23,8 +23,8 @@ competition/user_algorithms/
    ```python
    from competition.sdk.scenarios.search_track.agent import SearchTrackAgent
 
-   class MyAgent(SearchTrackAgent):
-       ...
+
+   class MyAgent(SearchTrackAgent): ...
    ```
    - `search_track` → 继承 `SearchTrackAgent`（或 `Agent`）
    - `coop_decoy` → 继承 `CoopAgent`（或 `Agent`）
@@ -40,6 +40,7 @@ competition/user_algorithms/
        """我的快速追踪算法
 
        使用改进的 EMA 滤波与环绕控制律。"""
+
        ...
    ```
 

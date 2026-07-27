@@ -19,6 +19,7 @@ The intel layer also exposes:
                                      values along a path (used by the
                                      auction bid function)
 """
+
 from __future__ import annotations
 
 import math
@@ -89,5 +90,5 @@ class ThreatIntel:
             for p in self._points:
                 d = p.distance_m(plat, plon)
                 if d < p.safe_radius:
-                    cost += (p.safe_radius - d)
+                    cost += p.safe_radius - d
         return cost

@@ -12,16 +12,15 @@ spec/022 协议（详见 /home/lpwang/ZCodeProject/opensim/specs/022-uav-camera-
     YOLO_SAVE_MISS_DIR  设为目录路径后，每次 yolo 推理未检出都会把原始图
                         存到该目录（PNG），方便人工验证模型表现。
 """
+
 from __future__ import annotations
 
-import io
 import logging
 import os
 import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -36,15 +35,16 @@ _MISS_DIR = os.environ.get("YOLO_SAVE_MISS_DIR")
 @dataclass
 class YoloDetection:
     """YOLO 一次推理结果（线程间传递用）。"""
-    bbox_xyxy: tuple[float, float, float, float]   # (x1, y1, x2, y2)
+
+    bbox_xyxy: tuple[float, float, float, float]  # (x1, y1, x2, y2)
     confidence: float
     class_id: int
     class_name: str
-    image_size: tuple[int, int]                   # (W, H)
-    pan_delta: float                              # 度
-    tilt_delta: float                             # 度
-    sim_time: float                               # sim 侧时间戳（与 state 对齐）
-    wall_time_ms: int                             # 写入 _latest 的本地时间
+    image_size: tuple[int, int]  # (W, H)
+    pan_delta: float  # 度
+    tilt_delta: float  # 度
+    sim_time: float  # sim 侧时间戳（与 state 对齐）
+    wall_time_ms: int  # 写入 _latest 的本地时间
 
 
 class YoloVisionWorker(threading.Thread):
@@ -74,8 +74,8 @@ class YoloVisionWorker(threading.Thread):
         conf: float = 0.25,
         camera_hfov_deg: float = 60.0,
         camera_vfov_deg: float = 45.0,
-        poll_interval_s: float = 0.05,           # 20Hz 轮询
-        target_class: Optional[str] = None,      # 类别过滤；None = 取第一检测
+        poll_interval_s: float = 0.05,  # 20Hz 轮询
+        target_class: str | None = None,  # 类别过滤；None = 取第一检测
     ):
         super().__init__(daemon=True, name="YoloVisionWorker")
         self.model_path = model_path
@@ -91,18 +91,18 @@ class YoloVisionWorker(threading.Thread):
 
         self._stop_event = threading.Event()
         self._lock = threading.Lock()
-        self._latest: Optional[YoloDetection] = None
+        self._latest: YoloDetection | None = None
 
         # 延迟加载（线程启动后才 import ultralytics）
         self._model = None
         self._redis = None
         self._last_frame_no = -1
-        self._target_class_id: Optional[int] = None
+        self._target_class_id: int | None = None
 
     def stop(self) -> None:
         self._stop_event.set()
 
-    def get_latest(self, max_age_ms: int = 200) -> Optional[YoloDetection]:
+    def get_latest(self, max_age_ms: int = 200) -> YoloDetection | None:
         """取最近一次有效 YOLO 检测（按 wall_time 算 age）。"""
         with self._lock:
             det = self._latest
@@ -122,14 +122,16 @@ class YoloVisionWorker(threading.Thread):
 
         logger.info(
             "[YoloVisionWorker] 已启动: uav=%s, imgsz=%d, fov=%.1fx%.1f°",
-            self.uav_id, self.imgsz,
-            self.camera_hfov_deg, self.camera_vfov_deg,
+            self.uav_id,
+            self.imgsz,
+            self.camera_hfov_deg,
+            self.camera_vfov_deg,
         )
 
         while not self._stop_event.is_set():
             try:
                 self._tick()
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 logger.warning("[YoloVisionWorker] tick 异常: %s", e)
             self._stop_event.wait(self.poll_interval_s)
 
@@ -142,6 +144,7 @@ class YoloVisionWorker(threading.Thread):
     def _setup(self) -> None:
         # YOLO 模型
         from ultralytics import YOLO
+
         model_path = Path(self.model_path)
         if not model_path.exists():
             raise FileNotFoundError(
@@ -155,12 +158,11 @@ class YoloVisionWorker(threading.Thread):
                     self._target_class_id = cid
                     break
             if self._target_class_id is None:
-                raise ValueError(
-                    f"模型类别中找不到 {self.target_class!r}（{names}）"
-                )
+                raise ValueError(f"模型类别中找不到 {self.target_class!r}（{names}）")
 
         # Redis
         import redis
+
         self._redis = redis.Redis(
             host=self.redis_host,
             port=self.redis_port,
@@ -208,8 +210,12 @@ class YoloVisionWorker(threading.Thread):
             logger.info(
                 "[YoloVisionWorker] MISS frame=%d sim_time=%.2f key=%s "
                 "img=%dx%d conf_threshold=%.2f (no detection above threshold)",
-                frame_no, sim_time, key.decode("utf-8", "replace"),
-                W, H, self.conf,
+                frame_no,
+                sim_time,
+                key.decode("utf-8", "replace"),
+                W,
+                H,
+                self.conf,
             )
             if _MISS_DIR:
                 self._save_miss_frame(frame_no, sim_time, img)
@@ -220,7 +226,10 @@ class YoloVisionWorker(threading.Thread):
             self._latest = result
         logger.debug(
             "[YoloVisionWorker] HIT frame=%d conf=%.2f pan=%.1f tilt=%.1f",
-            frame_no, result.confidence, result.pan_delta, result.tilt_delta,
+            frame_no,
+            result.confidence,
+            result.pan_delta,
+            result.tilt_delta,
         )
 
     def _save_miss_frame(self, frame_no: int, sim_time: float, img: np.ndarray) -> None:
@@ -232,16 +241,17 @@ class YoloVisionWorker(threading.Thread):
             miss_dir.mkdir(parents=True, exist_ok=True)
             out = miss_dir / f"miss_frame{frame_no:06d}_sim{sim_time:.1f}.png"
             import cv2
+
             cv2.imwrite(str(out), img)
             logger.info("[YoloVisionWorker] saved miss frame: %s", out)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.warning("[YoloVisionWorker] save miss frame failed: %s", e)
 
-    def _find_latest_frame(self) -> Optional[tuple[int, bytes]]:
+    def _find_latest_frame(self) -> tuple[int, bytes] | None:
         """SCAN 找最大 frame_no。返回 (frame_no, key)。"""
         pattern = f"sync_camera:{self.uav_id}:frame:*"
         max_no = -1
-        max_key: Optional[bytes] = None
+        max_key: bytes | None = None
         for key in self._redis.scan_iter(match=pattern, count=100):
             # key 是 bytes 形式如 b'sync_camera:10002:frame:326'
             try:
@@ -256,17 +266,21 @@ class YoloVisionWorker(threading.Thread):
             return None
         return (max_no, max_key)
 
-    def _decode(self, image_bytes: bytes) -> Optional[np.ndarray]:
+    def _decode(self, image_bytes: bytes) -> np.ndarray | None:
         """JPEG/PNG bytes -> BGR numpy 数组。"""
         import cv2
+
         arr = np.frombuffer(image_bytes, dtype=np.uint8)
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
         return img
 
-    def _infer(self, img: np.ndarray) -> Optional[YoloDetection]:
+    def _infer(self, img: np.ndarray) -> YoloDetection | None:
         """YOLO 推理 + 选最优检测 + 算 pan/tilt delta。"""
         results = self._model(
-            img, imgsz=self.imgsz, conf=self.conf, verbose=False,
+            img,
+            imgsz=self.imgsz,
+            conf=self.conf,
+            verbose=False,
         )
         if not results or results[0].boxes is None:
             return None
@@ -288,8 +302,7 @@ class YoloVisionWorker(threading.Thread):
 
         box = boxes[best_idx]
         cls_id = int(box.cls[0])
-        if (self._target_class_id is not None
-                and cls_id != self._target_class_id):
+        if self._target_class_id is not None and cls_id != self._target_class_id:
             return None  # 过滤后无符合
 
         xyxy = box.xyxy[0].cpu().numpy().tolist()
@@ -297,8 +310,10 @@ class YoloVisionWorker(threading.Thread):
         cy = (xyxy[1] + xyxy[3]) / 2.0
         H, W = img.shape[:2]
         pan_delta, tilt_delta = bbox_to_pan_tilt_delta(
-            (cx, cy), (W, H),
-            self.camera_hfov_deg, self.camera_vfov_deg,
+            (cx, cy),
+            (W, H),
+            self.camera_hfov_deg,
+            self.camera_vfov_deg,
         )
 
         names = results[0].names

@@ -1,9 +1,9 @@
 """Controller abstract base class and loader."""
+
 from __future__ import annotations
 
 import importlib
 from abc import ABC, abstractmethod
-from typing import Type
 
 from .commands import ControlCommand
 from .state import SimState
@@ -22,8 +22,7 @@ class Controller(ABC):
     """
 
     @abstractmethod
-    def decide(self, state: SimState, dt: float) -> list[ControlCommand]:
-        ...
+    def decide(self, state: SimState, dt: float) -> list[ControlCommand]: ...
 
     def reset(self) -> None:
         return None
@@ -41,7 +40,7 @@ def load_controller(spec: str) -> Controller:
         )
     module_path, _, class_name = spec.rpartition(":")
     mod = importlib.import_module(module_path)
-    cls: Type | None = getattr(mod, class_name, None)
+    cls: type | None = getattr(mod, class_name, None)
     if cls is None:
         raise ImportError(f"{class_name!r} not found in module {module_path!r}")
     if not (isinstance(cls, type) and issubclass(cls, Controller)):

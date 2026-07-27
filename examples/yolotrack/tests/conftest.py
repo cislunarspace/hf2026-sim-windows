@@ -1,8 +1,9 @@
 """conftest: 注册 mock_redis / mock_frame 等 fixture。"""
+
 import pytest
 
-from tests.fixtures.mock_redis import MockRedis
 from tests.fixtures.mock_frame import make_synthetic_frame
+from tests.fixtures.mock_redis import MockRedis
 
 
 @pytest.fixture

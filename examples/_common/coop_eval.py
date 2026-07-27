@@ -30,13 +30,13 @@ destroyed, a reset). Only ``completion_rate`` is monotonic (progress).
 Dimension weights are example-specific (see ``profile_*`` factories). The
 adversarial example blends ``0.7*completion + 0.3*alive`` into the total.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from .uav_target_map import TargetMatch
-
 
 # ── per-target state machine ─────────────────────────────────────────────
 
@@ -44,16 +44,17 @@ from .uav_target_map import TargetMatch
 @dataclass
 class _TargetState:
     """Continuous-tracking state for one real target."""
-    dwell_accumulated: float = 0.0       # interruption-tolerant continuous dwell
+
+    dwell_accumulated: float = 0.0  # interruption-tolerant continuous dwell
     interruption_accumulated: float = 0.0
-    has_dwell: bool = False              # True once an attempt has accumulated dwell
+    has_dwell: bool = False  # True once an attempt has accumulated dwell
     completed: bool = False
-    completed_at: Optional[float] = None
-    resets: int = 0                      # attempts ended by a >grace interruption
+    completed_at: float | None = None
+    resets: int = 0  # attempts ended by a >grace interruption
     coop_ticks: int = 0
-    max_dwell_run: float = 0.0           # best dwell_accumulated ever seen
-    first_coop_at: Optional[float] = None
-    cur_trackers: int = 0                # effective trackers this tick (diagnostic)
+    max_dwell_run: float = 0.0  # best dwell_accumulated ever seen
+    first_coop_at: float | None = None
+    cur_trackers: int = 0  # effective trackers this tick (diagnostic)
 
 
 # ── scoring profile ───────────────────────────────────────────────────────
@@ -70,18 +71,21 @@ class ScoringProfile:
     bonus dimension counting ticks where any target is co-tracked by
     ``>= full_coop_K`` UAVs.
     """
+
     name: str
-    K: int                              # cooperative threshold
+    K: int  # cooperative threshold
     dwell_target_s: float = 20.0
     grace_s: float = 2.0
-    duration_s: float = 60.0            # time budget for "latency" dimensions
+    duration_s: float = 60.0  # time budget for "latency" dimensions
     weights: dict[str, float] = field(default_factory=dict)
-    full_coop_K: Optional[int] = None
-    linear_completion: bool = False   # single-UAV: scale completion by dwell/dwell_target
+    full_coop_K: int | None = None
+    linear_completion: bool = (
+        False  # single-UAV: scale completion by dwell/dwell_target
+    )
     # pass/fail gates
-    pass_completion: float = 1.0        # required completion_rate
+    pass_completion: float = 1.0  # required completion_rate
     pass_score: float = 70.0
-    pass_alive_rate: Optional[float] = None   # adversarial only
+    pass_alive_rate: float | None = None  # adversarial only
 
 
 def profile_uav_search_track_car(duration_s: float = 60.0) -> ScoringProfile:
@@ -95,26 +99,34 @@ def profile_uav_search_track_car(duration_s: float = 60.0) -> ScoringProfile:
     """
     return ScoringProfile(
         name="uav_search_track_car",
-        K=1, dwell_target_s=300.0, grace_s=2.0, duration_s=duration_s,
+        K=1,
+        dwell_target_s=300.0,
+        grace_s=2.0,
+        duration_s=duration_s,
         linear_completion=True,
         weights={
-            "search": 0.20,        # faster first detection
-            "completion": 0.30,    # reach 5-min continuous track
-            "track_quality": 0.25, # keep target centered (detection.confidence)
-            "stability": 0.15,     # few resets, high in-view fraction
-            "time_to_all": 0.10,   # achieve quickly
+            "search": 0.20,  # faster first detection
+            "completion": 0.30,  # reach 5-min continuous track
+            "track_quality": 0.25,  # keep target centered (detection.confidence)
+            "stability": 0.15,  # few resets, high in-view fraction
+            "time_to_all": 0.10,  # achieve quickly
         },
-        pass_completion=1.0, pass_score=70.0,
+        pass_completion=1.0,
+        pass_score=70.0,
     )
 
 
-def profile_multi_uav_coop_decoy(duration_s: float = 120.0,
-                                 K: int = 1) -> ScoringProfile:
+def profile_multi_uav_coop_decoy(
+    duration_s: float = 120.0, K: int = 1
+) -> ScoringProfile:
     """3-UAV cooperative decoy scenario. Default K=1 (single UAV suffices);
     pass K>1 for a stricter cooperative gate."""
     return ScoringProfile(
         name="multi_uav_coop_decoy",
-        K=K, dwell_target_s=20.0, grace_s=2.0, duration_s=duration_s,
+        K=K,
+        dwell_target_s=20.0,
+        grace_s=2.0,
+        duration_s=duration_s,
         full_coop_K=3,
         weights={
             "completion": 0.30,
@@ -124,23 +136,30 @@ def profile_multi_uav_coop_decoy(duration_s: float = 120.0,
             "comm": 0.10,
             "full_coop": 0.10,
         },
-        pass_completion=1.0, pass_score=75.0,
+        pass_completion=1.0,
+        pass_score=75.0,
     )
 
 
-def profile_adversarial_swarm_search(duration_s: float = 60.0,
-                                     K: int = 1) -> ScoringProfile:
+def profile_adversarial_swarm_search(
+    duration_s: float = 60.0, K: int = 1
+) -> ScoringProfile:
     """Adversarial swarm. Total blends completion / track-quality / alive
     as 0.5 / 0.2 / 0.3."""
     return ScoringProfile(
         name="adversarial_swarm_search",
-        K=K, dwell_target_s=20.0, grace_s=2.0, duration_s=duration_s,
+        K=K,
+        dwell_target_s=20.0,
+        grace_s=2.0,
+        duration_s=duration_s,
         weights={
             "completion": 0.5,
             "track_quality": 0.2,
             "alive": 0.3,
         },
-        pass_completion=1.0, pass_score=70.0, pass_alive_rate=0.5,
+        pass_completion=1.0,
+        pass_score=70.0,
+        pass_alive_rate=0.5,
     )
 
 
@@ -158,28 +177,25 @@ class CoopTrackingEvaluator:
         final = ev.score(extras)               # terminal score
     """
 
-    def __init__(self, profile: ScoringProfile,
-                 true_target_uids) -> None:
+    def __init__(self, profile: ScoringProfile, true_target_uids) -> None:
         self.profile = profile
         self.targets: set[str] = set(true_target_uids)
-        self.states: dict[str, _TargetState] = {
-            t: _TargetState() for t in self.targets
-        }
+        self.states: dict[str, _TargetState] = {t: _TargetState() for t in self.targets}
         # global accumulators
         self.misid_ticks: int = 0
         self.total_detected_ticks: int = 0
         self.full_coop_ticks: int = 0
-        self.quality_sum: float = 0.0    # Σ confidence over effective-track ticks
+        self.quality_sum: float = 0.0  # Σ confidence over effective-track ticks
         self.quality_count: int = 0
         self.tick_count: int = 0
-        self._last_sim_time: Optional[float] = None
+        self._last_sim_time: float | None = None
         self.destroyed_uids: set[str] = set()
 
     # ── per-tick observation ──────────────────────────────────────────
 
-    def observe(self, sim_time: float,
-                uav_target_map: dict[str, TargetMatch],
-                destroyed_uids) -> None:
+    def observe(
+        self, sim_time: float, uav_target_map: dict[str, TargetMatch], destroyed_uids
+    ) -> None:
         """Advance the state machines by one tick.
 
         Args:
@@ -208,15 +224,18 @@ class CoopTrackingEvaluator:
                 ts.cur_trackers = 0
                 continue
             trackers_t = {
-                u for u, m in uav_target_map.items()
+                u
+                for u, m in uav_target_map.items()
                 if m.is_effective and m.target_uid == t and u not in destroyed
             }
             n_trackers = len(trackers_t)
             ts.cur_trackers = n_trackers
             coop_now = n_trackers >= self.profile.K
 
-            if (self.profile.full_coop_K is not None
-                    and n_trackers >= self.profile.full_coop_K):
+            if (
+                self.profile.full_coop_K is not None
+                and n_trackers >= self.profile.full_coop_K
+            ):
                 any_full_coop = True
 
             if coop_now:
@@ -242,8 +261,7 @@ class CoopTrackingEvaluator:
                     ts.has_dwell = False
                     ts.resets += 1
 
-            if (not ts.completed
-                    and ts.dwell_accumulated >= self.profile.dwell_target_s):
+            if not ts.completed and ts.dwell_accumulated >= self.profile.dwell_target_s:
                 ts.completed = True
                 ts.completed_at = sim_time
 
@@ -281,13 +299,16 @@ class CoopTrackingEvaluator:
         return self.misid_ticks / self.total_detected_ticks
 
     @property
-    def time_to_all_completed(self) -> Optional[float]:
+    def time_to_all_completed(self) -> float | None:
         """Sim time (absolute) when the last target completed, or None if
         not all completed."""
         if len(self.completed_targets) != len(self.targets):
             return None
-        done = [ts.completed_at for ts in self.states.values()
-                if ts.completed and ts.completed_at is not None]
+        done = [
+            ts.completed_at
+            for ts in self.states.values()
+            if ts.completed and ts.completed_at is not None
+        ]
         return max(done) if done else None
 
     # ── scoring (pure function) ───────────────────────────────────────
@@ -298,8 +319,9 @@ class CoopTrackingEvaluator:
         if key == "completion":
             if self.profile.linear_completion:
                 # single-UAV: linear in best continuous dwell vs target.
-                best = max((ts.max_dwell_run for ts in self.states.values()),
-                           default=0.0)
+                best = max(
+                    (ts.max_dwell_run for ts in self.states.values()), default=0.0
+                )
                 return 100.0 * min(1.0, best / self.profile.dwell_target_s)
             return 100.0 * self.completion_rate
         if key == "track_quality":
@@ -342,20 +364,26 @@ class CoopTrackingEvaluator:
             return 100.0 * (self.full_coop_ticks / self.tick_count)
         return 0.0
 
-    def score(self, extras: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    def score(self, extras: dict[str, Any] | None = None) -> dict[str, Any]:
         """Compute the score snapshot. Pure: does not mutate state, so it is
         safe to call every tick for a live curve and once more at the end."""
         extras = extras or {}
         dim_scores = {k: self._dimension(k, extras) for k in self.profile.weights}
-        total = sum(self.profile.weights[k] * dim_scores[k]
-                    for k in self.profile.weights)
+        total = sum(
+            self.profile.weights[k] * dim_scores[k] for k in self.profile.weights
+        )
         total = max(0.0, min(100.0, total))
 
         t_all = self.time_to_all_completed
-        passed = (self.completion_rate >= self.profile.pass_completion
-                  and total >= self.profile.pass_score)
+        passed = (
+            self.completion_rate >= self.profile.pass_completion
+            and total >= self.profile.pass_score
+        )
         if self.profile.pass_alive_rate is not None:
-            passed = passed and float(extras.get("alive_rate", 0.0)) >= self.profile.pass_alive_rate
+            passed = (
+                passed
+                and float(extras.get("alive_rate", 0.0)) >= self.profile.pass_alive_rate
+            )
 
         per_target = {
             t: {

@@ -3,9 +3,8 @@
 Just sweeps the gimbal horizontally when no detection; on detection, aims
 at target. Demonstrates the 30-line custom algorithm that the spec calls
 for (SC-006)."""
-from __future__ import annotations
 
-import math
+from __future__ import annotations
 
 from search_track.commands import CommandTarget, ControlCommand
 from search_track.controller import Controller
@@ -24,9 +23,13 @@ class GreedyController(Controller):
         if state.detection.detected and state.detection.target_position is not None:
             tgt = state.detection.target_position
             pan, tilt = los_angles(
-                state.uav.position.latitude, state.uav.position.longitude,
-                state.uav.position.altitude, state.uav.attitude.yaw,
-                tgt.latitude, tgt.longitude, tgt.altitude,
+                state.uav.position.latitude,
+                state.uav.position.longitude,
+                state.uav.position.altitude,
+                state.uav.attitude.yaw,
+                tgt.latitude,
+                tgt.longitude,
+                tgt.altitude,
             )
             return [
                 ControlCommand(
