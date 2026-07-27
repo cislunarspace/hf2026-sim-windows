@@ -1,0 +1,109 @@
+\documentclass[openany,12pt,UTF8]{ctexbook}
+\usepackage[a4paper,twoside,margin=2.5cm]{geometry}
+\include{package.tex}
+\begin{document}
+\frontmatter
+\include{title.tex}
+\tableofcontents
+\mainmatter
+
+%%% ============================================================ %%%
+%%% 正文开始 %%%
+%%% ============================================================ %%%
+
+\chapter{研究背景与竞赛任务}
+
+\section{无人集群 ISR 任务概述}
+
+% 当前无人集群在情报、监视、侦察领域的应用背景与核心挑战
+
+\section{仿真平台与竞赛规则}
+
+% 平台架构（C++ 底层 + Python SDK）、信息隔离机制、评分体系
+
+\section{三道赛题的递进关系}
+
+% 赛题一（单机搜索跟踪）→ 赛题二（多机协同识别）→ 赛题三（对抗集群全域搜索）
+
+\chapter{方法论与算法设计}
+
+\section{总体架构设计}
+
+% 分层架构：Agent 层 → 状态机层 → 算法模块层 → 计算服务层（Rust）
+
+\section{搜索算法}
+
+% 区域覆盖搜索策略：螺旋搜索、网格分配、概率图引导搜索
+
+\section{目标跟踪与状态估计}
+
+% 云台 LOS 瞄准、EMA/卡尔曼滤波、bearing-only 跟踪的可观测性分析
+
+\section{诱饵鉴别算法}
+
+% 运动学一致性检验：速度估计、位置散布分析、多帧判据
+
+\section{多机协同与任务分配}
+
+% 通信协议设计、K=2/K=3 分布式共识、Greedy/拍卖分配算法
+
+\section{威胁感知与规避}
+
+% SAM 防空区规避（高度策略+水平绕行）、动态干扰区感知与广播预警
+
+\chapter{核心算法实现}
+
+\section{Rust 计算服务}
+
+% PyO3 集成、卡尔曼滤波器、路径规划（A*）、几何计算加速
+
+\section{Python 算法模块}
+
+% 按功能划分的模块结构：search/tracking/discrimination/coordination/threat/estimation
+
+\section{通信协议设计}
+
+% 消息格式（50 字节约束）、4 种消息类型（T/D/A/J）、编码效率
+
+\section{状态机设计}
+
+% ACQUIRE → VERIFY → TRACK → SEARCH 状态转换逻辑
+
+\chapter{实验结果与分析}
+
+\section{赛题一实验}
+
+% 搜索效率、跟踪精度、目指上报 RMSE
+
+\section{赛题二实验}
+
+% 诱饵鉴别准确率、K=2 协同效率、全歼时间
+
+\section{赛题三实验}
+
+% 存活率、摧毁率、威胁规避效果、K=3 协同分配效率
+
+\section{消融实验}
+
+% 各算法模块的贡献分析
+
+\chapter{创新点与应用价值}
+
+\section{技术创新点}
+
+% 列举 3-5 个具体创新点
+
+\section{应用前景}
+
+% 应急搜救、边境巡查、侦察等实际场景应用价值
+
+\chapter{总结与展望}
+
+\section{工作总结}
+
+\section{不足与改进方向}
+
+%%% 正文结束 %%%
+%%% ============================================================ %%%
+
+\end{document}

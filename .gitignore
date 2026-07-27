@@ -9,3 +9,11 @@ python/
 
 # Node 依赖
 lib/
+
+run/logs/
+
+# Python 字节码
+__pycache__/
+*.pyc
+
+output/
