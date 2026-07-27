@@ -1,1 +1,10 @@
 *.pdb
+
+# Claude Code 运行时产物
+.claude/
+
+# Python 环境（改用 uv 管理）
+python/
+
+# Node 依赖
+lib/
