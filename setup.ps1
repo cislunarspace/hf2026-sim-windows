@@ -1,4 +1,4 @@
-# setup.ps1 — Windows 版环境检测与依赖安装
+﻿# setup.ps1 — Windows 版环境检测与依赖安装
 # 用 uv 管理 Python 虚拟环境，安装 redis/pyyaml 等依赖。
 # 幂等：已装的跳过，重复运行安全。
 
