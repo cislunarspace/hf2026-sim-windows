@@ -235,10 +235,13 @@ Capture $f 'System32 关键 DLL' {
     }
 }
 
-# 4.3 Python：优先捆绑 python，退回系统 python
+# 4.3 Python：优先 .venv，退回捆绑 python，退回系统 python
 $pythonBin = $null
+$venv = Join-Path $PACK_ROOT '.venv\Scripts\python.exe'
 $bundled = Join-Path $PACK_ROOT 'python\python.exe'
-if (Test-Path $bundled) {
+if (Test-Path $venv) {
+    $pythonBin = $venv
+} elseif (Test-Path $bundled) {
     $pythonBin = $bundled
 } else {
     foreach ($c in @('C:\Python314\python.exe', 'C:\Python313\python.exe', 'C:\Python312\python.exe', 'C:\Python311\python.exe')) {
@@ -258,7 +261,7 @@ if ($pythonBin) {
     if ($LASTEXITCODE -eq 0) {
         Add-Check 'PASS' "Python 依赖 redis/pyyaml 就绪（$pythonBin）"
     } else {
-        Add-Check 'FAIL' "Python 缺少 redis/pyyaml（$pythonBin）" '请运行包内 setup.ps1；或手动执行 python -m pip install redis pyyaml'
+        Add-Check 'FAIL' "Python 缺少 redis/pyyaml（$pythonBin）" '请运行包内 setup.ps1（会用 uv 创建 venv 并安装依赖）'
     }
 } else {
     W $f '未找到任何 Python'

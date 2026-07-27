@@ -23,7 +23,7 @@
 ```bash
 # 1. 装依赖
 cd examples/yolotrack
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 
 # 2. dry-run（不连 redis，2 秒内退出）
 cd ../../..     # 回到 opensim 根
@@ -175,7 +175,7 @@ python -m pytest tests/ -v
 
 ```bash
 # 最小依赖
-pip install ultralytics>=8.4 lap>=0.5.12 opencv-python>=4.8 \
+uv pip install ultralytics>=8.4 lap>=0.5.12 opencv-python>=4.8 \
             redis>=5.0 numpy>=1.24
 ```
 

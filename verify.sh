@@ -43,16 +43,28 @@ else
     fail "前端静态服务 (port $OPENSIM_WEB_PORT) 无响应 — 见 run/logs/frontend.log"
 fi
 
-# 4. Python 依赖
-if command -v python3 >/dev/null 2>&1; then
-    ok "python3 可用"
-    if python3 -c "import redis, yaml" 2>/dev/null; then
+# 4. Python 依赖（优先 venv，回退捆绑，再回退系统）
+VENV_PY="$PACK_ROOT/.venv/bin/python3"
+BUNDLED_PY="$PACK_ROOT/python/bin/python3.12"
+F_PY=""
+if [ -x "$VENV_PY" ]; then
+    F_PY="$VENV_PY"
+    ok "Python venv: $F_PY"
+elif [ -x "$BUNDLED_PY" ]; then
+    F_PY="$BUNDLED_PY"
+    ok "捆绑 Python（无 venv）: $F_PY"
+elif command -v python3 >/dev/null 2>&1; then
+    F_PY="python3"
+    ok "系统 python3（无 venv）: $F_PY"
+else
+    fail "未找到 Python — 请先运行 ./setup.sh"
+fi
+if [ -n "$F_PY" ]; then
+    if "$F_PY" -c "import redis, yaml" 2>/dev/null; then
         ok "Python 包 redis + pyyaml 就绪"
     else
-        fail "Python 包 redis/pyyaml 缺失 — 运行 ./setup.sh 或 pip install redis pyyaml"
+        fail "Python 包 redis/pyyaml 缺失 — 请运行 ./setup.sh"
     fi
-else
-    fail "python3 不可用 — 运行 ./setup.sh"
 fi
 
 # 5. 引擎二进制存在性

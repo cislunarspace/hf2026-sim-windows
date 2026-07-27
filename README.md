@@ -19,7 +19,7 @@ Windows 版内置 `bin\redis-server.exe`（redis-windows-fork）+ 依赖 DLL，
 
 ### Linux
 ```bash
-./setup.sh    # 检测并安装依赖（python3/pip/redis/pyyaml，需 sudo）
+./setup.sh    # 检测 uv、创建 Python venv、安装 redis/pyyaml（需 uv；apt 包需 sudo）
 ./start.sh    # 启动 Redis + bridge + 前端
 # 浏览器打开 http://localhost:3000
 #   → 选赛题 → (可选)「算法」框填 module:Class → 点「开始仿真」
@@ -27,7 +27,7 @@ Windows 版内置 `bin\redis-server.exe`（redis-windows-fork）+ 依赖 DLL，
 
 ### Windows (PowerShell)
 ```powershell
-.\setup.ps1   # 检测并安装依赖（python/pip/redis/pyyaml/vcredist；vcredist 安装可能需要管理员）
+.\setup.ps1   # 检测 uv、创建 Python venv、安装 redis/pyyaml/vcredist；vcredist 安装可能需要管理员
 .\start.ps1   # 启动 Redis + bridge + 前端
 # 浏览器自动打开 http://localhost:3000
 #   → 选赛题 → (可选)「算法」框填 module:Class → 点「开始仿真」
@@ -37,9 +37,10 @@ Windows 版内置 `bin\redis-server.exe`（redis-windows-fork）+ 依赖 DLL，
 
 ## 系统要求
 
+- **uv**：Python 虚拟环境与依赖管理工具（[安装指南](https://docs.astral.sh/uv/getting-started/installation/)）
 - **Linux**: x86-64，glibc ≥ 2.39（Ubuntu 24.04+），apt 包管理器
 - **Windows**: Windows 10 1809+（内置 tar/curl/PowerShell 5.1+），推荐管理员权限运行 `setup.ps1` 以便自动安装 VC++ Redistributable
-- 捆绑 Python 3.12 standalone，不强制要求系统 Python
+- 捆绑 Python 3.12 standalone，通过 uv 创建虚拟环境管理依赖
 - GPU（可选，仅 UE 渲染用；无 GPU 自动降级 Three.js 自渲染）
 
 ## 选手算法接入

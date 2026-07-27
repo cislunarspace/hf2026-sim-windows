@@ -13,7 +13,7 @@ cmake -B build && cmake --build build
 ./build/opensim-sim --config examples/uav_search_track_car/config/scenario.json
 
 # 终端 3：运行示例
-pip install redis pyyaml
+uv pip install redis pyyaml
 python -m examples.uav_search_track_car.run --duration 60
 ```
 

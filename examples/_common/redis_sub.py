@@ -34,7 +34,7 @@ def connect_redis(host: str, port: int, channel: str, timeout: float = 5.0):
         import redis  # type: ignore
     except ImportError as e:
         raise RuntimeError(
-            "redis-py is required for live runs; install with `pip install redis`"
+            "redis-py is required for live runs; install with `uv pip install redis`"
         ) from e
     r = redis.Redis(host=host, port=port, decode_responses=True)
     pubsub = r.pubsub()

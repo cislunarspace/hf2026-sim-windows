@@ -9,15 +9,17 @@ set -eu
 PACK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PACK_ROOT"
 
-# Python 解释器：V2.1.0 起用包内捆绑的 python-build-standalone 3.12（与打包时编译 .pyc
-# 的版本一致，根治 magic number 跨版本不兼容）。优先用包内，env 覆盖留给调试。
+# Python 解释器：优先 .venv（uv 管理），回退捆绑 python-build-standalone，再回退系统。
+VENV_PY="$PACK_ROOT/.venv/bin/python3"
 BUNDLED_PY="$PACK_ROOT/python/bin/python3.12"
-if [ -x "$BUNDLED_PY" ]; then
+if [ -x "$VENV_PY" ]; then
+    export PYTHON_BIN="${PYTHON_BIN:-$VENV_PY}"
+elif [ -x "$BUNDLED_PY" ]; then
     export PYTHON_BIN="${PYTHON_BIN:-$BUNDLED_PY}"
+    echo "⚠️  .venv 缺失，回退捆绑 python（请先运行 ./setup.sh）"
 else
-    # 兜底：发行包损坏缺捆绑 python 时，回退系统 python（可能 magic 不匹配，但至少能启动 start.sh 自身的内联脚本）。
     export PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || echo python3)}"
-    echo "⚠️  捆绑 python 缺失，回退系统 python（SDK 可能因 magic number 不匹配无法运行）"
+    echo "⚠️  .venv 和捆绑 python 均缺失，回退系统 python（请先运行 ./setup.sh）"
 fi
 
 # 端口可配（默认 + env 覆盖）
