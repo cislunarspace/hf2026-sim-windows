@@ -174,10 +174,11 @@ else
     echo "(opensim-sim 缺失，跳过 ldd)" >> "$F"
 fi
 
-# 4.2 Python（Linux 发布包用系统 python3）
+# 4.2 Python（优先 venv，回退捆绑，再回退系统）
 F_PY=""
-if command -v python3 >/dev/null 2>&1; then F_PY="python3";
-elif [ -x "$PACK_ROOT/python/bin/python3" ]; then F_PY="$PACK_ROOT/python/bin/python3"; fi
+if [ -x "$PACK_ROOT/.venv/bin/python3" ]; then F_PY="$PACK_ROOT/.venv/bin/python3";
+elif [ -x "$PACK_ROOT/python/bin/python3" ]; then F_PY="$PACK_ROOT/python/bin/python3";
+elif command -v python3 >/dev/null 2>&1; then F_PY="python3"; fi
 {
     echo "=== Python 检测 ==="
     echo "使用: ${F_PY:-未找到}"
@@ -188,10 +189,10 @@ if [ -n "$F_PY" ]; then
     if "$F_PY" -c 'import redis, yaml' 2>/dev/null; then
         add_check PASS "Python 依赖 redis/pyyaml 就绪（$F_PY）"
     else
-        add_check FAIL "Python 缺少 redis/pyyaml（$F_PY）" "请运行 ./setup.sh（需 sudo）；或手动 pip3 install redis pyyaml"
+        add_check FAIL "Python 缺少 redis/pyyaml（$F_PY）" "请运行 ./setup.sh（会用 uv 创建 venv 并安装依赖）"
     fi
 else
-    add_check FAIL "未找到 python3" "请运行 ./setup.sh（会用 apt 安装 python3/pip）"
+    add_check FAIL "未找到 python3" "请运行 ./setup.sh（会用 uv 创建虚拟环境）"
 fi
 
 # 4.3 Redis 冒烟

@@ -81,7 +81,10 @@ function Stop-Pid {
 }
 
 function Get-PythonExe {
-    # 优先使用发行包内捆绑的 Python,实现不依赖目标机系统 Python。
+    # 优先使用 uv 管理的 .venv, 回退捆绑 Python, 再回退系统 Python。
+    $venv = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
+    if (Test-Path $venv) { return $venv }
+
     $bundled = Join-Path $PSScriptRoot 'python\python.exe'
     if (Test-Path $bundled) { return $bundled }
 

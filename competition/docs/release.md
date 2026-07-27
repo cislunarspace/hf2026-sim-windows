@@ -85,7 +85,7 @@ binary and runs from the project root so `config/` resolves.
 ## Player prerequisites
 
 - **Redis** at `127.0.0.1:6379` (e.g. `docker run -p 6379:6379 redis`).
-- **Python 3.10+** + `redis-py` (`pip install redis`).
+- **Python 3.10+** + `uv` (`curl -LsSf https://astral.sh/uv/install.sh | sh`；详见 https://docs.astral.sh/uv/getting-started/installation/)
 - *(optional)* **Node.js** — only for `--visualize`.
 
 ## Player workflow
@@ -93,20 +93,20 @@ binary and runs from the project root so `config/` resolves.
 ```bash
 cd opensim-release                       # the project root
 docker run -d -p 6379:6379 redis         # Redis (once)
-pip install redis                        # Python client (once)
+uv venv && uv pip install redis          # Python venv + client (once)
 
 # smoke-test the release with a baseline
-python -m competition run --scenario search_track \
+.venv/bin/python -m competition run --scenario search_track \
     --agent baselines.search_track_fsm:FsmAgent --duration 60
 
 # with 3D view
-python -m competition run --scenario adversarial_swarm \
+.venv/bin/python -m competition run --scenario adversarial_swarm \
     --agent baselines.swarm_distributed:SwarmDistributedAgent \
     --duration 60 --visualize
 
 # write your own agent
 cp competition/templates/search_track_template.py my_agent.py
-python -m competition run --scenario search_track \
+.venv/bin/python -m competition run --scenario search_track \
     --agent my_agent:MyAgent --duration 60 --seed 7
 ```
 

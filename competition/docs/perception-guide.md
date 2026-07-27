@@ -209,7 +209,7 @@ class Detection:
 python -m competition run --scenario search_track \
     --agent my_pkg:MyAgent --mode train --duration 600
 
-# 任意赛题 · 验证态：真实 YOLOv8（需先 pip install -r examples/yolotrack/requirements.txt）
+# 任意赛题 · 验证态：真实 YOLOv8（需先 uv pip install -r examples/yolotrack/requirements.txt）
 python -m competition run --scenario search_track \
     --agent my_pkg:MyAgent --mode eval \
     --photo-mode on --yolo-model target_vehicle_yolov8s.pt --duration 600

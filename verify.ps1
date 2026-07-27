@@ -73,24 +73,32 @@ try {
     Invoke-Fail "前端静态服务 (port $OPENSIM_WEB_PORT) 无响应 — 见 run\logs\frontend.log"
 }
 
-# 4. Python 依赖
+# 4. Python 依赖（优先 venv，回退捆绑，再回退系统）
 $python = $null
-$candidates = @(
-    'C:\Python314\python.exe',
-    'C:\Python313\python.exe',
-    'C:\Python312\python.exe',
-    'C:\Python311\python.exe'
-)
-foreach ($c in $candidates) {
-    if (Test-Path $c) { $python = $c; break }
-}
-if (-not $python) {
-    $cmd = Get-Command python -ErrorAction SilentlyContinue
-    if ($cmd) { $python = 'python' }
-}
-if (-not $python) {
-    $cmd = Get-Command py -ErrorAction SilentlyContinue
-    if ($cmd) { $python = 'py' }
+$venvPy = Join-Path $PACK_ROOT '.venv\Scripts\python.exe'
+$bundledPy = Join-Path $PACK_ROOT 'python\python.exe'
+if (Test-Path $venvPy) {
+    $python = $venvPy
+} elseif (Test-Path $bundledPy) {
+    $python = $bundledPy
+} else {
+    $candidates = @(
+        'C:\Python314\python.exe',
+        'C:\Python313\python.exe',
+        'C:\Python312\python.exe',
+        'C:\Python311\python.exe'
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) { $python = $c; break }
+    }
+    if (-not $python) {
+        $cmd = Get-Command python -ErrorAction SilentlyContinue
+        if ($cmd) { $python = 'python' }
+    }
+    if (-not $python) {
+        $cmd = Get-Command py -ErrorAction SilentlyContinue
+        if ($cmd) { $python = 'py' }
+    }
 }
 
 if ($python) {
@@ -99,10 +107,10 @@ if ($python) {
     if ($LASTEXITCODE -eq 0) {
         Invoke-Ok 'Python 包 redis + pyyaml 就绪'
     } else {
-        Invoke-Fail 'Python 包 redis/pyyaml 缺失 — 运行 .\setup.ps1 或 pip install redis pyyaml'
+        Invoke-Fail 'Python 包 redis/pyyaml 缺失 — 请运行 .\setup.ps1'
     }
 } else {
-    Invoke-Fail 'python 不可用 — 运行 .\setup.ps1'
+    Invoke-Fail 'python 不可用 — 请运行 .\setup.ps1'
 }
 
 # 5. 引擎二进制存在性（Windows 用 .exe 后缀）

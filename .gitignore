@@ -5,6 +5,7 @@
 
 # Python 环境（改用 uv 管理）
 python/
+.venv/
 
 # Node 依赖
 lib/
