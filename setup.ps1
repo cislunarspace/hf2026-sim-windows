@@ -1,4 +1,4 @@
-# setup.ps1 — Windows 版环境检测与依赖安装
+﻿# setup.ps1 — Windows 版环境检测与依赖安装
 # 用 uv 管理 Python 虚拟环境，安装 redis/pyyaml 等依赖。
 # 幂等：已装的跳过，重复运行安全。
 
@@ -95,23 +95,16 @@ if (-not (Test-Command 'uv')) {
 $uvVersion = & uv --version 2>$null
 Write-Host "✓ uv: $uvVersion"
 
-# ── 2. 捆绑 Python ──
-$bundled = Join-Path $packRoot 'python\python.exe'
-if (-not (Test-Path $bundled)) {
-    Write-Host '✗ 捆绑 Python 缺失（python\python.exe），发行包不完整。' -ForegroundColor Red
-    exit 1
-}
-Write-Host "✓ 捆绑 Python: $bundled"
-
-# ── 3. Python 虚拟环境（uv 管理） ──
+# ── 2. Python 虚拟环境（uv 管理） ──
+# uv 自动获取 Python 3.12，无需捆绑。
 $venvDir = Join-Path $packRoot '.venv'
 $venvPython = Join-Path $venvDir 'Scripts\python.exe'
 
 if (Test-Path $venvPython) {
     Write-Host "✓ Python venv 已存在: $venvDir"
 } else {
-    Write-Host '创建 Python 虚拟环境（uv venv）...'
-    & uv venv --python $bundled $venvDir
+    Write-Host '创建 Python 虚拟环境（uv 会自动获取 Python 3.12）...'
+    & uv venv --python 3.12 $venvDir
     if ($LASTEXITCODE -ne 0) {
         Write-Host '✗ uv venv 创建失败' -ForegroundColor Red
         exit 1
@@ -119,7 +112,7 @@ if (Test-Path $venvPython) {
     Write-Host "✓ Python venv 已创建: $venvDir"
 }
 
-# ── 4. 安装 Python 依赖 ──
+# ── 3. 安装 Python 依赖 ──
 Write-Host '安装 Python 依赖（redis + pyyaml）...'
 & uv pip install --python $venvPython redis pyyaml
 if ($LASTEXITCODE -ne 0) {
@@ -128,7 +121,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host '✓ Python 依赖已安装到 venv'
 
-# ── 5. 验证 ──
+# ── 4. 验证 ──
 & $venvPython -c 'import redis, yaml' 2>&1 | Out-Null
 if ($LASTEXITCODE -eq 0) {
     Write-Host '✓ Python 依赖验证通过（redis + pyyaml）'
@@ -136,7 +129,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host '⚠️  venv 的 redis/pyyaml 不可用，发行包可能损坏' -ForegroundColor Yellow
 }
 
-# ── 6. 系统工具（Win10+ 内置） ──
+# ── 5. 系统工具（Win10+ 内置） ──
 if (Test-Command 'curl') {
     Write-Host '✓ curl 可用'
 } else {
@@ -148,7 +141,7 @@ if (Test-Command 'tar') {
     Write-Host '⚠️  tar 不可用（Win10 1809+ 内置，建议升级 Windows）'
 }
 
-# ── 7. 引擎二进制存在性（打包后才有） ──
+# ── 6. 引擎二进制存在性（打包后才有） ──
 $simExe = Join-Path $packRoot 'opensim-sim.exe'
 if (Test-Path $simExe) {
     Write-Host "✓ opensim-sim.exe 就位"
