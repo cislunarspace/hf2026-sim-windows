@@ -1,0 +1,269 @@
+"""赛题一搜索-跟踪 Agent 实现。
+
+五状态 FSM：
+  ACQUIRE → SEARCH → LOCK → TRACK → LOST
+  (丢失目标时 TRACK → LOST → SEARCH)
+
+算法：
+  - EKF（Rust）用于目标位置估计和速度估计
+  - 阿基米德螺旋搜索
+  - LOS 瞄准 + 前馈飞行跟踪
+  - 每秒 report_target 上报滤波位置
+"""
+import math
+from enum import Enum
+from typing import List, Optional, Tuple
+
+from competition.sdk.core.agent import Agent
+from competition.sdk.core.commands import (
+    Command, fly_to, point_gimbal, report_target, set_gimbal_fov,
+)
+from competition.sdk.scenarios.search_track import SearchTrackAgent
+from competition.sdk.scenarios.search_track.observation import SearchTrackObs
+
+from algorithms.estimation.ekf import BearingOnlyEKF
+from algorithms.estimation.geometry import bearing_rad, haversine_m
+from algorithms.search.spiral import generate_spiral
+from algorithms.tracking.gimbal import compute_gimbal_angles, choose_fov
+from algorithms.tracking.follow import compute_lead_point
+
+
+class State(Enum):
+    ACQUIRE = "acquire"
+    SEARCH = "search"
+    LOCK = "lock"
+    TRACK = "track"
+    LOST = "lost"
+
+
+# ── 常量 ────────────────────────────────────────────────────────────────
+
+_SEARCH_FOV = 70.0       # 搜索 FOV（度）
+_TRACK_FOV = 15.0        # 跟踪 FOV（度）
+_SEARCH_SPEED = 30.0     # 搜索速度（m/s）
+_TRACK_SPEED = 25.0      # 跟踪速度（m/s）
+_LOITER_RADIUS = 200.0   # 盘旋半径（m）
+_LEAD_TIME_S = 1.5       # 前馈时间（s）
+_GRACE_FRAMES = 20       # 丢失容忍帧数（~2s @ 10Hz）
+_LOCK_FRAMES = 10        # LOCK 状态等待帧数（EKF 收敛）
+_REPORT_INTERVAL = 1.0   # 上报间隔（秒）
+_SPIRAL_RADIUS_M = 1500  # 螺旋搜索半径（m）
+_SPIRAL_PITCH_M = 300    # 螺旋螺距（m），由 FOV 覆盖宽度决定
+_ASSUME_RANGE_M = 800.0  # 首次检测假设距离（m）
+
+
+class MySearchTrackAgent(SearchTrackAgent):
+    """赛题一参赛 Agent：EKF 滤波 + 螺旋搜索 + LOS 跟踪。"""
+
+    def __init__(self, my_uid: str):
+        super().__init__(my_uid)
+        self._state: State = State.ACQUIRE
+        self._ekf: Optional[BearingOnlyEKF] = None
+        self._search_waypoints: List[Tuple[float, float]] = []
+        self._wp_idx: int = 0
+        self._lost_frames: int = 0
+        self._lock_frames: int = 0
+        self._last_report_time: float = 0.0
+        self._sim_time: float = 0.0
+        self._gimbal_phase: float = 0.0  # 云台扫描相位
+
+    def reset(self) -> None:
+        self._state = State.ACQUIRE
+        self._ekf = None
+        self._search_waypoints = []
+        self._wp_idx = 0
+        self._lost_frames = 0
+        self._lock_frames = 0
+        self._last_report_time = 0.0
+        self._sim_time = 0.0
+        self._gimbal_phase = 0.0
+
+    def decide(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+        self._sim_time += dt
+        det = obs.self.detection
+        cmds: List[Command] = []
+
+        # 初始化 EKF（用 UAV 初始位置作为坐标原点）
+        if self._ekf is None:
+            self._ekf = BearingOnlyEKF(obs.self.lat, obs.self.lon)
+
+        # 生成搜索航点（如果还没有）
+        if not self._search_waypoints:
+            target_pos = obs.briefing.target_initial_pos
+            if target_pos:
+                center_lat, center_lon = target_pos
+            else:
+                center_lat, center_lon = obs.self.lat, obs.self.lon
+            self._search_waypoints = generate_spiral(
+                center_lat, center_lon,
+                radius_m=_SPIRAL_RADIUS_M,
+                pitch_m=_SPIRAL_PITCH_M,
+            )
+
+        # 状态机分发
+        if self._state == State.ACQUIRE:
+            cmds = self._do_acquire(obs, dt)
+        elif self._state == State.SEARCH:
+            cmds = self._do_search(obs, dt)
+        elif self._state == State.LOCK:
+            cmds = self._do_lock(obs, dt)
+        elif self._state == State.TRACK:
+            cmds = self._do_track(obs, dt)
+        elif self._state == State.LOST:
+            cmds = self._do_lost(obs, dt)
+
+        return cmds
+
+    # ── ACQUIRE：飞向目标初始位置 ──────────────────────────────────────
+
+    def _do_acquire(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+        cmds = [set_gimbal_fov(_SEARCH_FOV)]
+        target_pos = obs.briefing.target_initial_pos
+        if target_pos:
+            cmds.append(fly_to(target_pos[0], target_pos[1],
+                                speed=_SEARCH_SPEED,
+                                loiter_radius=_LOITER_RADIUS))
+        # 检查是否已到达附近（或直接收到检测）
+        if obs.self.detection.detected:
+            self._state = State.LOCK
+            self._lock_frames = 0
+            return self._do_lock(obs, dt)
+
+        if target_pos:
+            dist = haversine_m(obs.self.lat, obs.self.lon,
+                               target_pos[0], target_pos[1])
+            if dist < 500:  # 到达初始位置 500m 范围内
+                self._state = State.SEARCH
+                return self._do_search(obs, dt)
+
+        return cmds
+
+    # ── SEARCH：螺旋搜索 + 云台扫描 ────────────────────────────────────
+
+    def _do_search(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+        cmds = [set_gimbal_fov(_SEARCH_FOV)]
+
+        # 云台扇扫（pan ±90°，tilt -60° ~ -30°）
+        self._gimbal_phase += dt * 0.5  # 扫描速度
+        pan = 90.0 * math.sin(self._gimbal_phase)
+        tilt = -45.0 + 15.0 * math.sin(self._gimbal_phase * 0.7)
+        cmds.append(point_gimbal(pan, tilt))
+
+        # 沿螺旋航点飞行
+        if self._search_waypoints:
+            wp = self._search_waypoints[self._wp_idx % len(self._search_waypoints)]
+            cmds.append(fly_to(wp[0], wp[1], speed=_SEARCH_SPEED,
+                               loiter_radius=_LOITER_RADIUS))
+
+            # 到达当前航点附近时切换到下一个
+            dist = haversine_m(obs.self.lat, obs.self.lon, wp[0], wp[1])
+            if dist < 200:
+                self._wp_idx += 1
+
+        # 检测到目标 → 进入 LOCK
+        if obs.self.detection.detected:
+            self._state = State.LOCK
+            self._lock_frames = 0
+            return self._do_lock(obs, dt)
+
+        return cmds
+
+    # ── LOCK：EKF 初始化 + 等待收敛 ───────────────────────────────────
+
+    def _do_lock(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+        cmds = []
+        det = obs.self.detection
+
+        # 云台锁定目标（如果有检测）
+        if det.detected and det.target_lat is not None and det.target_lon is not None:
+            pan, tilt = compute_gimbal_angles(
+                obs.self.lat, obs.self.lon, obs.self.alt,
+                det.target_lat, det.target_lon,
+            )
+            cmds.append(point_gimbal(pan, tilt))
+            cmds.append(set_gimbal_fov(_TRACK_FOV))
+
+            # EKF 更新
+            bearing = bearing_rad(obs.self.lat, obs.self.lon,
+                                  det.target_lat, det.target_lon)
+            range_m = haversine_m(obs.self.lat, obs.self.lon,
+                                  det.target_lat, det.target_lon)
+
+            if not self._ekf.is_initialized():
+                self._ekf.initialize(obs.self.lat, obs.self.lon,
+                                     bearing, range_m)
+            else:
+                self._ekf.predict(dt)
+                self._ekf.update_bearing(obs.self.lat, obs.self.lon, bearing)
+
+        self._lock_frames += 1
+
+        # 收敛或等待足够帧数后进入 TRACK
+        if self._lock_frames >= _LOCK_FRAMES:
+            self._state = State.TRACK
+            self._lost_frames = 0
+            return self._do_track(obs, dt)
+
+        return cmds
+
+    # ── TRACK：跟踪 + 上报 ─────────────────────────────────────────────
+
+    def _do_track(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+        cmds = []
+        det = obs.self.detection
+
+        # EKF 更新
+        if det.detected and det.target_lat is not None and det.target_lon is not None:
+            bearing = bearing_rad(obs.self.lat, obs.self.lon,
+                                  det.target_lat, det.target_lon)
+            if not self._ekf.is_initialized():
+                self._ekf.initialize(obs.self.lat, obs.self.lon,
+                                     bearing, _ASSUME_RANGE_M)
+            else:
+                self._ekf.predict(dt)
+                self._ekf.update_bearing(obs.self.lat, obs.self.lon, bearing)
+            self._lost_frames = 0
+        else:
+            # 丢失检测 → predict only
+            if self._ekf.is_initialized():
+                self._ekf.predict(dt)
+            self._lost_frames += 1
+
+        # 检查是否丢失过多
+        if self._lost_frames >= _GRACE_FRAMES:
+            self._state = State.LOST
+            return self._do_lost(obs, dt)
+
+        # 云台 LOS 瞄准（使用 EKF 估计位置）
+        if self._ekf.is_initialized():
+            est_lat, est_lon = self._ekf.position_wgs84()
+            pan, tilt = compute_gimbal_angles(
+                obs.self.lat, obs.self.lon, obs.self.alt,
+                est_lat, est_lon,
+            )
+            cmds.append(point_gimbal(pan, tilt))
+            cmds.append(set_gimbal_fov(_TRACK_FOV))
+
+            # 前馈飞行
+            ve, vn = self._ekf.velocity_mps()
+            lead_lat, lead_lon = compute_lead_point(
+                est_lat, est_lon, ve, vn, _LEAD_TIME_S,
+            )
+            cmds.append(fly_to(lead_lat, lead_lon,
+                               speed=_TRACK_SPEED,
+                               loiter_radius=_LOITER_RADIUS))
+
+            # 上报（每秒一次）
+            if self._sim_time - self._last_report_time >= _REPORT_INTERVAL:
+                cmds.append(report_target(est_lat, est_lon))
+                self._last_report_time = self._sim_time
+
+        return cmds
+
+    # ── LOST：丢失恢复 → 重回搜索 ──────────────────────────────────────
+
+    def _do_lost(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+        # 丢失后重新进入搜索模式
+        self._state = State.SEARCH
+        self._wp_idx = 0  # 从螺旋起点重新搜索
+        return self._do_search(obs, dt)
