@@ -1,4 +1,5 @@
 """Enable ``python -m competition ...`` → dispatches to the CLI."""
+
 from __future__ import annotations
 
 import sys

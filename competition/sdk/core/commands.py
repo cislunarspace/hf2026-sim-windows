@@ -14,11 +14,11 @@ Capabilities NOT provided (the engine has no such concept):
   * deploy_decoy             — decoys are static scenario entities, not
                                 something a player drops.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
-
+from typing import Any
 
 DEFAULT_MAX_COMM_BYTES = 50
 
@@ -35,16 +35,22 @@ class Command:
     ``component.gimbal_tracking.set_orientation``, ``comm.broadcast``).
     ``params`` is the verb-specific parameter dict.
     """
+
     verb: str
-    params: Dict[str, Any]
+    params: dict[str, Any]
 
 
 # ── UAV navigation ────────────────────────────────────────────────────────
 
 
-def fly_to(lat: float, lon: float, alt: Optional[float] = None,
-           speed: Optional[float] = None, loiter_radius: float = 200.0,
-           turn_direction: str = "right") -> Command:
+def fly_to(
+    lat: float,
+    lon: float,
+    alt: float | None = None,
+    speed: float | None = None,
+    loiter_radius: float = 200.0,
+    turn_direction: str = "right",
+) -> Command:
     """Navigate to a point and loiter (engine verb: ``set_destination``).
 
     Routes to the entity's KinematicsComponent. The engine REQUIRES all six
@@ -53,7 +59,7 @@ def fly_to(lat: float, lon: float, alt: Optional[float] = None,
     ``loiter_radius``/``turn_direction`` get sensible defaults so a player
     can call ``fly_to(lat, lon)``.
     """
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "latitude": float(lat),
         "longitude": float(lon),
         "loiter_radius": float(loiter_radius),
@@ -146,8 +152,7 @@ def send_to(peer_uid: str, payload: str) -> Command:
 # signal, not an engine command.
 
 
-def report_target(lat: float, lon: float,
-                  target_id: Optional[str] = None) -> Command:
+def report_target(lat: float, lon: float, target_id: str | None = None) -> Command:
     """Report the player's judged real-target position (targeting info).
 
     In scenario 1 the judge samples this at 1Hz and scores continuous
@@ -160,6 +165,5 @@ def report_target(lat: float, lon: float,
     """
     return Command(
         verb="agent.report",
-        params={"lat": float(lat), "lon": float(lon),
-                "target_id": target_id},
+        params={"lat": float(lat), "lon": float(lon), "target_id": target_id},
     )

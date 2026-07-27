@@ -22,25 +22,27 @@ is wrong (it points *above* the repo root); this module always derives
 the repo root from the package location rather than the caller's file
 depth, so the inconsistency is gone for good.
 """
+
 from __future__ import annotations
 
 import argparse
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 # This file lives at examples/_common/argparser.py → repo root is two
 # parents up from `examples/`.
-_COMMON_DIR = Path(__file__).resolve().parent          # examples/_common
-_EXAMPLES_DIR = _COMMON_DIR.parent                     # examples
-REPO_ROOT = _EXAMPLES_DIR.parent                       # repo root
+_COMMON_DIR = Path(__file__).resolve().parent  # examples/_common
+_EXAMPLES_DIR = _COMMON_DIR.parent  # examples
+REPO_ROOT = _EXAMPLES_DIR.parent  # repo root
 
 
 def default_sim_binary() -> Path:
     """Path to the opensim-sim executable under ``build/`` (platform-aware)."""
-    return REPO_ROOT / "build" / (
-        "opensim-sim.exe" if sys.platform == "win32" else "opensim-sim"
+    return (
+        REPO_ROOT
+        / "build"
+        / ("opensim-sim.exe" if sys.platform == "win32" else "opensim-sim")
     )
 
 
@@ -62,7 +64,7 @@ def build_standard_parser(
     description: str,
     example_dir: Path,
     default_duration: float = 60.0,
-    extra: Optional[list] = None,
+    extra: list | None = None,
 ) -> argparse.ArgumentParser:
     """Build the common argparse parser.
 
@@ -87,27 +89,34 @@ def build_standard_parser(
     """
     p = argparse.ArgumentParser(description=description)
     p.add_argument(
-        "--scenario", type=str,
+        "--scenario",
+        type=str,
         default=str(Path(example_dir) / "config" / "scenario.json"),
     )
     p.add_argument(
-        "--duration", type=float, default=default_duration,
+        "--duration",
+        type=float,
+        default=default_duration,
         help=f"sim seconds (default {default_duration:g})",
     )
     p.add_argument(
-        "--output", type=str,
+        "--output",
+        type=str,
         default=str(Path(example_dir) / "output"),
     )
     p.add_argument(
-        "--start-sim", action="store_true",
+        "--start-sim",
+        action="store_true",
         help="spawn opensim-sim as a subprocess",
     )
     p.add_argument(
-        "--sim-binary", type=str,
+        "--sim-binary",
+        type=str,
         default=os.environ.get("OPENSIM_SIM_BIN", str(default_sim_binary())),
     )
     p.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="don't connect to Redis / don't publish commands",
     )
     p.add_argument("--redis-host", type=str, default="127.0.0.1")

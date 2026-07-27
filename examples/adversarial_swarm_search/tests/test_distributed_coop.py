@@ -10,6 +10,7 @@ The test is purely in-process — it constructs a fake `SimulatorBus`
 that drives FleetMembership / AuctionAllocator / ThreatIntel directly,
 then asserts the SC-005 invariant.
 """
+
 from __future__ import annotations
 
 import sys
@@ -21,22 +22,22 @@ EXAMPLE_DIR = HERE.parent
 if str(EXAMPLE_DIR) not in sys.path:
     sys.path.insert(0, str(EXAMPLE_DIR))
 
-from search_track.auction_allocator import AuctionAllocator, AuctionMessage  # noqa: E402
-from search_track.fleet_membership import FleetMembership, Heartbeat  # noqa: E402
-from search_track.threat_intel import ThreatIntel  # noqa: E402
-from search_track.distributed_coop_controller import DistributedCoopController  # noqa: E402
-
+from search_track.auction_allocator import AuctionMessage
+from search_track.distributed_coop_controller import (
+    DistributedCoopController,
+)
+from search_track.fleet_membership import Heartbeat
 
 N_UAVS = 10
 HEARTBEAT_TIMEOUT_S = 5.0
-AUCTION_BUDGET_S = 10.0   # SC-005: ≤ 10s to reassign after heartbeat
-SC005_TOTAL_S = 15.0      # SC-005: ≤ 15s end-to-end
+AUCTION_BUDGET_S = 10.0  # SC-005: ≤ 10s to reassign after heartbeat
+SC005_TOTAL_S = 15.0  # SC-005: ≤ 15s end-to-end
 
 
-def _hb(uid: str, t: float, lat: float = 27.0, lon: float = 124.99,
-        status: str = "active") -> Heartbeat:
-    return Heartbeat(uid=uid, sim_time=t, lat=lat, lon=lon, alt=600.0,
-                     status=status)
+def _hb(
+    uid: str, t: float, lat: float = 27.0, lon: float = 124.99, status: str = "active"
+) -> Heartbeat:
+    return Heartbeat(uid=uid, sim_time=t, lat=lat, lon=lon, alt=600.0, status=status)
 
 
 def _build_controllers() -> dict[str, DistributedCoopController]:
@@ -44,9 +45,8 @@ def _build_controllers() -> dict[str, DistributedCoopController]:
     for i in range(1, N_UAVS + 1):
         uid = f"u{i:03d}"
         ctrls[uid] = DistributedCoopController.create(
-            uid,
-            heartbeat_timeout_s=HEARTBEAT_TIMEOUT_S,
-            threat_safe_radius_m=600.0)
+            uid, heartbeat_timeout_s=HEARTBEAT_TIMEOUT_S, threat_safe_radius_m=600.0
+        )
     return ctrls
 
 
@@ -58,13 +58,14 @@ def _seed_fleet(ctrls: dict[str, DistributedCoopController], t0: float = 0.0) ->
             if other_uid == me_uid:
                 continue
             d = sum(ord(c) for c in other_uid) % 100
-            me.observe_heartbeat(_hb(other_uid, t0,
-                                     27.0 + 0.001 * d,
-                                     124.99 + 0.001 * (99 - d)))
+            me.observe_heartbeat(
+                _hb(other_uid, t0, 27.0 + 0.001 * d, 124.99 + 0.001 * (99 - d))
+            )
 
 
-def _broadcast(ctrls: dict[str, DistributedCoopController], msg: AuctionMessage,
-               exclude: str = "") -> None:
+def _broadcast(
+    ctrls: dict[str, DistributedCoopController], msg: AuctionMessage, exclude: str = ""
+) -> None:
     for uid, c in ctrls.items():
         if uid == exclude:
             continue
@@ -106,9 +107,14 @@ class DistributedCoopSC005Test(unittest.TestCase):
         for i, uid in enumerate(survivor_uids):
             bid_value = 1.0 / (i + 1)  # u002 wins (bid=1.0)
             msg = AuctionMessage(
-                kind="bid", auction_id=auction_id, round=1,
-                target_uid=target_uid, bidder_uid=uid,
-                bid_value=bid_value, n_active_peers=len(survivor_uids))
+                kind="bid",
+                auction_id=auction_id,
+                round=1,
+                target_uid=target_uid,
+                bidder_uid=uid,
+                bid_value=bid_value,
+                n_active_peers=len(survivor_uids),
+            )
             _broadcast(ctrls, msg, exclude="u001")
 
         # All survivors agree u002 wins.  Verify:
@@ -119,8 +125,9 @@ class DistributedCoopSC005Test(unittest.TestCase):
             out = c.auction.outcome_for(auction_id)
             if out is not None:
                 winners.append((uid, out.winner_uid))
-        self.assertTrue(all(w == "u002" for _uid, w in winners),
-                        f"winners disagree: {winners}")
+        self.assertTrue(
+            all(w == "u002" for _uid, w in winners), f"winners disagree: {winners}"
+        )
 
         # Total time from destruction (t=4) to auction resolved (t=4,
         # because bids are instantaneous in the test) is 0 sim-s.
@@ -129,8 +136,9 @@ class DistributedCoopSC005Test(unittest.TestCase):
         t_destruction = 4.0
         t_resolved = 4.0
         self.assertLessEqual(t_resolved - t_destruction, AUCTION_BUDGET_S)
-        self.assertLessEqual(t_resolved - t_destruction + HEARTBEAT_TIMEOUT_S,
-                             SC005_TOTAL_S)
+        self.assertLessEqual(
+            t_resolved - t_destruction + HEARTBEAT_TIMEOUT_S, SC005_TOTAL_S
+        )
 
     def test_lost_peer_records_suspect_threat_point(self):
         ctrls = _build_controllers()

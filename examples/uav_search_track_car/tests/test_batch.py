@@ -1,10 +1,8 @@
 """Tests for batch aggregation and target randomization (T043, T044)."""
+
 import json
-import random
-from pathlib import Path
 
 import pytest
-
 from search_track.batch import BatchRunner, randomize_target, summarize
 from search_track.metrics import RunMetrics
 
@@ -26,15 +24,33 @@ def test_randomize_target_returns_lat_lon_alt():
 
 def test_summarize_computes_stats():
     results = [
-        RunMetrics(run_id="r1", search_time=10.0, total_track_time=20.0,
-                   track_in_view_time=18.0, track_in_view_fraction=0.9,
-                   mode_switches=1, searched_successfully=True),
-        RunMetrics(run_id="r2", search_time=20.0, total_track_time=15.0,
-                   track_in_view_time=12.0, track_in_view_fraction=0.8,
-                   mode_switches=1, searched_successfully=True),
-        RunMetrics(run_id="r3", search_time=30.0, total_track_time=0.0,
-                   track_in_view_time=0.0, track_in_view_fraction=0.0,
-                   mode_switches=0, searched_successfully=False),
+        RunMetrics(
+            run_id="r1",
+            search_time=10.0,
+            total_track_time=20.0,
+            track_in_view_time=18.0,
+            track_in_view_fraction=0.9,
+            mode_switches=1,
+            searched_successfully=True,
+        ),
+        RunMetrics(
+            run_id="r2",
+            search_time=20.0,
+            total_track_time=15.0,
+            track_in_view_time=12.0,
+            track_in_view_fraction=0.8,
+            mode_switches=1,
+            searched_successfully=True,
+        ),
+        RunMetrics(
+            run_id="r3",
+            search_time=30.0,
+            total_track_time=0.0,
+            track_in_view_time=0.0,
+            track_in_view_fraction=0.0,
+            mode_switches=0,
+            searched_successfully=False,
+        ),
     ]
     s = summarize(results)
     assert s["runs"] == 3
@@ -51,19 +67,34 @@ def test_batch_runner_dry_run(monkeypatch, tmp_path):
     from search_track import batch as batch_mod
 
     runs: list[RunMetrics] = []
-    def fake_run(*, run_idx: int, seed: int, output_dir, sim_binary, scenario_path,
-                 duration, controller_spec) -> RunMetrics:
-        m = RunMetrics(run_id=f"r{run_idx}", search_time=10.0 + run_idx,
-                       total_track_time=20.0, track_in_view_time=18.0,
-                       track_in_view_fraction=0.9, mode_switches=1,
-                       searched_successfully=True)
+
+    def fake_run(
+        *,
+        run_idx: int,
+        seed: int,
+        output_dir,
+        sim_binary,
+        scenario_path,
+        duration,
+        controller_spec,
+    ) -> RunMetrics:
+        m = RunMetrics(
+            run_id=f"r{run_idx}",
+            search_time=10.0 + run_idx,
+            total_track_time=20.0,
+            track_in_view_time=18.0,
+            track_in_view_fraction=0.9,
+            mode_switches=1,
+            searched_successfully=True,
+        )
         runs.append(m)
         return m
+
     monkeypatch.setattr(batch_mod, "_run_one", fake_run)
 
-    results = BatchRunner(output_dir=tmp_path).run(n=3, seed_base=0,
-                                                    controller_name="X",
-                                                    config_snapshot={})
+    results = BatchRunner(output_dir=tmp_path).run(
+        n=3, seed_base=0, controller_name="X", config_snapshot={}
+    )
     assert len(results) == 3
     assert runs == results
     summary = json.loads((tmp_path / "summary.json").read_text())

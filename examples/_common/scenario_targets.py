@@ -15,11 +15,12 @@ is also delegated to a caller-supplied predicate (the two examples used
 different state shapes — ``SwarmState.uavs/targets/decoys`` vs
 ``MultiSimState.entities``).
 """
+
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 
 def load_target_trajectories(scenario_path: str) -> dict[str, dict]:
@@ -47,9 +48,12 @@ def load_target_trajectories(scenario_path: str) -> dict[str, dict]:
             out[uid] = {
                 "speed": float(params.get("speed", 8.0)),
                 "waypoints": [
-                    {"lat": float(w["lat"]), "lon": float(w["lon"]),
-                     "alt": float(w.get("alt", 0.0)),
-                     "t": float(w.get("t", 0.0))}
+                    {
+                        "lat": float(w["lat"]),
+                        "lon": float(w["lon"]),
+                        "alt": float(w.get("alt", 0.0)),
+                        "t": float(w.get("t", 0.0)),
+                    }
                     for w in wps
                 ],
             }
@@ -63,7 +67,7 @@ def inject_target_trajectories(
     dry_run: bool,
     log,
     is_known_uid: Callable[[str], bool],
-    publish_fn: Optional[Callable[[dict], None]] = None,
+    publish_fn: Callable[[dict], None] | None = None,
 ) -> int:
     """Activate each declared target trajectory via set_speed + set_trajectory.
 
@@ -104,19 +108,21 @@ def inject_target_trajectories(
             log(f"[run] WARN: target {uid} not in state; skip trajectory")
             continue
         cmds = [
-            {"unique_id": uid, "cmd": "set_speed",
-             "params": {"speed": traj["speed"]}},
-            {"unique_id": uid, "cmd": "set_trajectory",
-             "params": {"waypoints": traj["waypoints"]}},
+            {"unique_id": uid, "cmd": "set_speed", "params": {"speed": traj["speed"]}},
+            {
+                "unique_id": uid,
+                "cmd": "set_trajectory",
+                "params": {"waypoints": traj["waypoints"]},
+            },
         ]
         if dry_run:
-            log(f"[run] dry-run: would activate {uid} "
-                f"({len(traj['waypoints'])} wps, {traj['speed']} m/s)")
+            log(
+                f"[run] dry-run: would activate {uid} "
+                f"({len(traj['waypoints'])} wps, {traj['speed']} m/s)"
+            )
         else:
             if publish_fn is None:
-                raise ValueError(
-                    "publish_fn is required when dry_run is False"
-                )
+                raise ValueError("publish_fn is required when dry_run is False")
             for cmd in cmds:
                 publish_fn(cmd)
         activated += 1

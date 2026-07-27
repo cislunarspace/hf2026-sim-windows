@@ -1,7 +1,6 @@
 """Search-track scenario Agent base class."""
-from __future__ import annotations
 
-from typing import List
+from __future__ import annotations
 
 from ...core.agent import Agent
 from ...core.commands import Command
@@ -17,5 +16,5 @@ class SearchTrackAgent(Agent):
     gimbal, follow the detected target).
     """
 
-    def decide(self, obs: SearchTrackObs, dt: float) -> List[Command]:  # type: ignore[override]
+    def decide(self, obs: SearchTrackObs, dt: float) -> list[Command]:  # type: ignore[override]
         raise NotImplementedError

@@ -3,9 +3,10 @@
 Source of truth for field shapes: ``src/components/gimbal_tracking_component.cc``
 state() and ``src/entities/fixed_wing_uav.cc``/``target_vehicle.cc`` state().
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from typing import Any
 
 
@@ -66,7 +67,7 @@ class SimState:
     detection: Detection
     target_truth: TargetState | None
 
-    def without_truth(self) -> "SimState":
+    def without_truth(self) -> SimState:
         """Return a copy with target_truth stripped. Used to enforce FR-007
         and invariant I-5 (controllers only see detection-derived fields)."""
         return replace(self, target_truth=None)

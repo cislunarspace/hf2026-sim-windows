@@ -4,15 +4,18 @@
 via a thin wrapper so the rest of the 016 machinery (range checks,
 defaults) is reused unchanged.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import yaml
 
 from examples.uav_search_track_car.search_track.config import (
-    AlgorithmConfig, DEFAULTS as BASE_DEFAULTS, from_yaml as base_from_yaml,
+    AlgorithmConfig,
+)
+from examples.uav_search_track_car.search_track.config import (
+    from_yaml as base_from_yaml,
 )
 
 

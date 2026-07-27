@@ -1,8 +1,8 @@
 """Tests for SimState dataclass (T011)."""
-from dataclasses import FrozenInstanceError
-import math
-import pytest
 
+from dataclasses import FrozenInstanceError
+
+import pytest
 from search_track.state import (
     Attitude,
     Detection,

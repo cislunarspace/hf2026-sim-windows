@@ -4,10 +4,11 @@
 仅覆盖 _track_commands：yolo fresh 时直接用 bbox→gimbal 的 pan/tilt 角度，
 yolo 缺失/超时时 fallback 到原几何 LOS。
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 # 父类
 from search_track.commands import CommandTarget, ControlCommand
@@ -34,14 +35,14 @@ class YoloSearchTrackController(FsmSearchTrackController):
     def __init__(self) -> None:
         super().__init__()
         # YOLO 视觉 worker（lazy 启动，configure() 后才创建）
-        self._vision: Optional[YoloVisionWorker] = None
+        self._vision: YoloVisionWorker | None = None
         self._yolo_enabled: bool = False
         self._frame_max_age_ms: int = 200
         # YOLO 累计统计
         self._yolo_hits: int = 0
         self._yolo_fallbacks: int = 0
         # A* 路径规划：controller 自己也能推 set_goal（前端模式不走 run.py 时）
-        self._astar_waypoints: list = []     # [(lat, lon), ...]
+        self._astar_waypoints: list = []  # [(lat, lon), ...]
         self._astar_cur_idx: int = 0
         self._astar_goal_sent: bool = False  # 当前 goal 已发
         self._astar_arrival_m: float = 30.0
@@ -95,7 +96,9 @@ class YoloSearchTrackController(FsmSearchTrackController):
         self._vision.start()
         logger.info(
             "[YoloController] YOLO 已启用: model=%s, uav=%s, max_age=%dms",
-            model_path, self._vision.uav_id, self._frame_max_age_ms,
+            model_path,
+            self._vision.uav_id,
+            self._frame_max_age_ms,
         )
 
     def set_astar_waypoints(self, waypoints: list, arrival_m: float = 30.0) -> None:
@@ -111,10 +114,11 @@ class YoloSearchTrackController(FsmSearchTrackController):
         self._astar_arrival_m = arrival_m
         logger.info(
             "[YoloController] A* waypoints 已注入: %d 个, arrival=%.0fm",
-            len(self._astar_waypoints), self._astar_arrival_m,
+            len(self._astar_waypoints),
+            self._astar_arrival_m,
         )
 
-    def _get_yolo_cfg(self, cfg: Any) -> Optional[dict]:
+    def _get_yolo_cfg(self, cfg: Any) -> dict | None:
         """从 cfg 中安全取出 yolo 块。"""
         if cfg is None:
             return None
@@ -156,7 +160,7 @@ class YoloSearchTrackController(FsmSearchTrackController):
         self._astar_last_target_lat = target_lat
         self._astar_last_target_lon = target_lon
 
-    def _astar_decide(self, state: SimState) -> Optional[ControlCommand]:
+    def _astar_decide(self, state: SimState) -> ControlCommand | None:
         """A* goal 推进状态机：第一次发 goal，到达后发下一个。"""
         if not self._astar_waypoints:
             return None
@@ -176,9 +180,12 @@ class YoloSearchTrackController(FsmSearchTrackController):
         goal_lat, goal_lon = self._astar_waypoints[self._astar_cur_idx]
 
         from search_track.geometry import haversine_m
+
         dist = haversine_m(
-            self._astar_last_target_lat, self._astar_last_target_lon,
-            goal_lat, goal_lon,
+            self._astar_last_target_lat,
+            self._astar_last_target_lon,
+            goal_lat,
+            goal_lon,
         )
 
         if dist < self._astar_arrival_m:
@@ -190,12 +197,14 @@ class YoloSearchTrackController(FsmSearchTrackController):
             self._astar_goal_sent = False
             logger.info(
                 "[YoloController] A* 推进: goal %d/%d (到达 dist=%.0fm)",
-                self._astar_cur_idx + 1, len(self._astar_waypoints), dist,
+                self._astar_cur_idx + 1,
+                len(self._astar_waypoints),
+                dist,
             )
             return self._astar_send_current_goal()
         return None
 
-    def _astar_send_current_goal(self) -> Optional[ControlCommand]:
+    def _astar_send_current_goal(self) -> ControlCommand | None:
         """发当前 idx 的 set_goal 命令。"""
         if self._astar_cur_idx >= len(self._astar_waypoints):
             return None
@@ -203,7 +212,10 @@ class YoloSearchTrackController(FsmSearchTrackController):
         self._astar_goal_sent = True
         logger.info(
             "[YoloController] A* set_goal: %d/%d lat=%.6f lon=%.6f",
-            self._astar_cur_idx + 1, len(self._astar_waypoints), lat, lon,
+            self._astar_cur_idx + 1,
+            len(self._astar_waypoints),
+            lat,
+            lon,
         )
         # 注意：target=UAV 是占位，run.py 会改成 "target"
         return ControlCommand(
@@ -237,31 +249,38 @@ class YoloSearchTrackController(FsmSearchTrackController):
             W, H = yolo_det.image_size
             cx = (yolo_det.bbox_xyxy[0] + yolo_det.bbox_xyxy[2]) / 2.0
             cy = (yolo_det.bbox_xyxy[1] + yolo_det.bbox_xyxy[3]) / 2.0
-            reason = (f"yolo 目标在视野外: bbox_center=({cx:.0f},{cy:.0f}) "
-                      f"img={W}x{H}")
+            reason = f"yolo 目标在视野外: bbox_center=({cx:.0f},{cy:.0f}) img={W}x{H}"
         logger.info(
             "[YoloController] TRACK fallback @ t=%.2f consecutive_lost=%d: %s",
-            state.sim_time, self._consecutive_lost, reason,
+            state.sim_time,
+            self._consecutive_lost,
+            reason,
         )
         return super()._track_commands(state, dt)
 
     def _yolo_target_visible_in_view(
-        self, yolo_det, state: SimState,
+        self,
+        yolo_det,
+        state: SimState,
     ) -> bool:
         """检查 yolo 检测的目标是否还"在合理范围内"。
 
         简单实现：图像中心附近 → 视为有效；图像边缘外（bbox 中心偏离
         中心 > 半视场）→ 视为无效，fallback。
         """
-        W, H = yolo_det.image_size
-        cx, _ = ((yolo_det.bbox_xyxy[0] + yolo_det.bbox_xyxy[2]) / 2.0,
-                 (yolo_det.bbox_xyxy[1] + yolo_det.bbox_xyxy[3]) / 2.0)
+        W, _H = yolo_det.image_size
+        cx, _ = (
+            (yolo_det.bbox_xyxy[0] + yolo_det.bbox_xyxy[2]) / 2.0,
+            (yolo_det.bbox_xyxy[1] + yolo_det.bbox_xyxy[3]) / 2.0,
+        )
         # 偏离图像中心归一化距离
         dx_norm = abs(cx - W / 2.0) / (W / 2.0)
         return dx_norm < 1.5  # 超过 1.5x 半宽 → 视为出视野
 
     def _yolo_track_commands(
-        self, state: SimState, yolo_det,
+        self,
+        state: SimState,
+        yolo_det,
     ) -> list[ControlCommand]:
         """用 YOLO 检测生成 TRACK 模式命令。
 
@@ -302,7 +321,7 @@ class YoloSearchTrackController(FsmSearchTrackController):
         )
 
         # 从父类算出的命令里取出"几何 LOS 给的云台角度"
-        los_pan = self._last_pan   # 兜底
+        los_pan = self._last_pan  # 兜底
         los_tilt = self._last_tilt
         for c in uav_cmds:
             if c["cmd"] == "component.gimbal_tracking.set_orientation":
@@ -325,10 +344,15 @@ class YoloSearchTrackController(FsmSearchTrackController):
         # UAV 飞行命令保留父类的 loiter
         result = []
         for c in uav_cmds:
-            result.append(ControlCommand(
-                target=CommandTarget(c["target"]) if isinstance(c["target"], str) else c["target"],
-                cmd=c["cmd"], params=c["params"],
-            ))
+            result.append(
+                ControlCommand(
+                    target=CommandTarget(c["target"])
+                    if isinstance(c["target"], str)
+                    else c["target"],
+                    cmd=c["cmd"],
+                    params=c["params"],
+                )
+            )
             if c["cmd"] == "component.gimbal_tracking.set_orientation":
                 # 替换云台命令
                 result[-1] = ControlCommand(
@@ -342,9 +366,12 @@ class YoloSearchTrackController(FsmSearchTrackController):
         self._last_tilt = target_tilt
         logger.debug(
             "[YoloController] yolo_track: los=(%.1f,%.1f) delta=(%.1f,%.1f) -> target=(%.1f,%.1f)",
-            los_pan, los_tilt,
-            yolo_det.pan_delta, yolo_det.tilt_delta,
-            target_pan, target_tilt,
+            los_pan,
+            los_tilt,
+            yolo_det.pan_delta,
+            yolo_det.tilt_delta,
+            target_pan,
+            target_tilt,
         )
         return result
 

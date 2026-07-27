@@ -3,9 +3,9 @@
 Verifies the geometry that replaces the single-centre spiral so the fleet
 fans out instead of all circling on top of each other.
 """
+
 from __future__ import annotations
 
-import math
 import sys
 from pathlib import Path
 
@@ -25,14 +25,19 @@ from search_track.sector_search import (
     sector_radius,
     sector_waypoint,
 )
+
 from examples.uav_search_track_car.search_track.geometry import (
-    bearing_deg, haversine_m,
+    bearing_deg,
+    haversine_m,
 )
 
 BASE = (27.0, 125.0)
 PARAMS = SectorSearchParams(
-    base_lat=BASE[0], base_lon=BASE[1], base_alt=300.0,
-    search_radius=800.0, expand_time=30.0,
+    base_lat=BASE[0],
+    base_lon=BASE[1],
+    base_alt=300.0,
+    search_radius=800.0,
+    expand_time=30.0,
     sector_angular_speed_dps=40.0,
     initial_radius_frac=0.15,
     radius_dither_frac=0.08,
@@ -40,6 +45,7 @@ PARAMS = SectorSearchParams(
 
 
 # ── destination_point round-trip ──────────────────────────────────────────
+
 
 def test_destination_point_inverse_of_haversine_bearing():
     """destination_point then haversine/bearing should round-trip."""
@@ -57,6 +63,7 @@ def test_destination_point_zero_distance_returns_input():
 
 
 # ── radius growth ─────────────────────────────────────────────────────────
+
 
 def test_radius_starts_at_initial_radius_frac():
     """At t=0, radius should be search_radius * initial_radius_frac."""
@@ -92,6 +99,7 @@ def test_radius_dithers_after_expand_time():
 
 # ── sector assignment ────────────────────────────────────────────────────
 
+
 def test_sector_bearing_stays_within_assigned_sector():
     """UAV i's bearing must lie inside [i*step, (i+1)*step)."""
     n = 3
@@ -103,7 +111,8 @@ def test_sector_bearing_stays_within_assigned_sector():
         for t in (0.0, 0.7, 3.1, 8.4, 15.2, 29.9, 60.0):
             b = sector_bearing(t, i, n, PARAMS.sector_angular_speed_dps)
             assert lo <= b < hi + 1e-9, (
-                f"uav {i} bearing {b} outside [{lo},{hi}) at t={t}")
+                f"uav {i} bearing {b} outside [{lo},{hi}) at t={t}"
+            )
 
 
 def test_different_uavs_get_different_bearings():
@@ -114,6 +123,7 @@ def test_different_uavs_get_different_bearings():
 
 
 # ── full waypoint ─────────────────────────────────────────────────────────
+
 
 def test_sector_waypoints_lie_in_each_uavs_sector_and_grow():
     n = 3
@@ -127,7 +137,8 @@ def test_sector_waypoints_lie_in_each_uavs_sector_and_grow():
         b = point_bearing_from(lat, lon, BASE[0], BASE[1])
         # wrap tolerance at the 360/0 seam for the last sector
         assert lo <= b < hi + 1e-6 or (i == n - 1 and b < 1e-6), (
-            f"uav {i}: bearing {b} not in sector [{lo},{hi})")
+            f"uav {i}: bearing {b} not in sector [{lo},{hi})"
+        )
         # altitude is the configured search altitude
         assert alt == PARAMS.base_alt
         seen_radii.append(point_radius_from(lat, lon, BASE[0], BASE[1]))

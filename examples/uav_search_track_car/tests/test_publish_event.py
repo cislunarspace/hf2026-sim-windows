@@ -2,12 +2,11 @@
 
 Verifies that the source object conforms to the sim:events channel contract.
 """
+
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 
 # We test publish_event in isolation by mocking the redis connection.

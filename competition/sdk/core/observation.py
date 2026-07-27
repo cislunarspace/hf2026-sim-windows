@@ -18,11 +18,11 @@ Stability promise (contracts/extending.md §"core 稳定性承诺"):
   * ``MissionBriefing`` fields are append-only and every new field MUST
     carry a default value.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional, Tuple
-
+from typing import Any
 
 # ── shared geo / spec primitives ──────────────────────────────────────────
 
@@ -30,6 +30,7 @@ from typing import Any, Optional, Tuple
 @dataclass(frozen=True)
 class GeoPoint:
     """A WGS84 latitude/longitude point (altitude optional)."""
+
     lat: float
     lon: float
     alt: float = 0.0
@@ -38,6 +39,7 @@ class GeoPoint:
 @dataclass(frozen=True)
 class AreaSpec:
     """A rectangular mission area boundary (degrees)."""
+
     lat_min: float
     lat_max: float
     lon_min: float
@@ -53,8 +55,9 @@ class ZoneSpec:
     jam region) are NEVER placed in the briefing — the player must sense
     them via ``SelfView.jammed`` and share awareness via comms.
     """
-    kind: str                       # "air_defense" | "comm_jam_static" | "no_fly" | ...
-    polygon: Tuple[Tuple[float, float], ...]   # [(lat, lon), ...]
+
+    kind: str  # "air_defense" | "comm_jam_static" | "no_fly" | ...
+    polygon: tuple[tuple[float, float], ...]  # [(lat, lon), ...]
     alt_min: float = 0.0
     alt_max: float = 1e9
 
@@ -67,8 +70,11 @@ class ApproxZoneSpec:
     area_m2 是真实面积。参赛者据此知道"哪片、多大、什么威胁、
     飞多高能避开"，但拿不到精确边界。
     """
+
     kind: str
-    bbox: Tuple[Tuple[float, float], Tuple[float, float]]  # ((lat_min,lon_min),(lat_max,lon_max))
+    bbox: tuple[
+        tuple[float, float], tuple[float, float]
+    ]  # ((lat_min,lon_min),(lat_max,lon_max))
     area_m2: float
     alt_min: float = 0.0
     alt_max: float = 1e9
@@ -77,8 +83,9 @@ class ApproxZoneSpec:
 @dataclass(frozen=True)
 class ScoreView:
     """参赛者可见的本局实时得分(只读快照,每拍由 runner 更新)。不含真值。"""
+
     total_score: float
-    dimension_scores: Tuple[Tuple[str, float], ...]
+    dimension_scores: tuple[tuple[str, float], ...]
     passed: bool
     n_destroyed: int
     n_targets: int
@@ -101,12 +108,13 @@ class Detection:
     YoloDetector。target_lat/target_lon 是识别位置，可能含噪声或漏检。
     诱饵仍可能被误识别为 ground_vehicle（多帧运动一致性判断）。
     """
+
     detected: bool
-    confidence: float                       # [0, 1] = 1 - offset/half_fov
-    target_lat: Optional[float] = None
-    target_lon: Optional[float] = None
-    azimuth_error_deg: Optional[float] = None
-    target_type: str = ""                   # "ground_vehicle" | "decoy_vehicle" | ""
+    confidence: float  # [0, 1] = 1 - offset/half_fov
+    target_lat: float | None = None
+    target_lon: float | None = None
+    azimuth_error_deg: float | None = None
+    target_type: str = ""  # "ground_vehicle" | "decoy_vehicle" | ""
 
 
 @dataclass(frozen=True)
@@ -117,6 +125,7 @@ class CommStats:
     ``delivered`` / ``sent`` indirectly reflect whether this agent is
     inside a (possibly dynamic) jam region.
     """
+
     sent: int = 0
     delivered: int = 0
     received: int = 0
@@ -133,6 +142,7 @@ class SelfView:
     Everything here is about THIS entity (``uid == agent.my_uid``). No
     other entity's state is reachable through SelfView.
     """
+
     uid: str
     lat: float
     lon: float
@@ -147,13 +157,13 @@ class SelfView:
     # spec 029: photo — 最新相机帧 PNG bytes（UE 渲染，redis sync_camera）。
     # 默认 photo_mode=auto：非 dry_run 且 Redis 有帧时由 PhotoCache 注入；
     # 无渲染（dry_run、UE 未 assign、Redis 暂无帧）时为 None。
-    photo: Optional[bytes] = None
+    photo: bytes | None = None
     # spec 029 预留：多目标检测列表（赛题二/三将来上视觉通路时用）。默认空。
-    detections: Tuple["Detection", ...] = ()
+    detections: tuple[Detection, ...] = ()
     # self-perception signals (the only legal channel for sensing dynamic
     # threats — see contracts/isolation.md §4)
-    status: str = "active"                  # "active" | "destroyed"
-    jammed: bool = False                    # is this agent currently comm-jammed
+    status: str = "active"  # "active" | "destroyed"
+    jammed: bool = False  # is this agent currently comm-jammed
     comm_stats: CommStats = field(default_factory=CommStats)
 
 
@@ -169,6 +179,7 @@ class Message:
     for a rendezvous call). Only the sender's uid is exposed — never the
     sender's pose (that would leak another entity's truth).
     """
+
     sender_uid: str
     payload: str
     recv_time: float
@@ -190,15 +201,16 @@ class MissionBriefing:
     Extensibility: new scenarios add fields here. Every new field MUST
     have a default value so existing scenario runners keep working.
     """
+
     self_uid: str
     fleet_size: int
-    mission_area: Optional[AreaSpec] = None
-    known_threats: Tuple[ZoneSpec, ...] = ()
+    mission_area: AreaSpec | None = None
+    known_threats: tuple[ZoneSpec, ...] = ()
     params: dict = field(default_factory=dict)
-    target_initial_pos: Optional[Tuple[float, float]] = None   # 仅赛题一
-    target_count: Optional[int] = None                         # 赛题二三
-    approximate_zones: Tuple[ApproxZoneSpec, ...] = ()
-    score_view: Optional[ScoreView] = None                     # 每拍更新
+    target_initial_pos: tuple[float, float] | None = None  # 仅赛题一
+    target_count: int | None = None  # 赛题二三
+    approximate_zones: tuple[ApproxZoneSpec, ...] = ()
+    score_view: ScoreView | None = None  # 每拍更新
 
 
 # ── observation ───────────────────────────────────────────────────────────
@@ -213,6 +225,7 @@ class Observation:
     ``SearchTrackObs``) inherit this and MAY add fields that describe THIS
     agent's own extra state — never another entity's.
     """
+
     self: SelfView
-    comm_inbox: Tuple[Message, ...]
+    comm_inbox: tuple[Message, ...]
     briefing: MissionBriefing

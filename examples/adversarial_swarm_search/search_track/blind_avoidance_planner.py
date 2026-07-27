@@ -16,22 +16,23 @@ The planner does NOT consult any scenario zones config — it only knows
 about suspect-threat points recorded via `ThreatIntel` (i.e. derived
 from peer-loss heartbeats, per SC-010).
 """
+
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
-from typing import Optional
 
-from .threat_intel import SuspectThreatPoint, ThreatIntel, _haversine
+from .threat_intel import SuspectThreatPoint, _haversine
 
 
-def _interp(a: tuple[float, float], b: tuple[float, float],
-            t: float) -> tuple[float, float]:
+def _interp(
+    a: tuple[float, float], b: tuple[float, float], t: float
+) -> tuple[float, float]:
     return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
 
 
-def _project_t(a: tuple[float, float], b: tuple[float, float],
-               p: tuple[float, float]) -> float:
+def _project_t(
+    a: tuple[float, float], b: tuple[float, float], p: tuple[float, float]
+) -> float:
     """Project p onto the line a-b in (lat, lon) space; return t in [0,1]."""
     ab = (b[0] - a[0], b[1] - a[1])
     ab2 = ab[0] ** 2 + ab[1] ** 2
@@ -48,9 +49,12 @@ class BlindAvoidancePlanner:
     def set_safe_radius_m(self, m: float) -> None:
         self._safe_radius = m
 
-    def adjust_waypoint(self, origin: tuple[float, float],
-                        waypoint: tuple[float, float],
-                        threats: list[SuspectThreatPoint]) -> list[tuple[float, float]]:
+    def adjust_waypoint(
+        self,
+        origin: tuple[float, float],
+        waypoint: tuple[float, float],
+        threats: list[SuspectThreatPoint],
+    ) -> list[tuple[float, float]]:
         """Return a list of (lat, lon) waypoints from origin to the
         original waypoint, with tangent detours inserted for any threat
         circle whose closest approach is within ``safe_radius_m``.
@@ -79,10 +83,14 @@ class BlindAvoidancePlanner:
                 continue
             perp = (-ab[1] / n, ab[0] / n)
             # Choose the side that's farther from the circle center
-            side_plus = (closest[0] + perp[0] * th.safe_radius * 1.05,
-                         closest[1] + perp[1] * th.safe_radius * 1.05)
-            side_minus = (closest[0] - perp[0] * th.safe_radius * 1.05,
-                          closest[1] - perp[1] * th.safe_radius * 1.05)
+            side_plus = (
+                closest[0] + perp[0] * th.safe_radius * 1.05,
+                closest[1] + perp[1] * th.safe_radius * 1.05,
+            )
+            side_minus = (
+                closest[0] - perp[0] * th.safe_radius * 1.05,
+                closest[1] - perp[1] * th.safe_radius * 1.05,
+            )
             d_plus = _haversine(side_plus[0], side_plus[1], th.lat, th.lon)
             d_minus = _haversine(side_minus[0], side_minus[1], th.lat, th.lon)
             tangent = side_plus if d_plus > d_minus else side_minus

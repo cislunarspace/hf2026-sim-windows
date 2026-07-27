@@ -1,8 +1,7 @@
 """Tracking strategy — UAV loiter + algorithm-driven gimbal LOS."""
+
 from __future__ import annotations
 
-import math
-import time
 from dataclasses import dataclass, field
 
 from .geometry import los_angles
@@ -54,15 +53,22 @@ class LoiterTracker:
         self._smoothed_lat = None
         self._smoothed_lon = None
 
-    def __post_init__(self):
-        # Sentinel: None means "never refreshed" so first frame always refreshes.
-        if not hasattr(self, "_last_refresh") or self._last_refresh is None:
-            self._last_refresh = None
-
-    def commands(self, sim_time: float, uav_lat: float, uav_lon: float, uav_alt: float,
-                 uav_yaw: float, tgt_lat: float, tgt_lon: float, tgt_alt: float):
+    def commands(
+        self,
+        sim_time: float,
+        uav_lat: float,
+        uav_lon: float,
+        uav_alt: float,
+        uav_yaw: float,
+        tgt_lat: float,
+        tgt_lon: float,
+        tgt_alt: float,
+    ):
         # Refresh loiter center on first call (last_refresh is None) or when period elapsed
-        if self._last_refresh is None or sim_time - self._last_refresh >= self.params.loiter_refresh_period:
+        if (
+            self._last_refresh is None
+            or sim_time - self._last_refresh >= self.params.loiter_refresh_period
+        ):
             self._current_target = (tgt_lat, tgt_lon)
             self._last_refresh = sim_time
         lat, lon = self._current_target
@@ -86,8 +92,13 @@ class LoiterTracker:
 
         # Compute LOS
         pan, tilt = los_angles(
-            uav_lat, uav_lon, uav_alt, uav_yaw,
-            smooth_lat, smooth_lon, tgt_alt,
+            uav_lat,
+            uav_lon,
+            uav_alt,
+            uav_yaw,
+            smooth_lat,
+            smooth_lon,
+            tgt_alt,
         )
         cmds = [
             {

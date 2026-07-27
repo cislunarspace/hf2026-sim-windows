@@ -1,9 +1,9 @@
 """Tests for Controller abstract base class and loader (T010, T019)."""
+
 import random
 import time
 
 import pytest
-
 from search_track.commands import CommandTarget, ControlCommand
 from search_track.controller import Controller, load_controller
 from search_track.state import SimState
@@ -85,9 +85,7 @@ def test_decide_returns_at_most_five_commands():
     class _Six(Controller):
         def decide(self, state, dt):
             return [
-                ControlCommand(
-                    target=CommandTarget.UAV, cmd="noop", params={"i": i}
-                )
+                ControlCommand(target=CommandTarget.UAV, cmd="noop", params={"i": i})
                 for i in range(6)
             ]
 

@@ -1,4 +1,5 @@
 """生成合成测试帧：黑底 + 白色矩形（模拟"目标车"）。"""
+
 from __future__ import annotations
 
 import numpy as np
@@ -27,6 +28,7 @@ def make_synthetic_frame(
         img[y1:y2, x1:x2] = fg_color
     # JPEG 编码
     import cv2
+
     ok, buf = cv2.imencode(".jpg", img)
     if not ok:
         raise RuntimeError("cv2 JPEG encode failed")

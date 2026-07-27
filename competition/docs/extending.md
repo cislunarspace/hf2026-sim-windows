@@ -167,17 +167,24 @@ from .runner import CaptureRunner, run
 SCENARIO_DIR = Path(__file__).resolve().parents[3] / "scenarios" / "capture"
 DEFAULT_SCENARIO_JSON = str(SCENARIO_DIR / "config" / "scenario.json")
 
-__all__ = ["CaptureAgent", "CaptureObs", "CaptureRunner", "run",
-           "DEFAULT_SCENARIO_JSON"]
+__all__ = [
+    "CaptureAgent",
+    "CaptureObs",
+    "CaptureRunner",
+    "run",
+    "DEFAULT_SCENARIO_JSON",
+]
 ```
 
 ### Step 4 — `observation.py`
 ```python
 from ...core.observation import Observation
 
+
 class CaptureObs(Observation):
     """Top-level stays self/comm_inbox/briefing. Add THIS entity's own
     extra fields here if needed — never another entity's truth."""
+
     pass
 ```
 
@@ -187,6 +194,7 @@ from typing import List
 from ...core.agent import Agent
 from ...core.commands import Command
 from .observation import CaptureObs
+
 
 class CaptureAgent(Agent):
     def decide(self, obs: CaptureObs, dt: float) -> List[Command]:
@@ -203,6 +211,7 @@ from ...core.runner import RunnerBase, ScenarioConfig
 from ...core.scoring import ScoringProfile, profile_uav_search_track_car
 from ...core.world_state import WorldState
 
+
 class CaptureRunner(RunnerBase):
     scenario_name = "capture"
     controllable_types = {"uav"}
@@ -214,13 +223,14 @@ class CaptureRunner(RunnerBase):
 
     # REQUIRED: build the static briefing for one entity
     def build_briefing(self, world_state, entity_uid) -> MissionBriefing:
-        return MissionBriefing(self_uid=entity_uid,
-                               fleet_size=len(world_state.uavs))
+        return MissionBriefing(self_uid=entity_uid, fleet_size=len(world_state.uavs))
 
     # REQUIRED: (ScoringProfile, set of true-target uids)
     def build_scoring(self, world_state):
-        return (profile_uav_search_track_car(duration_s=self.cfg.duration_s),
-                set(world_state.targets.keys()))
+        return (
+            profile_uav_search_track_car(duration_s=self.cfg.duration_s),
+            set(world_state.targets.keys()),
+        )
 
     # OPTIONAL: per-tick scoring inputs (search_time, alive_rate, ...)
     def score_extras(self, world_state, destroyed_uids):
@@ -231,13 +241,23 @@ class CaptureRunner(RunnerBase):
         for ent in self._scenario_cfg.get("entities", []):
             if ent.get("type") in ("TargetVehicle", "ground_vehicle"):
                 uid = str(ent.get("id"))
-                tp = ent.get("components",{}).get("trajectory",{}).get("params",{})
+                tp = ent.get("components", {}).get("trajectory", {}).get("params", {})
                 if tp.get("speed") is not None:
-                    client.publish_raw({"unique_id": uid, "cmd": "set_speed",
-                                        "params": {"speed": float(tp["speed"])}})
+                    client.publish_raw(
+                        {
+                            "unique_id": uid,
+                            "cmd": "set_speed",
+                            "params": {"speed": float(tp["speed"])},
+                        }
+                    )
                 if tp.get("waypoints"):
-                    client.publish_raw({"unique_id": uid, "cmd": "set_trajectory",
-                                        "params": {"waypoints": tp["waypoints"]}})
+                    client.publish_raw(
+                        {
+                            "unique_id": uid,
+                            "cmd": "set_trajectory",
+                            "params": {"waypoints": tp["waypoints"]},
+                        }
+                    )
 
     @staticmethod
     def _load(path):
@@ -246,16 +266,36 @@ class CaptureRunner(RunnerBase):
         except Exception:
             return {}
 
-def run(agent_cls, *, duration=60.0, scenario=None, start_sim=True,
-        output_dir="output", host="127.0.0.1", port=6379, dry_run=False,
-        quiet=False, sim_binary=None, seed=0):
+
+def run(
+    agent_cls,
+    *,
+    duration=60.0,
+    scenario=None,
+    start_sim=True,
+    output_dir="output",
+    host="127.0.0.1",
+    port=6379,
+    dry_run=False,
+    quiet=False,
+    sim_binary=None,
+    seed=0,
+):
     from . import DEFAULT_SCENARIO_JSON
-    cfg = ScenarioConfig(scenario_name="capture",
-                         scenario_path=scenario or DEFAULT_SCENARIO_JSON,
-                         duration_s=duration, redis_host=host, redis_port=port,
-                         output_dir=output_dir, sim_binary=sim_binary,
-                         start_sim_flag=start_sim, dry_run=dry_run,
-                         quiet=quiet, seed=seed)
+
+    cfg = ScenarioConfig(
+        scenario_name="capture",
+        scenario_path=scenario or DEFAULT_SCENARIO_JSON,
+        duration_s=duration,
+        redis_host=host,
+        redis_port=port,
+        output_dir=output_dir,
+        sim_binary=sim_binary,
+        start_sim_flag=start_sim,
+        dry_run=dry_run,
+        quiet=quiet,
+        seed=seed,
+    )
     return CaptureRunner(cfg, agent_cls).run()
 ```
 
@@ -305,9 +345,14 @@ In `competition/sdk/core/commands.py`:
 ```python
 def replan_path(lat, lon, avoid=None) -> Command:
     """A* re-plan. Verify the verb against config/schema/sim-commands.schema.json."""
-    return Command(verb="uav.replan_path",
-                   params={"latitude": float(lat), "longitude": float(lon),
-                           "avoid_waypoints": avoid or []})
+    return Command(
+        verb="uav.replan_path",
+        params={
+            "latitude": float(lat),
+            "longitude": float(lon),
+            "avoid_waypoints": avoid or [],
+        },
+    )
 ```
 Rules:
 - Verify the verb against `config/schema/sim-commands.schema.json`.
@@ -323,7 +368,7 @@ In `competition/sdk/core/observation.py`:
 @dataclass(frozen=True)
 class MissionBriefing:
     ...
-    no_fly_zones: tuple[ZoneSpec, ...] = ()   # NEW — default REQUIRED
+    no_fly_zones: tuple[ZoneSpec, ...] = ()  # NEW — default REQUIRED
 ```
 Fill it in the scenario's `build_briefing`. Existing scenarios ignore it.
 
@@ -336,7 +381,8 @@ To dispatch different agent classes by entity type, override
 ```python
 def make_agent_for(self, entity_type, entity_uid, world_state) -> Agent:
     return {"recon_uav": ReconAgent, "strike_uav": StrikeAgent}[entity_type](
-        my_uid=entity_uid)
+        my_uid=entity_uid
+    )
 ```
 Each agent still sees only its own `SelfView`; cross-type coordination goes
 through comms. **Never** build a central agent that sees all entities' truth.

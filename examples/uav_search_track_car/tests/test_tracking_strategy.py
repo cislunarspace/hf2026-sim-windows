@@ -1,20 +1,18 @@
 """Tests for tracking strategy and LOS math (T023)."""
-import math
-import pytest
 
-from search_track.geometry import los_angles, bearing_deg, haversine_m
+from search_track.geometry import los_angles
 from search_track.tracking_strategy import LoiterTracker, TrackerParams
 
 
 def test_los_pan_zero_when_target_bearing_equals_uav_yaw():
     # target due north of UAV
-    pan, tilt = los_angles(27.0, 125.0, 300.0, 0.0, 27.01, 125.0, 0.0)
+    pan, _tilt = los_angles(27.0, 125.0, 300.0, 0.0, 27.01, 125.0, 0.0)
     assert abs(pan) < 0.5, f"expected pan≈0, got {pan}"
 
 
 def test_los_pan_180_when_target_behind():
     # target south of UAV (yaw=0 means north-facing)
-    pan, tilt = los_angles(27.01, 125.0, 300.0, 0.0, 27.0, 125.0, 0.0)
+    pan, _tilt = los_angles(27.01, 125.0, 300.0, 0.0, 27.0, 125.0, 0.0)
     # south bearing = 180; relative to yaw=0 → pan=180
     assert abs(abs(pan) - 180.0) < 0.5, f"expected |pan|≈180, got {pan}"
 
@@ -31,8 +29,13 @@ def test_tracker_emits_set_destination_and_set_orientation():
     t.reset(27.0, 125.0)
     out = t.commands(
         sim_time=1.0,
-        uav_lat=27.0, uav_lon=125.0, uav_alt=300.0, uav_yaw=0.0,
-        tgt_lat=27.01, tgt_lon=125.0, tgt_alt=0.0,
+        uav_lat=27.0,
+        uav_lon=125.0,
+        uav_alt=300.0,
+        uav_yaw=0.0,
+        tgt_lat=27.01,
+        tgt_lon=125.0,
+        tgt_alt=0.0,
     )
     assert len(out) == 2
     cmds = {(c["cmd"]): c for c in out}
@@ -46,7 +49,9 @@ def test_tracker_refreshes_loiter_after_period():
     t = LoiterTracker(p)
     t.reset(27.0, 125.0)
     out1 = t.commands(0.0, 27.0, 125.0, 300.0, 0.0, 27.01, 125.0, 0.0)
-    out2 = t.commands(1.0, 27.0, 125.0, 300.0, 0.0, 27.05, 125.05, 0.0)  # 1s < 2s: no refresh
+    out2 = t.commands(
+        1.0, 27.0, 125.0, 300.0, 0.0, 27.05, 125.05, 0.0
+    )  # 1s < 2s: no refresh
     out3 = t.commands(2.5, 27.0, 125.0, 300.0, 0.0, 27.05, 125.05, 0.0)  # >2s: refresh
     # First call at t=0 sets current target to the first target position (27.01)
     # (since the first-frame condition triggers refresh at t=0 regardless of period).

@@ -10,6 +10,7 @@ Design (research.md D-8): parse_sim_state in 016 is single-uav/single-target;
 017 needs a multi-entity view. We keep 016's parse_sim_state intact and add
 a parallel parser here so 016 stays stable.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -17,7 +18,12 @@ from typing import Any
 
 # Reuse 016's dataclasses for field-level compatibility.
 from examples.uav_search_track_car.search_track.state import (
-    Attitude, Detection, GeoPosition, GimbalState, TargetState, UavState,
+    Attitude,
+    Detection,
+    GeoPosition,
+    GimbalState,
+    TargetState,
+    UavState,
 )
 
 
@@ -42,6 +48,7 @@ class CommInboxEntry:
 @dataclass(frozen=True)
 class CommState:
     """Per-UAV communication state (only present on UAV entities)."""
+
     enabled: bool = False
     range_m: float = 1000.0
     max_bytes: int = 50
@@ -59,18 +66,20 @@ class ExtendedDetection(Detection):
     back to nearest-neighbour position matching
     (uav_target_map.resolve_uav_to_target).
     """
-    target_type: str = ""          # "ground_vehicle" | "decoy_vehicle" | ""
+
+    target_type: str = ""  # "ground_vehicle" | "decoy_vehicle" | ""
     misid_flag: bool = False
     misid_count: int = 0
     misid_track_duration: float = 0.0
-    target_uid: str = ""           # resolved target uid (empty until engine publishes)
+    target_uid: str = ""  # resolved target uid (empty until engine publishes)
 
 
 @dataclass(frozen=True)
 class EntityState:
     """One entity (UAV or vehicle) in the multi-entity view."""
+
     uid: str
-    kind: str                      # "uav" | "ground_vehicle" | "decoy_vehicle"
+    kind: str  # "uav" | "ground_vehicle" | "decoy_vehicle"
     name: str
     uav: UavState | None = None
     gimbal: GimbalState | None = None
@@ -82,6 +91,7 @@ class EntityState:
 @dataclass(frozen=True)
 class MultiSimState:
     """All entities for one tick + sim metadata."""
+
     sim_time: float
     timestamp: float
     status: str
@@ -165,8 +175,13 @@ def _parse_uav(uid: str, raw: dict[str, Any]) -> EntityState:
             ),
         )
     return EntityState(
-        uid=uid, kind="uav", name=str(raw.get("name", uid)),
-        uav=uav, gimbal=gimbal, detection=detection, comm=comm,
+        uid=uid,
+        kind="uav",
+        name=str(raw.get("name", uid)),
+        uav=uav,
+        gimbal=gimbal,
+        detection=detection,
+        comm=comm,
     )
 
 
@@ -183,14 +198,22 @@ def _parse_vehicle(uid: str, raw: dict[str, Any], kind: str) -> EntityState:
         heading=float(raw.get("heading", 0.0)),
     )
     return EntityState(
-        uid=uid, kind=kind, name=str(raw.get("name", uid)),
+        uid=uid,
+        kind=kind,
+        name=str(raw.get("name", uid)),
         vehicle_truth=truth,
     )
 
 
-_NON_ENTITY_KEYS = frozenset({
-    "timestamp", "status", "sim_time", "sim_time_str", "step_perf",
-})
+_NON_ENTITY_KEYS = frozenset(
+    {
+        "timestamp",
+        "status",
+        "sim_time",
+        "sim_time_str",
+        "step_perf",
+    }
+)
 
 
 def parse_multi_sim_state(raw: dict[str, Any]) -> MultiSimState:
@@ -209,5 +232,6 @@ def parse_multi_sim_state(raw: dict[str, Any]) -> MultiSimState:
             entities[key] = _parse_vehicle(key, val, "ground_vehicle")
         elif etype == "decoy_vehicle":
             entities[key] = _parse_vehicle(key, val, "decoy_vehicle")
-    return MultiSimState(sim_time=sim_time, timestamp=timestamp,
-                         status=status, entities=entities)
+    return MultiSimState(
+        sim_time=sim_time, timestamp=timestamp, status=status, entities=entities
+    )

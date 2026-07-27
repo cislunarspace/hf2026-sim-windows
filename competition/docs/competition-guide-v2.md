@@ -34,8 +34,7 @@ class MyAgent(SearchTrackAgent):
             self.acquired = True
             return [
                 point_gimbal(0.0, -45.0),
-                fly_to(obs.self.detection.target_lat,
-                       obs.self.detection.target_lon),
+                fly_to(obs.self.detection.target_lat, obs.self.detection.target_lon),
             ]
 
         tip = obs.briefing.target_initial_pos

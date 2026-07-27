@@ -52,6 +52,7 @@ Windows 版内置 `bin\redis-server.exe`（redis-windows-fork）+ 依赖 DLL，
 from competition.sdk.scenarios.search_track import SearchTrackAgent
 from competition.sdk.core.commands import Command, fly_to, point_gimbal
 
+
 class MyAgent(SearchTrackAgent):
     def decide(self, obs, dt) -> list:
         # 你的算法逻辑：根据 obs（观测）返回指令列表

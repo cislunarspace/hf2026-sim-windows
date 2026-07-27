@@ -31,10 +31,10 @@ the run.  Auction / suspect-threat hooks are populated by
 the higher-level controller; this keeps metrics.py honest (no hidden
 side effects on the controller).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from .state import SwarmState
 
@@ -43,8 +43,8 @@ from .state import SwarmState
 class DestroyedEvent:
     sim_time: float
     uid: str
-    killer_kind: str           # "air_defense" / "comm_jam_static" / "comm_jam_random" / "other"
-    zone_index: Optional[int] = None
+    killer_kind: str  # "air_defense" / "comm_jam_static" / "comm_jam_random" / "other"
+    zone_index: int | None = None
 
 
 @dataclass
@@ -54,7 +54,7 @@ class AuctionOutcome:
     winner_uid: str
     bid_value: float
     n_bidders: int
-    conflict: bool = False     # True if multiple winners reported (SC-005 case)
+    conflict: bool = False  # True if multiple winners reported (SC-005 case)
 
 
 @dataclass
@@ -78,7 +78,7 @@ class RunMetrics:
     # Each entry is (first_seen_t, last_seen_t, tracker_uid) per (target, tracker) run.
     target_tracker_history: dict = field(default_factory=dict)
     last_alive_uids: set = field(default_factory=set)
-    _last_comm_sent: dict = field(default_factory=dict)         # uid -> last seen sent
+    _last_comm_sent: dict = field(default_factory=dict)  # uid -> last seen sent
     _last_comm_delivered: dict = field(default_factory=dict)
 
     # ── observation API ───────────────────────────────────────────────────
@@ -107,9 +107,11 @@ class RunMetrics:
                 # when not jammed (since jam is non-lethal) and
                 # "air_defense" otherwise (more common case).  The
                 # kernel event log is the authoritative source.
-                self.destroyed_events.append(DestroyedEvent(
-                    sim_time=state.sim_time, uid=uid,
-                    killer_kind="air_defense"))
+                self.destroyed_events.append(
+                    DestroyedEvent(
+                        sim_time=state.sim_time, uid=uid, killer_kind="air_defense"
+                    )
+                )
             if u.detected:
                 self.total_detected_ticks += 1
                 if u.misid_flag:
@@ -153,8 +155,9 @@ class RunMetrics:
 
     def record_auction_outcome(self, outcome: AuctionOutcome) -> None:
         self.auction_rounds += 1
-        self.auction_winners[outcome.winner_uid] = \
+        self.auction_winners[outcome.winner_uid] = (
             self.auction_winners.get(outcome.winner_uid, 0) + 1
+        )
         if outcome.conflict:
             self.auction_conflict_count += 1
 
@@ -196,20 +199,20 @@ class RunMetrics:
         return self.misid_ticks / self.tracking_ticks
 
     @property
-    def sc001_discovery_time_s(self) -> Optional[float]:
+    def sc001_discovery_time_s(self) -> float | None:
         """sim-time at which >= 7/10 targets first discovered (None if not reached)."""
         if len(self.true_positive_first_seen) < max(1, int(0.7 * self.n_true_targets)):
             return None
         return max(self.true_positive_first_seen.values())
 
-    def sc005_handoff_max_s(self) -> Optional[float]:
+    def sc005_handoff_max_s(self) -> float | None:
         """Max tracker-handoff gap (SC-005).
 
         For each target, walks `(first_seen, last_seen, uid)` runs and
         finds the longest gap between the end of one run and the start of
         the next (only when the tracker uid changes).
         """
-        max_gap: Optional[float] = None
+        max_gap: float | None = None
         for _tgt, hist in self.target_tracker_history.items():
             if len(hist) < 2:
                 continue
@@ -251,8 +254,12 @@ class RunMetrics:
             "auction_conflict_count": self.auction_conflict_count,
             # Threats
             "destroyed_events": [
-                {"sim_time": e.sim_time, "uid": e.uid,
-                 "killer_kind": e.killer_kind, "zone_index": e.zone_index}
+                {
+                    "sim_time": e.sim_time,
+                    "uid": e.uid,
+                    "killer_kind": e.killer_kind,
+                    "zone_index": e.zone_index,
+                }
                 for e in self.destroyed_events
             ],
             "suspect_threat_points": self.suspect_threat_points,

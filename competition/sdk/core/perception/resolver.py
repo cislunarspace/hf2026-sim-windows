@@ -11,12 +11,13 @@ spec 032 渲染门控：当 sensor 返回 None（走默认识别器）时，据 
 是否为 None 决定用 primary（YoloDetector，需 photo）还是 fallback
 （AccuracySimulator，无需 photo）。自研 sensor 不受门控影响。
 """
+
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Set
+from collections.abc import Callable
 
 from ..agent import Agent
-from ..observation import Detection, Observation, SKIP_DETECTION
+from ..observation import SKIP_DETECTION, Detection, Observation
 from .base import BaseDetector
 
 
@@ -31,17 +32,24 @@ class DetectionResolver:
         warn_fn: warning 输出函数（默认 print）。降级时 per-uid 调一次。
     """
 
-    def __init__(self, default_detector: Optional[BaseDetector],
-                 fallback_detector: Optional[BaseDetector] = None,
-                 warn_fn: Callable[[str], None] = print) -> None:
+    def __init__(
+        self,
+        default_detector: BaseDetector | None,
+        fallback_detector: BaseDetector | None = None,
+        warn_fn: Callable[[str], None] = print,
+    ) -> None:
         self._default = default_detector
         self._fallback = fallback_detector
         self._warn_fn = warn_fn if fallback_detector is not None else None
-        self._warned_uids: Set[str] = set()
+        self._warned_uids: set[str] = set()
 
-    def resolve(self, agent: Agent, obs: Observation,
-                dt: float,
-                truth_source: Optional[Detection] = None) -> Optional[List[Detection]]:
+    def resolve(
+        self,
+        agent: Agent,
+        obs: Observation,
+        dt: float,
+        truth_source: Detection | None = None,
+    ) -> list[Detection] | None:
         """返回 List[Detection]（自研/默认）或 None（端到端跳过）。
 
         Args:
@@ -61,8 +69,9 @@ class DetectionResolver:
         # List[Detection] 或空列表 — 用选手结果
         return list(result)
 
-    def _resolve_default(self, obs: Observation,
-                         truth_source: Optional[Detection] = None) -> Optional[List[Detection]]:
+    def _resolve_default(
+        self, obs: Observation, truth_source: Detection | None = None
+    ) -> list[Detection] | None:
         """走默认识别器，应用渲染门控降级 (spec 032)。"""
         if self._default is None:
             return None
@@ -79,7 +88,8 @@ class DetectionResolver:
         self._warned_uids.add(uid)
         self._warn_fn(
             f"[perception] UAV {uid} has no photo frame, "
-            f"falling back to AccuracySimulator (spec 032 render gate)")
+            f"falling back to AccuracySimulator (spec 032 render gate)"
+        )
 
     def stop(self) -> None:
         """释放默认识别器后台资源（spec 029）。

@@ -15,6 +15,7 @@ Requires:
     - opensim-sim running with examples/uav_track_road_target/config/scenario.json
       (or use --start-sim to spawn it)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,20 +25,23 @@ import signal
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 HERE = Path(__file__).resolve().parent
 EXAMPLE_DIR = HERE
-from examples._common.argparser import bootstrap_paths  # noqa: E402
+from examples._common.argparser import bootstrap_paths
+
 REPO_ROOT = bootstrap_paths(EXAMPLE_DIR)
 
-from search_track.road_tracker import (  # noqa: E402
-    RoadTracker, RoadTrackerConfig, build_waypoint_list, haversine_m, load_road,
+import redis
+from search_track.road_tracker import (
+    RoadTracker,
+    RoadTrackerConfig,
+    build_waypoint_list,
+    haversine_m,
+    load_road,
 )
 
-import redis  # noqa: E402
-
-from examples._common.sim_runner import start_sim, stop_sim  # noqa: E402
+from examples._common.sim_runner import start_sim, stop_sim
 
 CMD_CHANNEL = "sim:commands"
 STATE_CHANNEL = "sim:state"
@@ -51,23 +55,36 @@ DEFAULT_POINTS = REPO_ROOT / "config" / "points.json"
 
 def build_argparser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="UAV tracks target along A* road waypoints (looping)")
-    p.add_argument("--config", type=str,
-                   default=str(EXAMPLE_DIR / "config" / "algorithm.yaml"))
-    p.add_argument("--scenario", type=str,
-                   default=str(EXAMPLE_DIR / "config" / "scenario.json"))
+        description="UAV tracks target along A* road waypoints (looping)"
+    )
+    p.add_argument(
+        "--config", type=str, default=str(EXAMPLE_DIR / "config" / "algorithm.yaml")
+    )
+    p.add_argument(
+        "--scenario", type=str, default=str(EXAMPLE_DIR / "config" / "scenario.json")
+    )
     p.add_argument("--points", type=str, default=str(DEFAULT_POINTS))
     p.add_argument("--road", type=str, default="road1")
     p.add_argument("--no-loop", action="store_true")
-    p.add_argument("--duration", type=float, default=0.0,
-                   help="Max sim seconds (0 = run until Ctrl+C or done)")
+    p.add_argument(
+        "--duration",
+        type=float,
+        default=0.0,
+        help="Max sim seconds (0 = run until Ctrl+C or done)",
+    )
     p.add_argument("--start-sim", action="store_true")
-    p.add_argument("--sim-binary", type=str,
-                   default=os.environ.get(
-                       "OPENSIM_SIM_BIN",
-                       str(REPO_ROOT / "build" / (
-                           "opensim-sim.exe" if sys.platform == "win32"
-                           else "opensim-sim"))))
+    p.add_argument(
+        "--sim-binary",
+        type=str,
+        default=os.environ.get(
+            "OPENSIM_SIM_BIN",
+            str(
+                REPO_ROOT
+                / "build"
+                / ("opensim-sim.exe" if sys.platform == "win32" else "opensim-sim")
+            ),
+        ),
+    )
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--redis-host", type=str, default="127.0.0.1")
     p.add_argument("--redis-port", type=int, default=6379)
@@ -76,6 +93,7 @@ def build_argparser() -> argparse.ArgumentParser:
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
+
 
 def _entity(state: dict, eid: str) -> dict:
     return state.get(eid, {})
@@ -96,22 +114,26 @@ def _gimbal(entity: dict) -> dict:
 _quiet = False
 
 
-def publish_cmd(r: redis.Redis, target: str, cmd: str, params: dict,
-                dry: bool = False) -> None:
+def publish_cmd(
+    r: redis.Redis, target: str, cmd: str, params: dict, dry: bool = False
+) -> None:
     msg = {"target": target, "cmd": cmd, "params": params, "timestamp": time.time()}
     if not dry:
         r.publish(CMD_CHANNEL, json.dumps(msg))
     if not _quiet:
         # Compact log: only show key params
         if cmd == "set_goal":
-            print(f"  [CMD] {target}.{cmd}  lat={params.get('latitude',''):.6f} lon={params.get('longitude',''):.6f}")
+            print(
+                f"  [CMD] {target}.{cmd}  lat={params.get('latitude', ''):.6f} lon={params.get('longitude', ''):.6f}"
+            )
         else:
             print(f"  [CMD] {target}.{cmd}")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────
 
-def main(argv: Optional[list[str]] = None) -> int:
+
+def main(argv: list[str] | None = None) -> int:
     global _quiet
 
     args = build_argparser().parse_args(argv)
@@ -149,10 +171,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     pubsub.subscribe(STATE_CHANNEL)
 
     running = True
+
     def sighandler(signum, frame):
         nonlocal running
         print("\n  Shutting down...")
         running = False
+
     signal.signal(signal.SIGINT, sighandler)
     signal.signal(signal.SIGTERM, sighandler)
 
@@ -186,7 +210,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             log("ERROR: No sim:state received. Is opensim-sim running?")
             return 3
 
-        g = _gimbal(_entity(s, UAV_ID))
+        _gimbal(_entity(s, UAV_ID))
         log(f"  target @ ({t_lat:.5f}, {t_lon:.5f}, {t_alt:.1f}m) hdg={t_heading:.1f}")
         log(f"  uav    @ ({u_lat:.5f}, {u_lon:.5f}, {u_alt:.1f}m) yaw={u_yaw:.1f}")
 
@@ -233,14 +257,20 @@ def main(argv: Optional[list[str]] = None) -> int:
 
             # Tracker decide
             wall_time = time.time()
-            tracker_cmds = tracker.decide(
-                sim_time=sim_time, wall_time=wall_time,
-                tgt_lat=t_lat, tgt_lon=t_lon,
-                tgt_alt=t_alt, tgt_heading=t_heading,
-                uav_lat=u_lat, uav_lon=u_lon,
-                uav_alt=u_alt, uav_yaw=u_yaw,
+            tracker.decide(
+                sim_time=sim_time,
+                wall_time=wall_time,
+                tgt_lat=t_lat,
+                tgt_lon=t_lon,
+                tgt_alt=t_alt,
+                tgt_heading=t_heading,
+                uav_lat=u_lat,
+                uav_lon=u_lon,
+                uav_alt=u_alt,
+                uav_yaw=u_yaw,
                 publish_fn=lambda tgt, cmd, params: publish_cmd(
-                    r, tgt, cmd, params, dry=args.dry_run),
+                    r, tgt, cmd, params, dry=args.dry_run
+                ),
             )
 
             # Log waypoint transitions
@@ -249,7 +279,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             if wp_label != prev_wp_label:
                 if prev_wp_label is not None:
                     d = haversine_m(t_lat, t_lon, wp.lat, wp.lon) if wp else 0
-                    log(f"  >>> waypoint: {prev_wp_label} → {wp_label}  dist_to_wp={d:.0f}m")
+                    log(
+                        f"  >>> waypoint: {prev_wp_label} → {wp_label}  dist_to_wp={d:.0f}m"
+                    )
                 prev_wp_label = wp_label
 
             # Status log every sim-second

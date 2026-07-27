@@ -26,12 +26,14 @@ Requires:
     YOLO_SAVE_MISS_DIR  未识别帧保存目录（PNG）。覆盖下方默认值。
     YOLOTRACK_LOG_LEVEL  logger 级别，默认 INFO。可设 DEBUG 看每帧 HIT。
 """
+
 from __future__ import annotations
 
 # === 调试：未识别帧默认保存路径 ===
 # 前端模式（spec/024）spawn controller 时不会传环境变量，所以这里硬编码
 # 兜底。仍可用 YOLO_SAVE_MISS_DIR 环境变量覆盖。
 import os as _os
+
 _DEFAULT_MISS_DIR = (
     "/home/lpwang/ZCodeProject/opensim/examples/yolotrack/output/yolo_miss"
 )
@@ -41,12 +43,10 @@ if not _os.environ.get("YOLO_SAVE_MISS_DIR"):
 _os.makedirs(_DEFAULT_MISS_DIR, exist_ok=True)
 
 import argparse
-import logging
 import os
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
 # 让本 example 既可作为 `python -m examples.yolotrack.run` 跑，也可 cd 进去跑
 HERE = Path(__file__).resolve().parent
@@ -56,6 +56,7 @@ from examples._common.argparser import (
     bootstrap_paths,
     build_standard_parser,
 )
+
 REPO_ROOT = bootstrap_paths(EXAMPLE_DIR)
 
 # search_track 子包在兄弟 example 目录（uav_search_track_car/）。
@@ -65,6 +66,7 @@ sys.path.insert(0, str(REPO_ROOT / "examples" / "uav_search_track_car"))
 
 # 配置 yolotrack logger 级别（默认 WARNING 太安静）
 import logging as _logging
+
 _yolotrack_log_level = os.environ.get("YOLOTRACK_LOG_LEVEL", "INFO").upper()
 _logging.basicConfig(
     level=_yolotrack_log_level,
@@ -72,27 +74,41 @@ _logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 
-from search_track.client import SimClient  # noqa: E402
-from search_track.commands import ControlCommand  # noqa: E402
-from search_track.controller import load_controller  # noqa: E402
-from search_track.metrics import MetricsRecorder  # noqa: E402
+from search_track.client import SimClient
+from search_track.controller import load_controller
+from search_track.metrics import MetricsRecorder
 
-from examples._common.sim_runner import start_sim  # noqa: E402
-from examples._common.metrics_summary import write_json, print_completion_banner  # noqa: E402
-
-from yolotrack.yolo_controller import YoloSearchTrackController  # noqa: E402
+from examples._common.metrics_summary import (
+    write_json,
+)
+from examples._common.sim_runner import start_sim
 
 
 def build_argparser() -> argparse.ArgumentParser:
     extra = [
-        (["--config"], {"type": str,
-                        "default": str(EXAMPLE_DIR / "config" / "algorithm.yaml")}),
-        (["--controller"], {"type": str, "default": None,
-                            "help": "override controller spec"}),
-        (["--no-yolo"], {"action": "store_true",
-                         "help": "disable YOLO vision (fallback to original FSM)"}),
-        (["--road"], {"type": str, "default": "road1",
-                      "help": "A* road name from config/points.json (road1/road2/...)"}),
+        (
+            ["--config"],
+            {"type": str, "default": str(EXAMPLE_DIR / "config" / "algorithm.yaml")},
+        ),
+        (
+            ["--controller"],
+            {"type": str, "default": None, "help": "override controller spec"},
+        ),
+        (
+            ["--no-yolo"],
+            {
+                "action": "store_true",
+                "help": "disable YOLO vision (fallback to original FSM)",
+            },
+        ),
+        (
+            ["--road"],
+            {
+                "type": str,
+                "default": "road1",
+                "help": "A* road name from config/points.json (road1/road2/...)",
+            },
+        ),
     ]
     return build_standard_parser(
         description="YOLOv8-driven gimbal tracker (赛题四)",
@@ -102,7 +118,7 @@ def build_argparser() -> argparse.ArgumentParser:
     )
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = build_argparser().parse_args(argv)
     log = (lambda *a, **kw: None) if args.quiet else print
 
@@ -110,7 +126,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     # 注意：使用 yaml.safe_load 直接读为 dict，因为 AlgorithmConfig 是
     # dataclass（无 yolo 字段）；dict 才能完整携带 yolo 块给 controller。
     import yaml
-    with open(args.config, "r", encoding="utf-8-sig") as f:
+
+    with open(args.config, encoding="utf-8-sig") as f:
         cfg = yaml.safe_load(f)
     if args.controller:
         cfg["controller"] = args.controller
@@ -145,12 +162,22 @@ def main(argv: Optional[list[str]] = None) -> int:
         else:
             # dry-run: 合成 first state
             from search_track.state import (
-                Attitude, Detection, GeoPosition, GimbalState, SimState,
-                TargetState, UavState,
+                Attitude,
+                Detection,
+                GeoPosition,
+                GimbalState,
+                SimState,
+                TargetState,
+                UavState,
             )
+
             first = SimState(
-                sim_time=0.0, timestamp=0.0, status="running",
-                uav=UavState(GeoPosition(27.0, 125.0, 300.0), Attitude(0, 0, 0), 20.0, 0.0),
+                sim_time=0.0,
+                timestamp=0.0,
+                status="running",
+                uav=UavState(
+                    GeoPosition(27.0, 125.0, 300.0), Attitude(0, 0, 0), 20.0, 0.0
+                ),
                 gimbal=GimbalState(0.0, -30.0, False, 60.0),
                 detection=Detection(False, 0.0, None, None),
                 target_truth=TargetState(GeoPosition(27.002, 125.002, 0.0), 8.0, 0.0),
@@ -170,13 +197,13 @@ def main(argv: Optional[list[str]] = None) -> int:
             log(f"[run] A* waypoints 已注入 controller: {len(road_wps)} 个")
 
         # 5) 主循环
-        recorder = MetricsRecorder()
+        MetricsRecorder()
         rate = float(_get_cfg(cfg, "control_rate_hz", 10))
         period = 1.0 / rate
         sim_t0 = first.sim_time
         target_sim_end = sim_t0 + args.duration
         log(f"[run] control loop @ {rate} Hz for {args.duration:.1f} sim-seconds")
-        log(f"[run] mode=SEARCH (initial)")
+        log("[run] mode=SEARCH (initial)")
 
         prev_mode = getattr(controller, "mode", "SEARCH")
         last_state = first
@@ -205,7 +232,9 @@ def main(argv: Optional[list[str]] = None) -> int:
 
                 safe_state = state.without_truth()
                 # 注入目标真值给 controller（供 A* 到达检测）
-                if state.target_truth is not None and hasattr(controller, "set_last_truth"):
+                if state.target_truth is not None and hasattr(
+                    controller, "set_last_truth"
+                ):
                     controller.set_last_truth(
                         state.target_truth.position.latitude,
                         state.target_truth.position.longitude,
@@ -217,11 +246,13 @@ def main(argv: Optional[list[str]] = None) -> int:
                         # set_goal 要发给 "target" entity，不是 UAV
                         # controller 用 CommandTarget.UAV 占位，这里改 target
                         if cmd.cmd == "set_goal":
-                            client.publish_dict({
-                                "target": "target",
-                                "cmd": "set_goal",
-                                "params": dict(cmd.params),
-                            })
+                            client.publish_dict(
+                                {
+                                    "target": "target",
+                                    "cmd": "set_goal",
+                                    "params": dict(cmd.params),
+                                }
+                            )
                         else:
                             client.publish(cmd)
 
@@ -239,9 +270,11 @@ def main(argv: Optional[list[str]] = None) -> int:
                     if yolo_hits is not None:
                         extra = f"  yolo_hits={yolo_hits}  yolo_fallbacks={yolo_fb}"
                     g = state.gimbal
-                    log(f"  t={state.sim_time:6.1f}  mode={cur_mode:6s}  "
+                    log(
+                        f"  t={state.sim_time:6.1f}  mode={cur_mode:6s}  "
                         f"detected={state.detection.detected}  "
-                        f"gimbal=({g.pan_angle:6.1f},{g.tilt_angle:6.1f}){extra}")
+                        f"gimbal=({g.pan_angle:6.1f},{g.tilt_angle:6.1f}){extra}"
+                    )
 
                 last_state = state
 
@@ -255,7 +288,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         total_wall = time.time() - start_wall
         log(f"[run] loop ended: {total_wall:.1f}s wall-time")
         if hasattr(controller, "yolo_hits"):
-            log(f"[run] YOLO 命中={controller.yolo_hits}, fallback={controller.yolo_fallbacks}")
+            log(
+                f"[run] YOLO 命中={controller.yolo_hits}, fallback={controller.yolo_fallbacks}"
+            )
         summary = {
             "controller": cfg["controller"],
             "duration_s": args.duration,
@@ -274,12 +309,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     finally:
         if sim_proc is not None:
             from examples._common.sim_runner import stop_sim
+
             stop_sim(sim_proc)
 
 
 # ------------------------------------------------------------------
 # 工具
 # ------------------------------------------------------------------
+
 
 def _resolve_model_path(cfg, example_dir: Path, log) -> None:
     """如果 yolo.model_path 是相对路径，转成 example_dir 下的绝对路径。"""
@@ -337,6 +374,7 @@ def _load_road_waypoints(road_name: str, repo_root: Path, log) -> list:
         [(lat, lon), ...] 列表。找不到返回 []。
     """
     import json
+
     points_path = repo_root / "config" / "points.json"
     if not points_path.exists():
         log(f"[run] WARN: points.json 不存在: {points_path}")
