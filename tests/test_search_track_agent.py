@@ -118,7 +118,7 @@ class TestTrackPhase:
     """跟踪阶段行为测试。"""
 
     def test_detection_triggers_tracking(self):
-        """持续检测到目标后应进入跟踪模式。"""
+        """持续检测到快速移动目标后应进入跟踪模式并上报。"""
         agent = MySearchTrackAgent("uav_1")
         agent.reset()
 
@@ -127,31 +127,40 @@ class TestTrackPhase:
             obs = _make_obs(lat=27.0 + i * 0.0001)
             agent.decide(obs, dt=0.1)
 
-        # 连续检测到目标
-        for i in range(20):
+        # 目标以 ~30 m/s 向东运动（足够快，EKF 能估计出 > 3 m/s）
+        # UAV 向北运动产生视差
+        target_lon_offset = 0.0
+        found_report = False
+        for i in range(80):
+            target_lon_offset += 0.00003  # ~3 m/s east
+            uav_lat = 27.0 + i * 0.0002   # UAV 向北运动
             obs = _make_obs(
-                lat=27.0 + i * 0.0001,
+                lat=uav_lat,
+                lon=125.0,
                 detected=True,
-                target_lat=27.005 + i * 0.00001,
-                target_lon=125.005 + i * 0.00001,
+                target_lat=27.005,
+                target_lon=125.005 + target_lon_offset,
             )
             cmds = agent.decide(obs, dt=0.1)
+            if _find_cmd(cmds, "agent.report") is not None:
+                found_report = True
 
-        # 跟踪阶段应有 report_target 命令
-        report_cmd = _find_cmd(cmds, "agent.report")
-        assert report_cmd is not None, "跟踪阶段应产生 report_target 命令"
+        # 跟踪阶段应产生过 report_target 命令
+        assert found_report, "跟踪阶段应产生 report_target 命令"
 
     def test_report_target_contains_lat_lon(self):
         """report_target 命令应包含 lat 和 lon。"""
         agent = MySearchTrackAgent("uav_1")
         agent.reset()
 
-        # 快速进入跟踪
-        for i in range(30):
+        # 快速进入跟踪（移动目标，避免 VERIFY 拒绝）
+        target_east_offset = 0.0
+        for i in range(50):
+            target_east_offset += 0.00001
             obs = _make_obs(
                 detected=True,
                 target_lat=27.005,
-                target_lon=125.005,
+                target_lon=125.005 + target_east_offset,
             )
             cmds = agent.decide(obs, dt=0.1)
 
