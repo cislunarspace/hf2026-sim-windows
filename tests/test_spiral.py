@@ -1,5 +1,7 @@
 """tests/test_spiral.py — 阿基米德螺旋搜索测试。"""
+
 import math
+
 import pytest
 
 try:
@@ -25,7 +27,9 @@ class TestGenerateSpiral:
         first_lat, first_lon = waypoints[0]
         # 第一个点离中心 < pitch_m
         dlat = abs(first_lat - center_lat) * 111_320.0
-        dlon = abs(first_lon - center_lon) * 111_320.0 * math.cos(math.radians(center_lat))
+        dlon = (
+            abs(first_lon - center_lon) * 111_320.0 * math.cos(math.radians(center_lat))
+        )
         dist = math.sqrt(dlat**2 + dlon**2)
         assert dist < 300, f"第一个点离中心 {dist:.0f}m > 300m"
 
@@ -38,11 +42,14 @@ class TestGenerateSpiral:
         """最远航点不超过指定半径。"""
         center_lat, center_lon = 27.0, 125.0
         radius_m = 500
-        waypoints = generate_spiral(center_lat, center_lon,
-                                     radius_m=radius_m, pitch_m=100)
+        waypoints = generate_spiral(
+            center_lat, center_lon, radius_m=radius_m, pitch_m=100
+        )
         for lat, lon in waypoints:
             dlat = abs(lat - center_lat) * 111_320.0
-            dlon = abs(lon - center_lon) * 111_320.0 * math.cos(math.radians(center_lat))
+            dlon = (
+                abs(lon - center_lon) * 111_320.0 * math.cos(math.radians(center_lat))
+            )
             dist = math.sqrt(dlat**2 + dlon**2)
             assert dist <= radius_m + 50, f"航点超出半径：{dist:.0f}m > {radius_m}m"
 
@@ -54,7 +61,9 @@ class TestGenerateSpiral:
         dists = []
         for lat, lon in waypoints[:15]:
             dlat = abs(lat - center_lat) * 111_320.0
-            dlon = abs(lon - center_lon) * 111_320.0 * math.cos(math.radians(center_lat))
+            dlon = (
+                abs(lon - center_lon) * 111_320.0 * math.cos(math.radians(center_lat))
+            )
             dists.append(math.sqrt(dlat**2 + dlon**2))
         # 总体趋势递增（允许局部波动）
         assert dists[-1] > dists[0], "螺旋应从中心向外扩展"
@@ -64,5 +73,6 @@ class TestGenerateSpiral:
         wp_small = generate_spiral(27.0, 125.0, radius_m=500, pitch_m=100)
         wp_large = generate_spiral(27.0, 125.0, radius_m=500, pitch_m=300)
         # 较小螺距应产生更多航点
-        assert len(wp_small) > len(wp_large), \
+        assert len(wp_small) > len(wp_large), (
             f"小螺距({len(wp_small)})应比大螺距({len(wp_large)})产生更多航点"
+        )

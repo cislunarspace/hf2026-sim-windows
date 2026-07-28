@@ -7,9 +7,9 @@
   - 8 秒 + UAV 盘旋模式可实现清晰分离（gap > 2 m/s）
   - 推荐阈值 3.0 m/s 在 8 秒窗口下可达到 > 95% 召回率 + < 5% 误判率
 """
+
 import math
 import random
-import pytest
 
 from algorithms.estimation.ekf import ImmFilter
 
@@ -82,12 +82,12 @@ def _simulate_verify(
 
 # ── 场景：目标在 UAV 周围不同方位 ─────────────────────────────────────────
 _TARGETS = [
-    (500,  800),
-    (300,  1000),
-    (800,  600),
-    (200,  1200),
-    (600,  900),
-    (400,  1100),
+    (500, 800),
+    (300, 1000),
+    (800, 600),
+    (200, 1200),
+    (600, 900),
+    (400, 1100),
 ]
 _REAL_SPEED = 8.0
 _REAL_HEADING = math.radians(90)  # 目标向东
@@ -98,9 +98,16 @@ def _collect_speeds(targets, speed, heading, noise, seed_base, n_frames, pattern
     speeds = []
     for si, (te, tn) in enumerate(targets):
         for trial in range(20):
-            r = _simulate_verify(te, tn, speed, heading, noise,
-                                 seed=si * 1000 + trial + seed_base,
-                                 n_frames=n_frames, uav_pattern=pattern)
+            r = _simulate_verify(
+                te,
+                tn,
+                speed,
+                heading,
+                noise,
+                seed=si * 1000 + trial + seed_base,
+                n_frames=n_frames,
+                uav_pattern=pattern,
+            )
             speeds.append(r["speed"])
     return speeds
 
@@ -123,10 +130,14 @@ def _report(real_speeds, decoy_speeds, label):
     print(f"\n{'=' * 60}")
     print(f"  {label}")
     print(f"{'=' * 60}")
-    print(f"  真目标: avg={real_avg:.2f}, p5={real_p5:.2f}, p10={real_p10:.2f}, "
-          f"min={real_speeds[0]:.2f}")
-    print(f"  诱  饵: avg={decoy_avg:.2f}, p90={decoy_p90:.2f}, p95={decoy_p95:.2f}, "
-          f"max={decoy_speeds[-1]:.2f}")
+    print(
+        f"  真目标: avg={real_avg:.2f}, p5={real_p5:.2f}, p10={real_p10:.2f}, "
+        f"min={real_speeds[0]:.2f}"
+    )
+    print(
+        f"  诱  饵: avg={decoy_avg:.2f}, p90={decoy_p90:.2f}, p95={decoy_p95:.2f}, "
+        f"max={decoy_speeds[-1]:.2f}"
+    )
     print(f"  分离度 gap(p10-p90): {gap:.2f} m/s")
 
     if gap > 0:
@@ -142,10 +153,12 @@ def _report(real_speeds, decoy_speeds, label):
         # 也报告当前 3.0 的表现
         tp3 = sum(1 for s in real_speeds if s >= 3.0)
         fp3 = sum(1 for s in decoy_speeds if s >= 3.0)
-        print(f"     当前 3.0 m/s: 召回={tp3/n_r*100:.0f}%, 误判={fp3/n_d*100:.0f}%")
+        print(
+            f"     当前 3.0 m/s: 召回={tp3 / n_r * 100:.0f}%, 误判={fp3 / n_d * 100:.0f}%"
+        )
         return recommended, True
     else:
-        print(f"  ❌ 分布重叠，speed 阈值不可靠")
+        print("  ❌ 分布重叠，speed 阈值不可靠")
         # 找最优阈值
         best_t, best_j = 0.0, -1.0
         for t in [x * 0.5 for x in range(1, 20)]:
@@ -156,8 +169,10 @@ def _report(real_speeds, decoy_speeds, label):
                 best_j, best_t = j, t
         tp = sum(1 for s in real_speeds if s >= best_t)
         fp = sum(1 for s in decoy_speeds if s >= best_t)
-        print(f"     最优阈值 {best_t:.1f} m/s: 召回={tp/n_r*100:.0f}%, "
-              f"误判={fp/n_d*100:.0f}%, J={best_j:.3f}")
+        print(
+            f"     最优阈值 {best_t:.1f} m/s: 召回={tp / n_r * 100:.0f}%, "
+            f"误判={fp / n_d * 100:.0f}%, J={best_j:.3f}"
+        )
         return best_t, False
 
 
@@ -166,19 +181,23 @@ class TestVerify3sLimitation:
 
     def test_3s_east_pattern(self):
         """3 秒 + UAV 直线东行：分布重叠。"""
-        real = _collect_speeds(_TARGETS, _REAL_SPEED, _REAL_HEADING, 0.02,
-                               0, n_frames=30, pattern="east")
-        decoy = _collect_speeds(_TARGETS, 0.0, 0.0, 0.02,
-                                5000, n_frames=30, pattern="east")
+        real = _collect_speeds(
+            _TARGETS, _REAL_SPEED, _REAL_HEADING, 0.02, 0, n_frames=30, pattern="east"
+        )
+        decoy = _collect_speeds(
+            _TARGETS, 0.0, 0.0, 0.02, 5000, n_frames=30, pattern="east"
+        )
         _, ok = _report(real, decoy, "3 秒 + UAV 直线东行")
         assert not ok, "3 秒东行应分布重叠（这是预期的限制）"
 
     def test_3s_circle_pattern(self):
         """3 秒 + UAV 盘旋：分布仍重叠。"""
-        real = _collect_speeds(_TARGETS, _REAL_SPEED, _REAL_HEADING, 0.02,
-                               0, n_frames=30, pattern="circle")
-        decoy = _collect_speeds(_TARGETS, 0.0, 0.0, 0.02,
-                                5000, n_frames=30, pattern="circle")
+        real = _collect_speeds(
+            _TARGETS, _REAL_SPEED, _REAL_HEADING, 0.02, 0, n_frames=30, pattern="circle"
+        )
+        decoy = _collect_speeds(
+            _TARGETS, 0.0, 0.0, 0.02, 5000, n_frames=30, pattern="circle"
+        )
         _, ok = _report(real, decoy, "3 秒 + UAV 盘旋")
         assert not ok, "3 秒盘旋应分布重叠"
 
@@ -188,10 +207,12 @@ class TestVerify8sCircle:
 
     def test_8s_circle_separation(self):
         """8 秒 + 盘旋：真目标和诱饵清晰分离。"""
-        real = _collect_speeds(_TARGETS, _REAL_SPEED, _REAL_HEADING, 0.02,
-                               0, n_frames=80, pattern="circle")
-        decoy = _collect_speeds(_TARGETS, 0.0, 0.0, 0.02,
-                                5000, n_frames=80, pattern="circle")
+        real = _collect_speeds(
+            _TARGETS, _REAL_SPEED, _REAL_HEADING, 0.02, 0, n_frames=80, pattern="circle"
+        )
+        decoy = _collect_speeds(
+            _TARGETS, 0.0, 0.0, 0.02, 5000, n_frames=80, pattern="circle"
+        )
         recommended, ok = _report(real, decoy, "8 秒 + UAV 盘旋")
         assert ok, "8 秒盘旋应成功分离"
         assert recommended <= 4.0, f"推荐阈值 {recommended} 应 ≤ 4.0"
@@ -203,7 +224,7 @@ class TestVerifyThresholdRecommendation:
     def test_final_recommendation(self):
         """综合报告：不同窗口+模式的对比。"""
         configs = [
-            ("3s-east",   30, "east"),
+            ("3s-east", 30, "east"),
             ("3s-circle", 30, "circle"),
             ("5s-circle", 50, "circle"),
             ("8s-circle", 80, "circle"),
@@ -211,24 +232,32 @@ class TestVerifyThresholdRecommendation:
         ]
 
         print(f"\n{'=' * 70}")
-        print(f"  VERIFY 速度阈值综合报告")
+        print("  VERIFY 速度阈值综合报告")
         print(f"{'=' * 70}")
-        print(f"  噪声 σ=0.02 rad, 每组 120 试验 (6 场景 × 20 次)")
-        print(f"  真目标: 8 m/s 向东, 诱饵: 静止")
+        print("  噪声 σ=0.02 rad, 每组 120 试验 (6 场景 × 20 次)")
+        print("  真目标: 8 m/s 向东, 诱饵: 静止")
 
         for label, n_frames, pattern in configs:
-            real = _collect_speeds(_TARGETS, _REAL_SPEED, _REAL_HEADING, 0.02,
-                                   0, n_frames=n_frames, pattern=pattern)
-            decoy = _collect_speeds(_TARGETS, 0.0, 0.0, 0.02,
-                                    5000, n_frames=n_frames, pattern=pattern)
+            real = _collect_speeds(
+                _TARGETS,
+                _REAL_SPEED,
+                _REAL_HEADING,
+                0.02,
+                0,
+                n_frames=n_frames,
+                pattern=pattern,
+            )
+            decoy = _collect_speeds(
+                _TARGETS, 0.0, 0.0, 0.02, 5000, n_frames=n_frames, pattern=pattern
+            )
             _report(real, decoy, label)
 
         print(f"\n{'=' * 70}")
-        print(f"  结论")
+        print("  结论")
         print(f"{'=' * 70}")
-        print(f"  3 秒窗口: speed 阈值不可靠（分布重叠）")
-        print(f"  8 秒盘旋: 可靠分离，推荐阈值 3.0 m/s")
-        print(f"  建议: 将 _VERIFY_FRAMES 从 30 增至 80（8 秒）")
-        print(f"        或改用盘旋等待 + 更长窗口的 VERIFY 策略")
+        print("  3 秒窗口: speed 阈值不可靠（分布重叠）")
+        print("  8 秒盘旋: 可靠分离，推荐阈值 3.0 m/s")
+        print("  建议: 将 _VERIFY_FRAMES 从 30 增至 80（8 秒）")
+        print("        或改用盘旋等待 + 更长窗口的 VERIFY 策略")
 
         assert True  # 始终通过，只输出报告

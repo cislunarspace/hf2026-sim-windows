@@ -6,19 +6,20 @@
   - destination_point: 给定距离和方位的目标点
   - wgs84_to_local / local_to_wgs84: 坐标转换往返一致性
 """
-import math
-import pytest
 
+import math
+
+import pytest
 
 # ── import 待实现的模块（RED 阶段会失败）────────────────────────────────
 
 try:
     from algorithms.estimation.geometry import (
-        haversine_m,
         bearing_rad,
         destination_point,
-        wgs84_to_local,
+        haversine_m,
         local_to_wgs84,
+        wgs84_to_local,
     )
 except ImportError:
     # RED 阶段：模块尚不存在，pytest 仍能收集测试
@@ -27,13 +28,14 @@ except ImportError:
 
 # ── 常量 ────────────────────────────────────────────────────────────────
 
-_TOLERANCE_M = 1.0        # 距离容差 1 米
-_TOLERANCE_DEG = 0.01     # 角度容差 0.01 度
+_TOLERANCE_M = 1.0  # 距离容差 1 米
+_TOLERANCE_DEG = 0.01  # 角度容差 0.01 度
 _TOLERANCE_RAD = math.radians(_TOLERANCE_DEG)
-_ROUNDTRIP_M = 0.001      # 往返一致性 1 毫米
+_ROUNDTRIP_M = 0.001  # 往返一致性 1 毫米
 
 
 # ── haversine_m ─────────────────────────────────────────────────────────
+
 
 class TestHaversineM:
     """大圆距离计算测试。"""
@@ -64,6 +66,7 @@ class TestHaversineM:
 
 
 # ── bearing_rad ─────────────────────────────────────────────────────────
+
 
 class TestBearingRad:
     """方位角计算测试。返回值范围 [-π, π]。"""
@@ -98,6 +101,7 @@ class TestBearingRad:
 
 # ── destination_point ───────────────────────────────────────────────────
 
+
 class TestDestinationPoint:
     """给定起点、距离和方位，计算目标点。"""
 
@@ -124,13 +128,15 @@ class TestDestinationPoint:
         distance_m = 5000.0
         bearing = math.radians(45.0)  # 东北方向
 
-        dest_lat, dest_lon = destination_point(origin_lat, origin_lon,
-                                                distance_m, bearing)
+        dest_lat, dest_lon = destination_point(
+            origin_lat, origin_lon, distance_m, bearing
+        )
         computed = haversine_m(origin_lat, origin_lon, dest_lat, dest_lon)
         assert computed == pytest.approx(distance_m, abs=_ROUNDTRIP_M)
 
 
 # ── wgs84_to_local / local_to_wgs84 ────────────────────────────────────
+
 
 class TestCoordinateConversion:
     """WGS84 ↔ 局部切平面坐标转换。"""

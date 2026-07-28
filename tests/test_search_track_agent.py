@@ -2,30 +2,29 @@
 
 使用 mock obs 验证状态机行为和命令生成。
 """
-import math
-from dataclasses import dataclass, field
-from typing import Optional, Tuple
+
 from unittest.mock import MagicMock
 
 import pytest
 
 try:
-    from competition.user_algorithms.search_track.my_agent import MySearchTrackAgent
     from competition.sdk.core.commands import Command
+    from competition.user_algorithms.search_track.my_agent import MySearchTrackAgent
 except ImportError:
     pytest.skip("my_agent.py 尚未实现，跳过测试", allow_module_level=True)
 
 
 # ── Mock 工厂 ──────────────────────────────────────────────────────────
 
+
 def _make_obs(
     lat: float = 27.0,
     lon: float = 125.0,
     alt: float = 300.0,
     detected: bool = False,
-    target_lat: Optional[float] = None,
-    target_lon: Optional[float] = None,
-    target_initial_pos: Optional[Tuple[float, float]] = (27.005, 125.005),
+    target_lat: float | None = None,
+    target_lon: float | None = None,
+    target_initial_pos: tuple[float, float] | None = (27.005, 125.005),
     heading: float = 0.0,
     speed: float = 30.0,
     gimbal_pan: float = 0.0,
@@ -65,7 +64,7 @@ def _make_obs(
     return obs
 
 
-def _find_cmd(cmds, verb: str) -> Optional[Command]:
+def _find_cmd(cmds, verb: str) -> Command | None:
     """在命令列表中查找指定 verb 的命令。"""
     for cmd in cmds:
         if cmd.verb == verb:
@@ -74,6 +73,7 @@ def _find_cmd(cmds, verb: str) -> Optional[Command]:
 
 
 # ── 状态机行为测试 ──────────────────────────────────────────────────────
+
 
 class TestAgentLifecycle:
     """Agent 生命周期测试。"""
@@ -110,8 +110,10 @@ class TestSearchPhase:
         assert cmds is not None
         verbs = {cmd.verb for cmd in cmds}
         # 搜索阶段至少要有飞行和云台命令之一
-        assert "set_destination" in verbs or "component.gimbal_tracking.set_orientation" in verbs, \
-            f"搜索阶段命令集: {verbs}，应含 fly_to 或 point_gimbal"
+        assert (
+            "set_destination" in verbs
+            or "component.gimbal_tracking.set_orientation" in verbs
+        ), f"搜索阶段命令集: {verbs}，应含 fly_to 或 point_gimbal"
 
 
 class TestTrackPhase:
@@ -134,7 +136,7 @@ class TestTrackPhase:
         found_report = False
         for i in range(130):
             target_lon_offset += 0.00003  # ~3 m/s east
-            uav_lat = 27.0 + i * 0.0002   # UAV 向北运动
+            uav_lat = 27.0 + i * 0.0002  # UAV 向北运动
             obs = _make_obs(
                 lat=uav_lat,
                 lon=125.0,
@@ -190,9 +192,14 @@ class TestCommandValidity:
     def test_no_unknown_verbs(self):
         """不应产生 SDK 不支持的命令类型。"""
         known_verbs = {
-            "set_destination", "set_heading", "set_speed",
-            "component.gimbal_tracking.set_orientation", "set_fov",
-            "comm.broadcast", "comm.send", "agent.report",
+            "set_destination",
+            "set_heading",
+            "set_speed",
+            "component.gimbal_tracking.set_orientation",
+            "set_fov",
+            "comm.broadcast",
+            "comm.send",
+            "agent.report",
         }
         agent = MySearchTrackAgent("uav_1")
         agent.reset()

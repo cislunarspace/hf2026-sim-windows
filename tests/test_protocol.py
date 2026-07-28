@@ -3,12 +3,16 @@
 纯 ASCII 格式 "T:lat,lon"，50 bytes 总限制，每条目标 ~18 chars。
 与 baseline coop_distributed 格式兼容。
 """
-import pytest
 
+import pytest
 from algorithms.coordination.protocol import (
-    TargetInfo, decode_targets, encode_targets,
-    encode_announce, decode_announce, parse_payload,
     _MAX_PAYLOAD_BYTES,
+    TargetInfo,
+    decode_announce,
+    decode_targets,
+    encode_announce,
+    encode_targets,
+    parse_payload,
 )
 
 
@@ -101,8 +105,7 @@ class TestPayloadSize:
     def test_too_many_targets_raises(self):
         """4 条目标超 50 bytes。"""
         targets = [
-            TargetInfo(type="T", target_id=i, lat=27.0, lon=125.0)
-            for i in range(4)
+            TargetInfo(type="T", target_id=i, lat=27.0, lon=125.0) for i in range(4)
         ]
         with pytest.raises(ValueError, match="超限"):
             encode_targets(targets)
@@ -110,8 +113,7 @@ class TestPayloadSize:
     def test_three_targets_exactly_fits(self):
         """3 条目标恰好 50 bytes（边界）。"""
         targets = [
-            TargetInfo(type="T", target_id=i, lat=27.0, lon=125.0)
-            for i in range(3)
+            TargetInfo(type="T", target_id=i, lat=27.0, lon=125.0) for i in range(3)
         ]
         payload = encode_targets(targets)
         assert len(payload.encode("utf-8")) <= _MAX_PAYLOAD_BYTES

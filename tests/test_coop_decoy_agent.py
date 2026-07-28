@@ -2,27 +2,28 @@
 
 使用 mock obs 验证状态机行为、命令生成和通信。
 """
-from typing import Optional, Tuple
+
 from unittest.mock import MagicMock
 
 import pytest
 
 try:
-    from competition.user_algorithms.coop_decoy.agent import CoopDecoyAgent
     from competition.sdk.core.commands import Command
+    from competition.user_algorithms.coop_decoy.agent import CoopDecoyAgent
 except ImportError:
     pytest.skip("coop_decoy agent 尚未实现，跳过测试", allow_module_level=True)
 
 
 # ── Mock 工厂 ──────────────────────────────────────────────────────────
 
+
 def _make_obs(
     lat: float = 27.0,
     lon: float = 125.0,
     alt: float = 200.0,
     detected: bool = False,
-    target_lat: Optional[float] = None,
-    target_lon: Optional[float] = None,
+    target_lat: float | None = None,
+    target_lon: float | None = None,
     heading: float = 0.0,
     speed: float = 25.0,
     gimbal_pan: float = 0.0,
@@ -77,6 +78,7 @@ def _find_cmd(cmds, verb: str):
 
 
 # ── 测试 ──────────────────────────────────────────────────────────────
+
 
 class TestCoopAgentLifecycle:
     """生命周期测试。"""
@@ -249,8 +251,9 @@ class TestCoopAgentComms:
         cmds = agent.decide(obs, dt=0.1)
         fly_cmd = _find_cmd(cmds, "set_destination")
         if fly_cmd and "loiter_radius" in fly_cmd.params:
-            assert fly_cmd.params["loiter_radius"] >= 200.0, \
+            assert fly_cmd.params["loiter_radius"] >= 200.0, (
                 f"僚机盘旋半径应 >= 200m，实际 {fly_cmd.params['loiter_radius']}"
+            )
 
 
 class TestCoopAgentCommands:
@@ -269,10 +272,14 @@ class TestCoopAgentCommands:
         agent = CoopDecoyAgent("uav_1")
         agent.reset()
         known_verbs = {
-            "set_destination", "set_heading", "set_speed",
+            "set_destination",
+            "set_heading",
+            "set_speed",
             "component.gimbal_tracking.set_orientation",
             "set_fov",
-            "comm.broadcast", "comm.send", "agent.report",
+            "comm.broadcast",
+            "comm.send",
+            "agent.report",
         }
         for i in range(10):
             obs = _make_obs(lat=27.0 + i * 0.0001)

@@ -2,8 +2,10 @@
 
 根据目标的速度估计，计算 UAV 应飞向的前馈位置（lead point）。
 """
-from algorithms.estimation.geometry import destination_point, bearing_rad
+
 import math
+
+from algorithms.estimation.geometry import destination_point
 
 
 def compute_lead_point(

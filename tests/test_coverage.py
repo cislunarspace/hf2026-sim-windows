@@ -1,8 +1,6 @@
 """tests/test_coverage.py — Voronoi 搜索覆盖分区测试。"""
-import math
-import time
 
-import pytest
+import time
 
 from algorithms.search.coverage import nearest_seed, voronoi_partition
 
@@ -105,7 +103,7 @@ class TestVoronoiPartition:
         for _ in range(100):
             voronoi_partition(seeds, _BBOX)
         elapsed = (time.perf_counter() - t0) / 100
-        assert elapsed < 0.01, f"单次耗时 {elapsed*1000:.1f}ms，应 < 10ms"
+        assert elapsed < 0.01, f"单次耗时 {elapsed * 1000:.1f}ms，应 < 10ms"
 
     def test_grid_resolution_effect(self):
         """更高网格分辨率 → 更精确分区。"""

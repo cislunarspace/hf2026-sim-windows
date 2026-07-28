@@ -14,22 +14,25 @@
   - VERIFY：3 秒窗口，速度阈值判别诱饵
   - 每秒 report_target 上报滤波位置
 """
+
 import math
 from enum import Enum
-from typing import List, Optional, Tuple
-
-from competition.sdk.core.agent import Agent
-from competition.sdk.core.commands import (
-    Command, fly_to, point_gimbal, report_target, set_gimbal_fov,
-)
-from competition.sdk.scenarios.search_track import SearchTrackAgent
-from competition.sdk.scenarios.search_track.observation import SearchTrackObs
 
 from algorithms.estimation.ekf import ImmFilter
 from algorithms.estimation.geometry import bearing_rad, haversine_m
 from algorithms.search.spiral import generate_spiral
-from algorithms.tracking.gimbal import compute_gimbal_angles, choose_fov
 from algorithms.tracking.follow import compute_lead_point
+from algorithms.tracking.gimbal import compute_gimbal_angles
+
+from competition.sdk.core.commands import (
+    Command,
+    fly_to,
+    point_gimbal,
+    report_target,
+    set_gimbal_fov,
+)
+from competition.sdk.scenarios.search_track import SearchTrackAgent
+from competition.sdk.scenarios.search_track.observation import SearchTrackObs
 
 
 class State(Enum):
@@ -43,19 +46,19 @@ class State(Enum):
 
 # ── 常量 ────────────────────────────────────────────────────────────────
 
-_SEARCH_FOV = 70.0       # 搜索 FOV（度）
-_TRACK_FOV = 15.0        # 跟踪 FOV（度）
-_SEARCH_SPEED = 30.0     # 搜索速度（m/s）
-_TRACK_SPEED = 25.0      # 跟踪速度（m/s）
-_LOITER_RADIUS = 200.0   # 盘旋半径（m）
-_LEAD_TIME_S = 1.5       # 前馈时间（s）
-_GRACE_FRAMES = 20       # 丢失容忍帧数（~2s @ 10Hz）
-_VERIFY_FRAMES = 80      # VERIFY 窗口帧数（8s @ 10Hz），3s 不足以分离速度
-_ENGAGE_FRAMES = 10      # ENGAGE 等待 EKF 收敛帧数
-_ATTACK_TIME_S = 20.0    # ATTACK 累计盯防时间（秒）
-_REPORT_INTERVAL = 1.0   # 上报间隔（秒）
+_SEARCH_FOV = 70.0  # 搜索 FOV（度）
+_TRACK_FOV = 15.0  # 跟踪 FOV（度）
+_SEARCH_SPEED = 30.0  # 搜索速度（m/s）
+_TRACK_SPEED = 25.0  # 跟踪速度（m/s）
+_LOITER_RADIUS = 200.0  # 盘旋半径（m）
+_LEAD_TIME_S = 1.5  # 前馈时间（s）
+_GRACE_FRAMES = 20  # 丢失容忍帧数（~2s @ 10Hz）
+_VERIFY_FRAMES = 80  # VERIFY 窗口帧数（8s @ 10Hz），3s 不足以分离速度
+_ENGAGE_FRAMES = 10  # ENGAGE 等待 EKF 收敛帧数
+_ATTACK_TIME_S = 20.0  # ATTACK 累计盯防时间（秒）
+_REPORT_INTERVAL = 1.0  # 上报间隔（秒）
 _SPIRAL_RADIUS_M = 1500  # 螺旋搜索半径（m）
-_SPIRAL_PITCH_M = 300    # 螺旋螺距（m），由 FOV 覆盖宽度决定
+_SPIRAL_PITCH_M = 300  # 螺旋螺距（m），由 FOV 覆盖宽度决定
 _ASSUME_RANGE_M = 800.0  # 首次检测假设距离（m）
 _VERIFY_SPEED_THRESH = 3.9  # VERIFY 速度阈值（m/s），8s 窗口下召回 94%/误判 2%
 
@@ -66,8 +69,8 @@ class MySearchTrackAgent(SearchTrackAgent):
     def __init__(self, my_uid: str):
         super().__init__(my_uid)
         self._state: State = State.ACQUIRE
-        self._ekf: Optional[ImmFilter] = None
-        self._search_waypoints: List[Tuple[float, float]] = []
+        self._ekf: ImmFilter | None = None
+        self._search_waypoints: list[tuple[float, float]] = []
         self._wp_idx: int = 0
         self._lost_frames: int = 0
         self._verify_frames: int = 0
@@ -90,10 +93,9 @@ class MySearchTrackAgent(SearchTrackAgent):
         self._sim_time = 0.0
         self._gimbal_phase = 0.0
 
-    def decide(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+    def decide(self, obs: SearchTrackObs, dt: float) -> list[Command]:
         self._sim_time += dt
-        det = obs.self.detection
-        cmds: List[Command] = []
+        cmds: list[Command] = []
 
         # 初始化 IMM（用 UAV 初始位置作为坐标原点）
         if self._ekf is None:
@@ -107,7 +109,8 @@ class MySearchTrackAgent(SearchTrackAgent):
             else:
                 center_lat, center_lon = obs.self.lat, obs.self.lon
             self._search_waypoints = generate_spiral(
-                center_lat, center_lon,
+                center_lat,
+                center_lon,
                 radius_m=_SPIRAL_RADIUS_M,
                 pitch_m=_SPIRAL_PITCH_M,
             )
@@ -130,13 +133,18 @@ class MySearchTrackAgent(SearchTrackAgent):
 
     # ── ACQUIRE：飞向目标初始位置 ──────────────────────────────────────
 
-    def _do_acquire(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+    def _do_acquire(self, obs: SearchTrackObs, dt: float) -> list[Command]:
         cmds = [set_gimbal_fov(_SEARCH_FOV)]
         target_pos = obs.briefing.target_initial_pos
         if target_pos:
-            cmds.append(fly_to(target_pos[0], target_pos[1],
-                                speed=_SEARCH_SPEED,
-                                loiter_radius=_LOITER_RADIUS))
+            cmds.append(
+                fly_to(
+                    target_pos[0],
+                    target_pos[1],
+                    speed=_SEARCH_SPEED,
+                    loiter_radius=_LOITER_RADIUS,
+                )
+            )
         # 检查是否已到达附近（或直接收到检测）
         if obs.self.detection.detected:
             self._state = State.VERIFY
@@ -144,8 +152,7 @@ class MySearchTrackAgent(SearchTrackAgent):
             return self._do_verify(obs, dt)
 
         if target_pos:
-            dist = haversine_m(obs.self.lat, obs.self.lon,
-                               target_pos[0], target_pos[1])
+            dist = haversine_m(obs.self.lat, obs.self.lon, target_pos[0], target_pos[1])
             if dist < 500:  # 到达初始位置 500m 范围内
                 self._state = State.SEARCH
                 return self._do_search(obs, dt)
@@ -154,7 +161,7 @@ class MySearchTrackAgent(SearchTrackAgent):
 
     # ── SEARCH：螺旋搜索 + 云台扫描 ────────────────────────────────────
 
-    def _do_search(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+    def _do_search(self, obs: SearchTrackObs, dt: float) -> list[Command]:
         cmds = [set_gimbal_fov(_SEARCH_FOV)]
 
         # 云台扇扫（pan ±90°，tilt -60° ~ -30°）
@@ -166,8 +173,9 @@ class MySearchTrackAgent(SearchTrackAgent):
         # 沿螺旋航点飞行
         if self._search_waypoints:
             wp = self._search_waypoints[self._wp_idx % len(self._search_waypoints)]
-            cmds.append(fly_to(wp[0], wp[1], speed=_SEARCH_SPEED,
-                               loiter_radius=_LOITER_RADIUS))
+            cmds.append(
+                fly_to(wp[0], wp[1], speed=_SEARCH_SPEED, loiter_radius=_LOITER_RADIUS)
+            )
 
             # 到达当前航点附近时切换到下一个
             dist = haversine_m(obs.self.lat, obs.self.lon, wp[0], wp[1])
@@ -184,27 +192,31 @@ class MySearchTrackAgent(SearchTrackAgent):
 
     # ── VERIFY：诱饵鉴别（3 秒窗口） ──────────────────────────────────
 
-    def _do_verify(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+    def _do_verify(self, obs: SearchTrackObs, dt: float) -> list[Command]:
         cmds = []
         det = obs.self.detection
 
         # 锁定目标 + EKF 更新
         if det.detected and det.target_lat is not None and det.target_lon is not None:
             pan, tilt = compute_gimbal_angles(
-                obs.self.lat, obs.self.lon, obs.self.alt,
-                det.target_lat, det.target_lon,
+                obs.self.lat,
+                obs.self.lon,
+                obs.self.alt,
+                det.target_lat,
+                det.target_lon,
             )
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
 
-            bearing = bearing_rad(obs.self.lat, obs.self.lon,
-                                  det.target_lat, det.target_lon)
-            range_m = haversine_m(obs.self.lat, obs.self.lon,
-                                  det.target_lat, det.target_lon)
+            bearing = bearing_rad(
+                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
+            )
+            range_m = haversine_m(
+                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
+            )
 
             if not self._ekf.is_initialized():
-                self._ekf.initialize(obs.self.lat, obs.self.lon,
-                                     bearing, range_m)
+                self._ekf.initialize(obs.self.lat, obs.self.lon, bearing, range_m)
             else:
                 self._ekf.predict(dt)
                 self._ekf.update_bearing(obs.self.lat, obs.self.lon, bearing)
@@ -235,19 +247,20 @@ class MySearchTrackAgent(SearchTrackAgent):
 
     # ── ENGAGE：EKF 初始化 + 收敛等待 ────────────────────────────────
 
-    def _do_engage(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+    def _do_engage(self, obs: SearchTrackObs, dt: float) -> list[Command]:
         cmds = []
         det = obs.self.detection
 
         # EKF 更新
         if det.detected and det.target_lat is not None and det.target_lon is not None:
-            bearing = bearing_rad(obs.self.lat, obs.self.lon,
-                                  det.target_lat, det.target_lon)
-            range_m = haversine_m(obs.self.lat, obs.self.lon,
-                                  det.target_lat, det.target_lon)
+            bearing = bearing_rad(
+                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
+            )
+            range_m = haversine_m(
+                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
+            )
             if not self._ekf.is_initialized():
-                self._ekf.initialize(obs.self.lat, obs.self.lon,
-                                     bearing, range_m)
+                self._ekf.initialize(obs.self.lat, obs.self.lon, bearing, range_m)
             else:
                 self._ekf.predict(dt)
                 self._ekf.update_bearing(obs.self.lat, obs.self.lon, bearing)
@@ -267,8 +280,11 @@ class MySearchTrackAgent(SearchTrackAgent):
         if self._ekf.is_initialized():
             est_lat, est_lon = self._ekf.position_wgs84()
             pan, tilt = compute_gimbal_angles(
-                obs.self.lat, obs.self.lon, obs.self.alt,
-                est_lat, est_lon,
+                obs.self.lat,
+                obs.self.lon,
+                obs.self.alt,
+                est_lat,
+                est_lon,
             )
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
@@ -276,11 +292,17 @@ class MySearchTrackAgent(SearchTrackAgent):
             # 前馈飞行
             ve, vn = self._ekf.velocity_mps()
             lead_lat, lead_lon = compute_lead_point(
-                est_lat, est_lon, ve, vn, _LEAD_TIME_S,
+                est_lat,
+                est_lon,
+                ve,
+                vn,
+                _LEAD_TIME_S,
             )
-            cmds.append(fly_to(lead_lat, lead_lon,
-                               speed=_TRACK_SPEED,
-                               loiter_radius=_LOITER_RADIUS))
+            cmds.append(
+                fly_to(
+                    lead_lat, lead_lon, speed=_TRACK_SPEED, loiter_radius=_LOITER_RADIUS
+                )
+            )
 
             # 上报
             if self._sim_time - self._last_report_time >= _REPORT_INTERVAL:
@@ -299,19 +321,20 @@ class MySearchTrackAgent(SearchTrackAgent):
 
     # ── ATTACK：持续盯防 ─────────────────────────────────────────────
 
-    def _do_attack(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+    def _do_attack(self, obs: SearchTrackObs, dt: float) -> list[Command]:
         cmds = []
         det = obs.self.detection
 
         # EKF 更新
         if det.detected and det.target_lat is not None and det.target_lon is not None:
-            bearing = bearing_rad(obs.self.lat, obs.self.lon,
-                                  det.target_lat, det.target_lon)
-            range_m = haversine_m(obs.self.lat, obs.self.lon,
-                                  det.target_lat, det.target_lon)
+            bearing = bearing_rad(
+                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
+            )
+            range_m = haversine_m(
+                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
+            )
             if not self._ekf.is_initialized():
-                self._ekf.initialize(obs.self.lat, obs.self.lon,
-                                     bearing, range_m)
+                self._ekf.initialize(obs.self.lat, obs.self.lon, bearing, range_m)
             else:
                 self._ekf.predict(dt)
                 self._ekf.update_bearing(obs.self.lat, obs.self.lon, bearing)
@@ -331,19 +354,28 @@ class MySearchTrackAgent(SearchTrackAgent):
         if self._ekf.is_initialized():
             est_lat, est_lon = self._ekf.position_wgs84()
             pan, tilt = compute_gimbal_angles(
-                obs.self.lat, obs.self.lon, obs.self.alt,
-                est_lat, est_lon,
+                obs.self.lat,
+                obs.self.lon,
+                obs.self.alt,
+                est_lat,
+                est_lon,
             )
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
 
             ve, vn = self._ekf.velocity_mps()
             lead_lat, lead_lon = compute_lead_point(
-                est_lat, est_lon, ve, vn, _LEAD_TIME_S,
+                est_lat,
+                est_lon,
+                ve,
+                vn,
+                _LEAD_TIME_S,
             )
-            cmds.append(fly_to(lead_lat, lead_lon,
-                               speed=_TRACK_SPEED,
-                               loiter_radius=_LOITER_RADIUS))
+            cmds.append(
+                fly_to(
+                    lead_lat, lead_lon, speed=_TRACK_SPEED, loiter_radius=_LOITER_RADIUS
+                )
+            )
 
             if self._sim_time - self._last_report_time >= _REPORT_INTERVAL:
                 cmds.append(report_target(est_lat, est_lon))
@@ -355,7 +387,7 @@ class MySearchTrackAgent(SearchTrackAgent):
 
     # ── LOST：丢失恢复 → 重回搜索 ──────────────────────────────────────
 
-    def _do_lost(self, obs: SearchTrackObs, dt: float) -> List[Command]:
+    def _do_lost(self, obs: SearchTrackObs, dt: float) -> list[Command]:
         # 丢失后重新进入搜索模式
         self._state = State.SEARCH
         self._wp_idx = 0  # 从螺旋起点重新搜索

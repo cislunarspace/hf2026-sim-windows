@@ -7,19 +7,23 @@
   - 缺失观测容错
   - 速度估计方向
 """
+
 import math
+
 import pytest
 
 try:
     from algorithms.estimation.ekf import BearingOnlyEKF
     from algorithms.estimation.geometry import (
-        haversine_m, bearing_rad, wgs84_to_local, local_to_wgs84,
+        bearing_rad,
+        haversine_m,
     )
 except ImportError:
     pytest.skip("rust_core.ekf 尚未实现，跳过测试", allow_module_level=True)
 
 
 # ── 辅助函数 ────────────────────────────────────────────────────────────
+
 
 def _simulate_detection(uav_lat, uav_lon, target_lat, target_lon):
     """模拟一帧检测：返回 (bearing_rad, range_m)。"""
@@ -29,6 +33,7 @@ def _simulate_detection(uav_lat, uav_lon, target_lat, target_lon):
 
 
 # ── 初始化 ──────────────────────────────────────────────────────────────
+
 
 class TestEKFInit:
     """EKF 初始化测试。"""
@@ -65,6 +70,7 @@ class TestEKFInit:
 
 
 # ── 静止目标收敛 ────────────────────────────────────────────────────────
+
 
 class TestEKFStationaryConvergence:
     """给静止目标多帧观测，UAV 做螺旋/盘旋运动，位置应收敛、不确定性递减。
@@ -124,6 +130,7 @@ class TestEKFStationaryConvergence:
 
 # ── 匀速运动跟踪 ────────────────────────────────────────────────────────
 
+
 class TestEKFMovingTarget:
     """匀速运动目标跟踪测试。UAV 也在运动（模拟真实跟踪场景）。"""
 
@@ -163,7 +170,7 @@ class TestEKFMovingTarget:
         assert error_m < 80.0, f"运动目标跟踪误差 {error_m:.1f}m > 80m"
 
         # 速度估计应指向东（v_east > 0）
-        ve, vn = ekf.velocity_mps()
+        ve, _vn = ekf.velocity_mps()
         assert ve > 0.5, f"v_east={ve:.1f}，应 > 0.5（向东）"
 
     def test_speed_estimate_reasonable(self):
@@ -189,11 +196,13 @@ class TestEKFMovingTarget:
             ekf.update_bearing(uav_lat, origin_lon, b)
 
         speed = ekf.speed_mps()
-        assert 0.3 * true_speed < speed < 3.0 * true_speed, \
+        assert 0.3 * true_speed < speed < 3.0 * true_speed, (
             f"速度估计 {speed:.1f} m/s 偏离真实 {true_speed} m/s 过多"
+        )
 
 
 # ── 缺失观测 ────────────────────────────────────────────────────────────
+
 
 class TestEKFMissingObservation:
     """缺失观测时 predict-only 不崩溃，协方差增长。"""
@@ -254,6 +263,7 @@ class TestEKFMissingObservation:
 
 # ── is_converged ────────────────────────────────────────────────────────
 
+
 class TestEKFConverged:
     def test_not_converged_initially(self):
         ekf = BearingOnlyEKF(27.0, 125.0)
@@ -278,5 +288,6 @@ class TestEKFConverged:
             ekf.predict(dt)
             ekf.update_bearing(uav_lat, uav_lon, b)
 
-        assert ekf.is_converged(30.0), \
+        assert ekf.is_converged(30.0), (
             f"150 帧后应收敛到 30m 以内，当前不确定性 {ekf.position_uncertainty_m():.1f}m"
+        )

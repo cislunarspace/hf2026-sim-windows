@@ -6,9 +6,10 @@
 3. 模型概率（匀速场景 CV 主导、转弯场景 CT 主导）
 4. 与单模型 EKF 的精度对比（转弯场景）
 """
+
 import math
-import pytest
-from algorithms.estimation.ekf import ImmFilter, BearingOnlyEKF
+
+from algorithms.estimation.ekf import BearingOnlyEKF, ImmFilter
 
 # ── 基准坐标（北京附近） ────────────────────────────────────────────────
 ORIGIN_LAT = 40.0
@@ -41,6 +42,7 @@ class TestImmLifecycle:
         lat, lon = imm.position_wgs84()
         # 位置应在 origin 正东约 1000m
         from algorithms.estimation.geometry import haversine_m
+
         dist = haversine_m(ORIGIN_LAT, ORIGIN_LON, lat, lon)
         assert 900 < dist < 1100
 
@@ -103,7 +105,9 @@ class TestImmBearingUpdate:
             bearing = math.atan2(de, dn)
             # 将 UAV 的局部位置转回 WGS84
             uav_lat = ORIGIN_LAT
-            uav_lon = ORIGIN_LON + uav_e / (math.cos(math.radians(ORIGIN_LAT)) * 6_371_000.0) * (180 / math.pi)
+            uav_lon = ORIGIN_LON + uav_e / (
+                math.cos(math.radians(ORIGIN_LAT)) * 6_371_000.0
+            ) * (180 / math.pi)
             imm.update_bearing(uav_lat, uav_lon, bearing)
 
         u = imm.position_uncertainty_m()
@@ -205,9 +209,12 @@ class TestImmVsEKF:
             ekf_lat, ekf_lon = ekf.position_wgs84()
 
             from algorithms.estimation.geometry import haversine_m
+
             # 真实位置的 WGS84
             true_lat = origin_lat + true_n / 6_371_000.0 * (180 / math.pi)
-            true_lon = origin_lon + true_e / (math.cos(math.radians(origin_lat)) * 6_371_000.0) * (180 / math.pi)
+            true_lon = origin_lon + true_e / (
+                math.cos(math.radians(origin_lat)) * 6_371_000.0
+            ) * (180 / math.pi)
 
             imm_err = haversine_m(true_lat, true_lon, imm_lat, imm_lon)
             ekf_err = haversine_m(true_lat, true_lon, ekf_lat, ekf_lon)

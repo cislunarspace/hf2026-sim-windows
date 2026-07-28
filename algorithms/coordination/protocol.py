@@ -5,8 +5,8 @@
 
 最多 2 条目标/消息。与 baseline coop_distributed 格式兼容。
 """
+
 from dataclasses import dataclass
-from typing import List
 
 _MAX_PAYLOAD_BYTES = 50
 
@@ -17,11 +17,12 @@ VALID_STATUSES = frozenset(range(3))
 @dataclass
 class TargetInfo:
     """单条目标信息。"""
-    type: str        # 'T'=真目标, 'D'=诱饵, 'A'=认领, 'J'=干扰
-    target_id: int   # 0-255
-    lat: float       # WGS84 纬度
-    lon: float       # WGS84 经度
-    speed: int = 0   # 0-250 km/h
+
+    type: str  # 'T'=真目标, 'D'=诱饵, 'A'=认领, 'J'=干扰
+    target_id: int  # 0-255
+    lat: float  # WGS84 纬度
+    lon: float  # WGS84 经度
+    speed: int = 0  # 0-250 km/h
     confidence: int = 0  # 0-100 %
     status: int = 0  # 0=发现, 1=确认, 2=认领
 
@@ -34,7 +35,7 @@ class TargetInfo:
             raise ValueError(f"无效状态: {self.status}，应为 {VALID_STATUSES}")
 
 
-def encode_targets(targets: List[TargetInfo]) -> str:
+def encode_targets(targets: list[TargetInfo]) -> str:
     """编码目标列表为 ASCII 字符串（≤50 bytes）。
 
     格式: "T:lat,lon;D:lat,lon"  分号分隔，与 baseline 兼容。
@@ -56,7 +57,7 @@ def encode_targets(targets: List[TargetInfo]) -> str:
     return payload
 
 
-def decode_targets(payload: str) -> List[TargetInfo]:
+def decode_targets(payload: str) -> list[TargetInfo]:
     """解码 ASCII 字符串为目标列表。"""
     if not payload:
         return []
@@ -72,10 +73,14 @@ def decode_targets(payload: str) -> List[TargetInfo]:
             if len(t_type) != 1 or t_type not in VALID_TYPES:
                 continue
             lat_str, lon_str = coords.split(",", 1)
-            targets.append(TargetInfo(
-                type=t_type, target_id=0,
-                lat=float(lat_str), lon=float(lon_str),
-            ))
+            targets.append(
+                TargetInfo(
+                    type=t_type,
+                    target_id=0,
+                    lat=float(lat_str),
+                    lon=float(lon_str),
+                )
+            )
         except (ValueError, IndexError):
             continue
 
@@ -83,6 +88,7 @@ def decode_targets(payload: str) -> List[TargetInfo]:
 
 
 # ── 便捷函数（与 baseline 格式兼容）────────────────────────────────────
+
 
 def encode_announce(lat: float, lon: float) -> str:
     """编码 announce 消息："A:lat,lon"（确认真目标，需要僚机）。"""

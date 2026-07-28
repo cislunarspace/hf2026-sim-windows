@@ -11,8 +11,8 @@
     # partitions[0]["center"] → 该 UAV 搜索中心
     # partitions[0]["radius_m"] → 建议搜索半径
 """
+
 import math
-from typing import Dict, List, Tuple
 
 _EARTH_R = 6_371_000.0
 
@@ -22,8 +22,7 @@ def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp = math.radians(lat2 - lat1)
     dl = math.radians(lon2 - lon1)
-    a = (math.sin(dp / 2) ** 2
-         + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * _EARTH_R * math.asin(math.sqrt(a))
 
 
@@ -35,8 +34,8 @@ def _latlon_to_local(lat: float, lon: float, ref_lat: float, ref_lon: float):
 
 
 def nearest_seed(
-    point: Tuple[float, float],
-    seeds: List[Tuple[float, float]],
+    point: tuple[float, float],
+    seeds: list[tuple[float, float]],
 ) -> int:
     """返回离 point 最近的 seed 索引（欧氏距离，局部坐标）。"""
     lat, lon = point
@@ -55,10 +54,10 @@ def nearest_seed(
 
 
 def voronoi_partition(
-    seeds: List[Tuple[float, float]],
-    bbox: Tuple[Tuple[float, float], Tuple[float, float]],
+    seeds: list[tuple[float, float]],
+    bbox: tuple[tuple[float, float], tuple[float, float]],
     grid_n: int = 50,
-) -> List[Dict]:
+) -> list[dict]:
     """Voronoi 分区：根据 UAV 位置划分搜索区域。
 
     Args:
@@ -116,7 +115,9 @@ def voronoi_partition(
             avg_dn = sdn / cnt
             # 局部坐标 → WGS84
             center_lat = ref_lat + avg_dn / (_EARTH_R * math.pi / 180)
-            center_lon = ref_lon + avg_de / (_EARTH_R * math.cos(math.radians(ref_lat)) * math.pi / 180)
+            center_lon = ref_lon + avg_de / (
+                _EARTH_R * math.cos(math.radians(ref_lat)) * math.pi / 180
+            )
         else:
             center_lat, center_lon = seeds[i]
 
@@ -124,10 +125,12 @@ def voronoi_partition(
         # 等效圆半径
         radius_m = math.sqrt(area_km2 * 1e6 / math.pi) if area_km2 > 0 else 100.0
 
-        results.append({
-            "center": (center_lat, center_lon),
-            "radius_m": radius_m,
-            "area_km2": area_km2,
-        })
+        results.append(
+            {
+                "center": (center_lat, center_lon),
+                "radius_m": radius_m,
+                "area_km2": area_km2,
+            }
+        )
 
     return results

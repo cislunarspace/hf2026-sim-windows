@@ -3,8 +3,6 @@
 待讨论：高度规避 vs 水平绕行 vs 混合（根据赛题确定）。
 """
 
-from typing import Tuple
-
 
 def compute_avoidance_vector(
     uav_lat: float,
@@ -13,7 +11,7 @@ def compute_avoidance_vector(
     threat_lat: float,
     threat_lon: float,
     threat_radius_m: float,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """计算规避方向向量（east, north 分量，单位米）。
 
     Args:

@@ -2,6 +2,7 @@
 
 根据 UAV 和目标的位置，计算云台的 pan（方位角）和 tilt（俯仰角）。
 """
+
 import math
 
 from algorithms.estimation.geometry import bearing_rad, haversine_m

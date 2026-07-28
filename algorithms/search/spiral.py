@@ -3,8 +3,8 @@
 从给定中心点生成螺旋航点序列，用于区域搜索。
 螺距（相邻圈间距）由相机 FOV 覆盖宽度决定。
 """
+
 import math
-from typing import List, Tuple
 
 from algorithms.estimation.geometry import destination_point
 
@@ -18,7 +18,7 @@ def generate_spiral(
     radius_m: float,
     pitch_m: float,
     start_angle_rad: float = 0.0,
-) -> List[Tuple[float, float]]:
+) -> list[tuple[float, float]]:
     """生成阿基米德螺旋航点序列。
 
     Args:
@@ -36,7 +36,7 @@ def generate_spiral(
     if radius_m <= 0:
         raise ValueError(f"radius_m 必须 > 0，收到 {radius_m}")
 
-    waypoints: List[Tuple[float, float]] = []
+    waypoints: list[tuple[float, float]] = []
 
     # 阿基米德螺旋：r = b * θ，b = pitch / (2π)
     b = pitch_m / (2.0 * math.pi)
