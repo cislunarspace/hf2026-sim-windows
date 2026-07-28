@@ -14,20 +14,26 @@ Scenario-specific bits:
   * inject_startup: activate each target via A* navigation
     (replaces original set_trajectory waypoint playback with A* path planning)
 """
+
 from __future__ import annotations
 
 import json
 import math
 import sys
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from ...core.observation import (
-    AreaSpec,
     ApproxZoneSpec,
+    AreaSpec,
     MissionBriefing,
 )
-from ...core.runner import RunnerBase, ScenarioConfig, read_weather, resolve_scenario_seed
+from ...core.runner import (
+    RunnerBase,
+    ScenarioConfig,
+    read_weather,
+    resolve_scenario_seed,
+)
 from ...core.scoring import ScoringProfile, profile_adversarial_swarm_search
 from ...core.world_state import WorldState
 
@@ -35,12 +41,15 @@ from ...core.world_state import WorldState
 # 举办方可调此常量（改这一处即可），选手不可通过 CLI/SDK 修改。
 DEFAULT_K = 3
 from .._astar_navigator import (
-    inject_astar_target, inject_astar_decoy, assign_routes, _build_waypoints,
+    _build_waypoints,
+    assign_routes,
+    count_route_segments,
+    inject_astar_decoy,
+    inject_astar_target,
     inject_startup_concurrent,
-    make_route_progress_cb, count_route_segments,
+    make_route_progress_cb,
     publish_regenerate_zones,
 )
-
 
 # zone kinds that are static and pre-match-known → allowed in briefing
 _STATIC_ZONE_KINDS = {"air_defense", "comm_jam_static", "no_fly"}
@@ -55,8 +64,13 @@ def _to_approx_zone(z) -> ApproxZoneSpec:
     """精确多边形 → 近似 bbox（外扩 20%）+ 面积。"""
     poly = z.polygon
     if not poly:
-        return ApproxZoneSpec(kind=z.kind, bbox=((0.0, 0.0), (0.0, 0.0)),
-                              area_m2=0.0, alt_min=z.alt_min, alt_max=z.alt_max)
+        return ApproxZoneSpec(
+            kind=z.kind,
+            bbox=((0.0, 0.0), (0.0, 0.0)),
+            area_m2=0.0,
+            alt_min=z.alt_min,
+            alt_max=z.alt_max,
+        )
     lats = [p[0] for p in poly]
     lons = [p[1] for p in poly]
     lat_min, lat_max = min(lats), max(lats)
@@ -66,8 +80,9 @@ def _to_approx_zone(z) -> ApproxZoneSpec:
     dlon = (lon_max - lon_min) * 0.2
     bbox = ((lat_min - dlat, lon_min - dlon), (lat_max + dlat, lon_max + dlon))
     area = _polygon_area_m2(poly)
-    return ApproxZoneSpec(kind=z.kind, bbox=bbox, area_m2=area,
-                          alt_min=z.alt_min, alt_max=z.alt_max)
+    return ApproxZoneSpec(
+        kind=z.kind, bbox=bbox, area_m2=area, alt_min=z.alt_min, alt_max=z.alt_max
+    )
 
 
 def _polygon_area_m2(poly) -> float:
@@ -79,36 +94,37 @@ def _polygon_area_m2(poly) -> float:
     ref_lat = sum(lats) / len(lats)
     dlat = max(lats) - min(lats)
     dlon = max(lons) - min(lons)
-    return (dlat * 111320.0 * dlon * 111320.0
-            * max(0.1, math.cos(math.radians(ref_lat))))
+    return dlat * 111320.0 * dlon * 111320.0 * max(0.1, math.cos(math.radians(ref_lat)))
 
 
 class AdversarialSwarmRunner(RunnerBase):
     scenario_name = "adversarial_swarm"
-    controllable_types = {"uav"}
+    controllable_types: set[str] = frozenset({"uav"})
 
     def __init__(self, cfg: ScenarioConfig, agent_cls, log=print) -> None:
         super().__init__(cfg, log)
         self.agent_cls = agent_cls
         self._scenario_cfg = self._load_scenario(cfg.scenario_path)
         self._initial_alive: int | None = None
-        self._approx_zones: Tuple[ApproxZoneSpec, ...] | None = None
+        self._approx_zones: tuple[ApproxZoneSpec, ...] | None = None
         # _approximate_zones_cache 的签名缓存:zones 不变→命中,变了→刷新。
         # 防止 briefing 永久冻结在 init() 阶段的临时 air_defense 上。
         self._approx_zones_sig: str | None = None
         # uid → 选定路线名（prepare_scenario 选路时记录，inject_startup 用）
-        self._route_assignment: Dict[str, str] = {}
+        self._route_assignment: dict[str, str] = {}
 
     # ── briefing ──────────────────────────────────────────────────────
 
-    def build_briefing(self, world_state: WorldState,
-                       entity_uid: str) -> MissionBriefing:
+    def build_briefing(
+        self, world_state: WorldState, entity_uid: str
+    ) -> MissionBriefing:
         return MissionBriefing(
             self_uid=entity_uid,
             fleet_size=len(world_state.uavs),
-            mission_area=AreaSpec(lat_min=26.95, lat_max=27.05,
-                                  lon_min=124.95, lon_max=125.05),
-            known_threats=(),   # 精确多边形不再暴露（C3 改用 approximate_zones）
+            mission_area=AreaSpec(
+                lat_min=26.95, lat_max=27.05, lon_min=124.95, lon_max=125.05
+            ),
+            known_threats=(),  # 精确多边形不再暴露（C3 改用 approximate_zones）
             target_count=len(world_state.targets),
             approximate_zones=self._approximate_zones_cache(world_state),
             params=self._curated_params(),
@@ -118,8 +134,12 @@ class AdversarialSwarmRunner(RunnerBase):
         """白名单 params：只放非真值、非精确多边形的参数。"""
         p = {
             "fleet_size": len(self._scenario_cfg.get("entities", [])),
-            "mission_area": {"lat_min": 26.95, "lat_max": 27.05,
-                             "lon_min": 124.95, "lon_max": 125.05},
+            "mission_area": {
+                "lat_min": 26.95,
+                "lat_max": 27.05,
+                "lon_min": 124.95,
+                "lon_max": 125.05,
+            },
         }
         # 动态干扰区统计参数（不含位置）
         for z in self._scenario_cfg.get("zones", []):
@@ -133,7 +153,7 @@ class AdversarialSwarmRunner(RunnerBase):
                 break
         return p
 
-    def _approximate_zones_cache(self, ws: WorldState) -> Tuple[ApproxZoneSpec, ...]:
+    def _approximate_zones_cache(self, ws: WorldState) -> tuple[ApproxZoneSpec, ...]:
         """精确多边形→近似 bbox+面积，外扩20%。动态干扰区不进。
 
         缓存语义:按 ws.zones 的"签名"缓存。同一份 zones 不重算(避免
@@ -171,18 +191,19 @@ class AdversarialSwarmRunner(RunnerBase):
 
     # ── scoring ───────────────────────────────────────────────────────
 
-    def build_scoring(self, world_state: WorldState
-                      ) -> Tuple[ScoringProfile, set]:
+    def build_scoring(self, world_state: WorldState) -> tuple[ScoringProfile, set]:
         # initial fleet size (score_extras 用)；build_scoring 只调一次，在此固定。
         if self._initial_alive is None:
             self._initial_alive = len(world_state.alive_uavs)
         profile = profile_adversarial_swarm_search(
-            duration_s=self.cfg.duration_s, K=DEFAULT_K)
+            duration_s=self.cfg.duration_s, K=DEFAULT_K
+        )
         true_targets = set(world_state.targets.keys())
         return profile, true_targets
 
-    def score_extras(self, world_state: WorldState,
-                     destroyed_uids: set) -> Dict[str, Any]:
+    def score_extras(
+        self, world_state: WorldState, destroyed_uids: set
+    ) -> dict[str, Any]:
         alive = len(world_state.alive_uavs)
         total = self._initial_alive or max(1, len(world_state.uavs))
         return {"alive_rate": alive / max(1, total)}
@@ -204,8 +225,10 @@ class AdversarialSwarmRunner(RunnerBase):
         选定的路线名记到 _route_assignment，inject_startup 按名取路。
         """
         import random as _random
-        seed = resolve_scenario_seed(getattr(self.cfg, "seed", 0) or 0,
-                                     getattr(self, "_scenario_cfg", None))
+
+        seed = resolve_scenario_seed(
+            getattr(self.cfg, "seed", 0) or 0, getattr(self, "_scenario_cfg", None)
+        )
         self.cfg.seed = seed
         # 真小车 RNG：seed>0 种子化（确定），seed==0 未种子化（随机）。
         rng = _random.Random(seed) if seed > 0 else _random.Random()
@@ -217,26 +240,29 @@ class AdversarialSwarmRunner(RunnerBase):
         decoy_routes_path = str(repo_root / "config" / "random_routes_20.json")
 
         ents = self._scenario_cfg.get("entities", [])
-        n_targets = sum(1 for e in ents
-                        if e.get("type") in ("TargetVehicle", "ground_vehicle"))
+        n_targets = sum(
+            1 for e in ents if e.get("type") in ("TargetVehicle", "ground_vehicle")
+        )
         n_decoys = sum(1 for e in ents if e.get("type") == "DecoyVehicle")
         # 真小车：seed 驱动（确定/随机）；诱饵：永远 seed=0 随机。
-        target_routes = assign_routes(target_routes_path, n_targets,
-                                      seed=seed, rng=rng)
-        decoy_routes = assign_routes(decoy_routes_path, n_decoys,
-                                     seed=0, rng=decoy_rng)
+        target_routes = assign_routes(target_routes_path, n_targets, seed=seed, rng=rng)
+        decoy_routes = assign_routes(decoy_routes_path, n_decoys, seed=0, rng=decoy_rng)
 
         target_idx = 0
         decoy_idx = 0
         for ent in ents:
             etype = ent.get("type")
             if etype in ("TargetVehicle", "ground_vehicle"):
-                route = (target_routes[target_idx]
-                         if target_idx < len(target_routes) else None)
+                route = (
+                    target_routes[target_idx]
+                    if target_idx < len(target_routes)
+                    else None
+                )
                 target_idx += 1
             elif etype == "DecoyVehicle":
-                route = (decoy_routes[decoy_idx]
-                         if decoy_idx < len(decoy_routes) else None)
+                route = (
+                    decoy_routes[decoy_idx] if decoy_idx < len(decoy_routes) else None
+                )
                 decoy_idx += 1
             else:
                 continue
@@ -255,9 +281,11 @@ class AdversarialSwarmRunner(RunnerBase):
             traj = ent.get("components", {}).get("trajectory", {})
             traj.setdefault("params", {})["waypoints"] = []
             self._route_assignment[uid] = route.get("Name", "")
-            self.log(f"[adversarial_swarm] 实体 {uid} ({etype}) 起点设为路线 "
-                     f"'{route.get('Name', '')}' 的 Start "
-                     f"({start['lat']:.6f}, {start['lon']:.6f})")
+            self.log(
+                f"[adversarial_swarm] 实体 {uid} ({etype}) 起点设为路线 "
+                f"'{route.get('Name', '')}' 的 Start "
+                f"({start['lat']:.6f}, {start['lon']:.6f})"
+            )
 
     def inject_startup(self, client, first: WorldState) -> None:
         """Activate each target and decoy via A* navigation (并发).
@@ -267,6 +295,7 @@ class AdversarialSwarmRunner(RunnerBase):
         """
         import os
         import random as _random
+
         seed = getattr(self.cfg, "seed", 0) or 0
 
         # runner.py 在 competition/sdk/scenarios/adversarial_swarm/ 下,
@@ -283,8 +312,9 @@ class AdversarialSwarmRunner(RunnerBase):
         }
         entities = self._scenario_cfg.get("entities", [])
         # 合计所有可注入实体的 A* 段总数 → 进度回调的分母。
-        total_segs = count_route_segments(entities, routes_by_type,
-                                          self._route_assignment)
+        total_segs = count_route_segments(
+            entities, routes_by_type, self._route_assignment
+        )
         # 构造线程安全的段级进度回调 (total_segs<=0 时为 no-op)。
         progress_cb = make_route_progress_cb(client, total_segs, log=self.log)
 
@@ -297,26 +327,34 @@ class AdversarialSwarmRunner(RunnerBase):
             local_rng = _random.Random(local_seed)
             if etype in ("TargetVehicle", "ground_vehicle"):
                 inject_astar_target(
-                    client=client, entity=ent,
+                    client=client,
+                    entity=ent,
                     routes_path=target_routes_path,
-                    rng=local_rng, log=self.log,
+                    rng=local_rng,
+                    log=self.log,
                     route_name=route_name,
                     progress_cb=progress_cb,
                 )
             elif etype == "DecoyVehicle":
                 inject_astar_decoy(
-                    client=client, entity=ent,
+                    client=client,
+                    entity=ent,
                     routes_path=decoy_routes_path,
                     decoy_speed=5.0,
-                    rng=local_rng, log=self.log,
+                    rng=local_rng,
+                    log=self.log,
                     route_name=route_name,
                     progress_cb=progress_cb,
                 )
 
         workers = int(os.environ.get("OPENSIM_INJECT_WORKERS", "8"))
         inject_startup_concurrent(
-            client, self._scenario_cfg.get("entities", []),
-            inject_fn=_inject_one, max_workers=workers, log=self.log)
+            client,
+            self._scenario_cfg.get("entities", []),
+            inject_fn=_inject_one,
+            max_workers=workers,
+            log=self.log,
+        )
 
         # 所有靶标车/诱饵的 set_trajectory 已下发后,通知引擎基于注入后的真实
         # 路线重配静态 zone(击毁区/静态干扰区)。init() 阶段生成的 zone 拿到的
@@ -330,21 +368,38 @@ class AdversarialSwarmRunner(RunnerBase):
             # utf-8-sig 容忍 UTF-8 BOM(见 search_track/runner.py 同名方法注释)。
             return json.loads(Path(path).read_text(encoding="utf-8-sig"))
         except Exception as e:
-            print(f"[{self.scenario_name}] WARNING: failed to load scenario "
-                  f"{path}: {e!r}", file=sys.stderr, flush=True)
+            print(
+                f"[{self.scenario_name}] WARNING: failed to load scenario "
+                f"{path}: {e!r}",
+                file=sys.stderr,
+                flush=True,
+            )
             return {}
 
 
-def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
-        start_sim: bool = True, output_dir: str = "output",
-        host: str = "127.0.0.1", port: int = 6379, dry_run: bool = False,
-        quiet: bool = False, sim_binary: str | None = None,
-        seed: int = 0, visualize: bool = False, viz_dir: str | None = None,
-        open_browser: bool = True,
-        mode: str = "train", photo_mode: str = "auto",
-        photo_enabled: bool | None = None,
-        accuracy: float = 0.85, noise_sigma_m: float = 50.0,
-        yolo_model_path: str = "") -> dict:
+def run(
+    agent_cls,
+    *,
+    duration: float = 600.0,
+    scenario: str | None = None,
+    start_sim: bool = True,
+    output_dir: str = "output",
+    host: str = "127.0.0.1",
+    port: int = 6379,
+    dry_run: bool = False,
+    quiet: bool = False,
+    sim_binary: str | None = None,
+    seed: int = 0,
+    visualize: bool = False,
+    viz_dir: str | None = None,
+    open_browser: bool = True,
+    mode: str = "train",
+    photo_mode: str = "auto",
+    photo_enabled: bool | None = None,
+    accuracy: float = 0.85,
+    noise_sigma_m: float = 50.0,
+    yolo_model_path: str = "",
+) -> dict:
     """Convenience entry point. ``seed`` (>0) randomizes the scene + zones.
 
     spec 032 perception params (与赛题一 search_track.run() 完全一致):
@@ -354,21 +409,30 @@ def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
       * ``accuracy`` / ``noise_sigma_m`` — AccuracySimulator params
       * ``yolo_model_path`` — YOLO model path (eval mode)
     """
-    from . import DEFAULT_SCENARIO_JSON
     from competition.sdk.core.runner import resolve_photo_mode
+
+    from . import DEFAULT_SCENARIO_JSON
+
     scenario_path = scenario or DEFAULT_SCENARIO_JSON
     cfg = ScenarioConfig(
         scenario_name="adversarial_swarm",
         scenario_path=scenario_path,
         duration_s=duration,
-        redis_host=host, redis_port=port,
-        output_dir=output_dir, sim_binary=sim_binary,
-        start_sim_flag=start_sim, dry_run=dry_run, quiet=quiet,
-        seed=seed, visualize=visualize, viz_dir=viz_dir,
+        redis_host=host,
+        redis_port=port,
+        output_dir=output_dir,
+        sim_binary=sim_binary,
+        start_sim_flag=start_sim,
+        dry_run=dry_run,
+        quiet=quiet,
+        seed=seed,
+        visualize=visualize,
+        viz_dir=viz_dir,
         open_browser=open_browser,
         run_mode=mode,
         photo_mode=resolve_photo_mode(photo_mode, photo_enabled),
-        accuracy=accuracy, noise_sigma_m=noise_sigma_m,
+        accuracy=accuracy,
+        noise_sigma_m=noise_sigma_m,
         yolo_model_path=yolo_model_path,
         weather=read_weather(scenario_path),
     )

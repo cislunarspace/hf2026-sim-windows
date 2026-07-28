@@ -1,4 +1,5 @@
 """Spec 019 US5 (FR-014, FR-015, FR-016) — ThreatIntel tests."""
+
 from __future__ import annotations
 
 import sys
@@ -10,7 +11,7 @@ EXAMPLE_DIR = HERE.parent
 if str(EXAMPLE_DIR) not in sys.path:
     sys.path.insert(0, str(EXAMPLE_DIR))
 
-from search_track.threat_intel import ThreatIntel, SuspectThreatPoint  # noqa: E402
+from search_track.threat_intel import ThreatIntel
 
 
 class ThreatIntelBasicTest(unittest.TestCase):

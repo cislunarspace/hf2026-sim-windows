@@ -1,4 +1,5 @@
 """pytest 配置：确保 algorithms/ 和 rust_core 可 import。"""
+
 import sys
 from pathlib import Path
 

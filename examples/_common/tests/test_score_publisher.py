@@ -11,6 +11,7 @@ fake client that records ``publish`` calls, then verify:
   * graceful failure when Redis is unreachable (no exception escapes)
   * idempotent ``close()``
 """
+
 from __future__ import annotations
 
 import json
@@ -22,8 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-import examples._common.score_publisher as sp  # noqa: E402
-
+import examples._common.score_publisher as sp
 
 # ── fake redis client ────────────────────────────────────────────────────
 
@@ -154,9 +154,7 @@ class TestPublishDelivery(unittest.TestCase):
         parsed = json.loads(body)
         self.assertEqual(parsed["type"], "score_final")
         self.assertTrue(parsed["final"])
-        self.assertEqual(
-            parsed["evaluation_path"], "output/run_x.evaluation.json"
-        )
+        self.assertEqual(parsed["evaluation_path"], "output/run_x.evaluation.json")
 
     def test_close_calls_underlying_client(self):
         self.publisher.close()

@@ -71,6 +71,7 @@ class EmailService:
         rendered = self.template_engine.render(template, context)
         await self.provider.send(recipient, rendered, **kwargs)
 
+
 # 好
 async def send_welcome_email(user):
     body = f"Welcome {user.name}! Your account is ready."

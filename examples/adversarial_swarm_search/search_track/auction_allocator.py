@@ -29,22 +29,22 @@ Per FR-018:
     `outcome_for()` returns None (deferred).  The higher layer is
     expected to retry on the next tick.
 """
+
 from __future__ import annotations
 
 import enum
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 
 class AllocatorState(str, enum.Enum):
-    PENDING = "pending"   # auction started, no bids yet OR network down
+    PENDING = "pending"  # auction started, no bids yet OR network down
     RESOLVED = "resolved"  # single winner
     CONFLICT = "conflict"  # tie in this round; need re-broadcast
 
 
 @dataclass
 class AuctionMessage:
-    kind: str                 # "bid" | "outcome" | "request_rebroadcast"
+    kind: str  # "bid" | "outcome" | "request_rebroadcast"
     auction_id: str
     round: int
     target_uid: str
@@ -81,11 +81,16 @@ class Bid:
     The bid function is intentionally simple here — production code can
     plug in a richer bid function via `AuctionAllocator.set_bid_fn`.
     """
+
     @staticmethod
-    def default(self_lat: float, self_lon: float,
-                target_lat: float, target_lon: float,
-                current_task_load: int,
-                threat_cost: float) -> float:
+    def default(
+        self_lat: float,
+        self_lon: float,
+        target_lat: float,
+        target_lon: float,
+        current_task_load: int,
+        threat_cost: float,
+    ) -> float:
         # Inverse distance + load penalty + threat penalty
         d = max(1.0, _haversine(self_lat, self_lon, target_lat, target_lon))
         return 1.0 / (d / 1000.0) - 0.1 * current_task_load - 0.5 * threat_cost
@@ -94,6 +99,7 @@ class Bid:
 def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Quick haversine in metres (matches the kernel's approximation)."""
     import math
+
     R = 6_371_000.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp = math.radians(lat2 - lat1)
@@ -166,7 +172,7 @@ class AuctionAllocator:
             return AllocatorState.CONFLICT
         return AllocatorState.RESOLVED
 
-    def outcome_for(self, auction_id: str) -> Optional[AuctionOutcome]:
+    def outcome_for(self, auction_id: str) -> AuctionOutcome | None:
         if auction_id not in self._auctions:
             return None
         if not self._network:
@@ -178,7 +184,7 @@ class AuctionAllocator:
             self._outcomes[auction_id] = out
         return out
 
-    def _resolve_one_(self, auction_id: str) -> Optional[AuctionOutcome]:
+    def _resolve_one_(self, auction_id: str) -> AuctionOutcome | None:
         a = self._auctions[auction_id]
         bids: dict = a["bids"]
         if not bids:

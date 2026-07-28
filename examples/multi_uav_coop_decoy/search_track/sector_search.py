@@ -30,6 +30,7 @@ Geometry (v2 — fast expanding scan)
 All angles are in degrees, bearings are clockwise from north (navigational
 convention), matching ``geometry.bearing_deg``.
 """
+
 from __future__ import annotations
 
 import math
@@ -38,7 +39,9 @@ from dataclasses import dataclass
 # Reuse the same spherical-Earth radius as geometry.haversine_m so the
 # forward/inverse transforms are consistent (R must match).
 from examples.uav_search_track_car.search_track.geometry import (
-    EARTH_RADIUS_M, bearing_deg, haversine_m,
+    EARTH_RADIUS_M,
+    bearing_deg,
+    haversine_m,
 )
 
 
@@ -83,9 +86,7 @@ def destination_point(
     lam1 = math.radians(lon)
     theta = math.radians(bearing_deg_)
     cos_d, sin_d = math.cos(delta), math.sin(delta)
-    phi2 = math.asin(
-        math.sin(phi1) * cos_d + math.cos(phi1) * sin_d * math.cos(theta)
-    )
+    phi2 = math.asin(math.sin(phi1) * cos_d + math.cos(phi1) * sin_d * math.cos(theta))
     lam2 = lam1 + math.atan2(
         math.sin(theta) * sin_d * math.cos(phi1),
         cos_d - math.sin(phi1) * math.sin(phi2),
@@ -101,8 +102,9 @@ def _triangle_wave(phase: float) -> float:
     return 2.0 * p if p < 0.5 else 2.0 * (1.0 - p)
 
 
-def sector_bearing(t: float, uav_index: int, n_uavs: int,
-                   angular_speed_dps: float) -> float:
+def sector_bearing(
+    t: float, uav_index: int, n_uavs: int, angular_speed_dps: float
+) -> float:
     """Absolute bearing (deg, [0,360)) for UAV ``uav_index`` of ``n_uavs``.
 
     Each UAV owns sector ``[lo, hi)`` where ``step = 360/n_uavs``. Its
@@ -161,13 +163,15 @@ def sector_waypoint(
     return lat, lon, p.base_alt
 
 
-def point_bearing_from(lat: float, lon: float,
-                       base_lat: float, base_lon: float) -> float:
+def point_bearing_from(
+    lat: float, lon: float, base_lat: float, base_lon: float
+) -> float:
     """Bearing from base -> point. Helper for in-sector assertions."""
     return bearing_deg(base_lat, base_lon, lat, lon)
 
 
-def point_radius_from(lat: float, lon: float,
-                      base_lat: float, base_lon: float) -> float:
+def point_radius_from(
+    lat: float, lon: float, base_lat: float, base_lon: float
+) -> float:
     """Ground distance (m) from base -> point. Helper for assertions."""
     return haversine_m(base_lat, base_lon, lat, lon)

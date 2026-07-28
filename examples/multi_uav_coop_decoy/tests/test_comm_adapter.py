@@ -1,4 +1,5 @@
 """Tests for 017 comm adapter (FR-007 byte cap + command shapes)."""
+
 from __future__ import annotations
 
 import sys
@@ -12,9 +13,10 @@ for p in (str(REPO_ROOT), str(EXAMPLE_DIR)):
         sys.path.insert(0, p)
 
 import pytest
-
 from search_track.comm_adapter import (
-    CommCommand, PayloadTooLarge, broadcast, send_to,
+    PayloadTooLarge,
+    broadcast,
+    send_to,
 )
 
 

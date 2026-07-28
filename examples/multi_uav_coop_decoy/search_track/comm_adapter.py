@@ -10,11 +10,11 @@ a new CommandTarget enum value — they use the cmd prefix "comm.*" with the
 sender's unique_id. We therefore expose a plain dataclass + to_publish()
 that yields the kernel-side JSON shape directly.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
-
 
 DEFAULT_MAX_BYTES = 50
 
@@ -30,6 +30,7 @@ class CommCommand:
     receiver_uid=None -> broadcast (comm.broadcast)
     receiver_uid=str  -> point-to-point (comm.send)
     """
+
     sender_uid: str
     payload: str
     receiver_uid: str | None = None
@@ -61,15 +62,26 @@ class CommCommand:
         }
 
 
-def broadcast(sender_uid: str, payload: str, *,
-              max_bytes: int = DEFAULT_MAX_BYTES) -> CommCommand:
+def broadcast(
+    sender_uid: str, payload: str, *, max_bytes: int = DEFAULT_MAX_BYTES
+) -> CommCommand:
     """Helper: build a broadcast CommCommand."""
-    return CommCommand(sender_uid=sender_uid, payload=payload,
-                       receiver_uid=None, max_bytes=max_bytes)
+    return CommCommand(
+        sender_uid=sender_uid, payload=payload, receiver_uid=None, max_bytes=max_bytes
+    )
 
 
-def send_to(sender_uid: str, receiver_uid: str, payload: str, *,
-            max_bytes: int = DEFAULT_MAX_BYTES) -> CommCommand:
+def send_to(
+    sender_uid: str,
+    receiver_uid: str,
+    payload: str,
+    *,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+) -> CommCommand:
     """Helper: build a point-to-point CommCommand (FR-003)."""
-    return CommCommand(sender_uid=sender_uid, payload=payload,
-                       receiver_uid=receiver_uid, max_bytes=max_bytes)
+    return CommCommand(
+        sender_uid=sender_uid,
+        payload=payload,
+        receiver_uid=receiver_uid,
+        max_bytes=max_bytes,
+    )

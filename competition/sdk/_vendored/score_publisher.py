@@ -32,12 +32,13 @@ Payload contract (consumed by the front-end ``ScorePanel``):
   ``final=true`` message — used by the example ``run.py`` files in
   their final-block after the control loop exits.
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import time
-from typing import Any, Optional
+from typing import Any
 
 # Channel name is intentionally hard-coded per the feature request:
 # "redis 里的频道时 sim:score". Front-end imports the same constant via
@@ -50,8 +51,8 @@ _log = logging.getLogger(__name__)
 def _build_payload(
     score_dict: dict[str, Any],
     *,
-    sim_time: Optional[float] = None,
-    tick: Optional[int] = None,
+    sim_time: float | None = None,
+    tick: int | None = None,
     final: bool = False,
 ) -> dict[str, Any]:
     """Augment an evaluator score() result with the wire-protocol fields.
@@ -107,8 +108,8 @@ class ScorePublisher:
         self,
         score_dict: dict[str, Any],
         *,
-        sim_time: Optional[float] = None,
-        tick: Optional[int] = None,
+        sim_time: float | None = None,
+        tick: int | None = None,
     ) -> bool:
         """Publish one tick's score. Returns True on success.
 
@@ -122,14 +123,12 @@ class ScorePublisher:
         self,
         score_dict: dict[str, Any],
         *,
-        sim_time: Optional[float] = None,
-        tick: Optional[int] = None,
-        evaluation_path: Optional[str] = None,
+        sim_time: float | None = None,
+        tick: int | None = None,
+        evaluation_path: str | None = None,
     ) -> bool:
         """Publish a single ``final=true`` score frame (end of run)."""
-        payload = _build_payload(
-            score_dict, sim_time=sim_time, tick=tick, final=True
-        )
+        payload = _build_payload(score_dict, sim_time=sim_time, tick=tick, final=True)
         if evaluation_path:
             payload["evaluation_path"] = evaluation_path
         return self._publish_payload(payload)
@@ -152,9 +151,7 @@ class ScorePublisher:
             import redis  # type: ignore
         except ImportError:
             if not self._warned:
-                _log.warning(
-                    "redis-py not installed; ScorePublisher disabled"
-                )
+                _log.warning("redis-py not installed; ScorePublisher disabled")
                 self._warned = True
             return None
         try:
@@ -170,7 +167,9 @@ class ScorePublisher:
                 _log.warning(
                     "ScorePublisher failed to connect to Redis at "
                     "%s:%d (%s); will retry on next publish",
-                    self.host, self.port, e,
+                    self.host,
+                    self.port,
+                    e,
                 )
                 self._warned = True
             self._client = None
@@ -192,7 +191,8 @@ class ScorePublisher:
                 _log.warning(
                     "ScorePublisher publish failed on %s (%s); "
                     "subsequent failures will be silenced",
-                    self.channel, e,
+                    self.channel,
+                    e,
                 )
                 self._warned = True
             # Best-effort: drop the broken client so the next publish

@@ -1,9 +1,8 @@
 """Tests for AlgorithmConfig YAML loader (T013)."""
-import os
-import textwrap
-import pytest
 
-from search_track import config as cfg_mod
+import textwrap
+
+import pytest
 from search_track.config import AlgorithmConfig, from_yaml
 
 
@@ -51,8 +50,6 @@ def test_from_yaml_missing_file():
 
 def test_from_yaml_accepts_dotted_controller(tmp_path):
     p = tmp_path / "alg.yaml"
-    p.write_text(
-        "controller: search_track.fsm_controller.FsmSearchTrackController\n"
-    )
+    p.write_text("controller: search_track.fsm_controller.FsmSearchTrackController\n")
     c = from_yaml(p)
     assert ":" in c.controller

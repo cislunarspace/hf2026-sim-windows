@@ -8,40 +8,52 @@ Wires the SearchTrackAgent into RunnerBase. Scenario-specific bits:
   * inject_startup: activate the target vehicle via A* navigation
     (replaces original set_trajectory waypoint playback with A* path planning)
 """
+
 from __future__ import annotations
 
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from ...core.observation import AreaSpec, MissionBriefing
-from ...core.runner import RunnerBase, ScenarioConfig, read_weather, resolve_scenario_seed
+from ...core.runner import (
+    RunnerBase,
+    ScenarioConfig,
+    resolve_scenario_seed,
+)
 from ...core.scoring import (
-    ScoringProfile, profile_uav_search_track_car,
+    ScoringProfile,
+    profile_uav_search_track_car,
 )
 from ...core.world_state import WorldState
 from .._astar_navigator import (
-    inject_astar_target, assign_routes, _build_waypoints, inject_startup_concurrent,
-    make_route_progress_cb, count_route_segments, publish_regenerate_zones,
+    _build_waypoints,
+    assign_routes,
+    count_route_segments,
+    inject_astar_target,
+    inject_startup_concurrent,
+    make_route_progress_cb,
+    publish_regenerate_zones,
 )
 
 
 class SearchTrackRunner(RunnerBase):
     scenario_name = "search_track"
-    controllable_types = {"uav"}
+    controllable_types: set[str] = frozenset({"uav"})
 
     def __init__(self, cfg: ScenarioConfig, agent_cls, log=print) -> None:
         super().__init__(cfg, log)
         self.agent_cls = agent_cls
         self._scenario_cfg = self._load_scenario(cfg.scenario_path)
         # uid → 选定路线名（prepare_scenario 选路时记录，inject_startup 用）
-        self._route_assignment: Dict[str, str] = {}
+        self._route_assignment: dict[str, str] = {}
 
     # ── briefing ──────────────────────────────────────────────────────
 
-    def build_briefing(self, world_state: WorldState,
-                       entity_uid: str) -> MissionBriefing:
+    def build_briefing(
+        self, world_state: WorldState, entity_uid: str
+    ) -> MissionBriefing:
         area = self._mission_area()
         # C2/C3: 白名单 params，不转储整份 scenario；赛题一给目标初始位置
         target_pos = None
@@ -53,36 +65,36 @@ class SearchTrackRunner(RunnerBase):
                 lon = p.get("initial_longitude")
                 if lat is not None and lon is not None:
                     target_pos = (float(lat), float(lon))
-                tp = (ent.get("components", {}) or {}).get("trajectory", {}).get("params", {}) or {}
+                tp = (ent.get("components", {}) or {}).get("trajectory", {}).get(
+                    "params", {}
+                ) or {}
                 target_speed = float(tp.get("speed", 8.0))
                 break
         return MissionBriefing(
             self_uid=entity_uid,
             fleet_size=1,
             mission_area=area,
-            known_threats=(),   # no threats in this scenario
+            known_threats=(),  # no threats in this scenario
             target_initial_pos=target_pos,
             params={"target_speed": target_speed},
         )
 
     def _mission_area(self) -> AreaSpec | None:
-        sim = self._scenario_cfg.get("simulation", {})
+        self._scenario_cfg.get("simulation", {})
         # scenario.json doesn't carry an explicit area; use a sensible
         # default around the UAV's home (27.0, 125.0).
-        return AreaSpec(lat_min=26.98, lat_max=27.02,
-                        lon_min=124.98, lon_max=125.02)
+        return AreaSpec(lat_min=26.98, lat_max=27.02, lon_min=124.98, lon_max=125.02)
 
     # ── scoring ───────────────────────────────────────────────────────
 
-    def build_scoring(self, world_state: WorldState
-                      ) -> Tuple[ScoringProfile, set]:
-        profile = profile_uav_search_track_car(
-            duration_s=self.cfg.duration_s)
+    def build_scoring(self, world_state: WorldState) -> tuple[ScoringProfile, set]:
+        profile = profile_uav_search_track_car(duration_s=self.cfg.duration_s)
         true_targets = set(world_state.targets.keys())
         return profile, true_targets
 
-    def score_extras(self, world_state: WorldState,
-                     destroyed_uids: set) -> Dict[str, Any]:
+    def score_extras(
+        self, world_state: WorldState, destroyed_uids: set
+    ) -> dict[str, Any]:
         # Overhauled scoring: scenario 1's single "completion" dimension
         # (accumulated in-view time / duration) is computed entirely inside
         # the evaluator from the per-tick UAV→target map, so no extras are
@@ -103,8 +115,10 @@ class SearchTrackRunner(RunnerBase):
         选定的路线名记到 _route_assignment，inject_startup 按名取路。
         """
         import random as _random
-        seed = resolve_scenario_seed(getattr(self.cfg, "seed", 0) or 0,
-                                     getattr(self, "_scenario_cfg", None))
+
+        seed = resolve_scenario_seed(
+            getattr(self.cfg, "seed", 0) or 0, getattr(self, "_scenario_cfg", None)
+        )
         self.cfg.seed = seed
         rng = _random.Random(seed) if seed > 0 else _random.Random()
 
@@ -112,17 +126,20 @@ class SearchTrackRunner(RunnerBase):
         routes_path = str(repo_root / "config" / "points.json")
 
         # 真小车选路：seed>0 确定；seed==0 随机（每次仿真不同）。
-        n_targets = sum(1 for e in self._scenario_cfg.get("entities", [])
-                        if e.get("type") in ("TargetVehicle", "ground_vehicle"))
-        target_routes = assign_routes(routes_path, n_targets,
-                                       seed=seed, rng=rng)
+        n_targets = sum(
+            1
+            for e in self._scenario_cfg.get("entities", [])
+            if e.get("type") in ("TargetVehicle", "ground_vehicle")
+        )
+        target_routes = assign_routes(routes_path, n_targets, seed=seed, rng=rng)
 
         target_idx = 0
         for ent in self._scenario_cfg.get("entities", []):
             if ent.get("type") not in ("TargetVehicle", "ground_vehicle"):
                 continue
-            route = (target_routes[target_idx]
-                     if target_idx < len(target_routes) else None)
+            route = (
+                target_routes[target_idx] if target_idx < len(target_routes) else None
+            )
             target_idx += 1
             if not route:
                 continue
@@ -139,9 +156,11 @@ class SearchTrackRunner(RunnerBase):
             traj = ent.get("components", {}).get("trajectory", {})
             traj.setdefault("params", {})["waypoints"] = []
             self._route_assignment[uid] = route.get("Name", "")
-            self.log(f"[search_track] 实体 {uid} 起点设为路线 "
-                     f"'{route.get('Name', '')}' 的 Start "
-                     f"({start['lat']:.6f}, {start['lon']:.6f})")
+            self.log(
+                f"[search_track] 实体 {uid} 起点设为路线 "
+                f"'{route.get('Name', '')}' 的 Start "
+                f"({start['lat']:.6f}, {start['lon']:.6f})"
+            )
             break  # search_track 只有一个真目标
 
     def inject_startup(self, client, first: WorldState) -> None:
@@ -152,6 +171,7 @@ class SearchTrackRunner(RunnerBase):
         """
         import os
         import random as _random
+
         seed = getattr(self.cfg, "seed", 0) or 0
 
         # runner.py 在 competition/sdk/scenarios/search_track/ 下,
@@ -166,8 +186,9 @@ class SearchTrackRunner(RunnerBase):
         }
         entities = self._scenario_cfg.get("entities", [])
         # 合计所有可注入实体的 A* 段总数 → 进度回调的分母。
-        total_segs = count_route_segments(entities, routes_by_type,
-                                          self._route_assignment)
+        total_segs = count_route_segments(
+            entities, routes_by_type, self._route_assignment
+        )
         # 构造线程安全的段级进度回调 (total_segs<=0 时为 no-op)。
         progress_cb = make_route_progress_cb(client, total_segs, log=self.log)
 
@@ -179,17 +200,23 @@ class SearchTrackRunner(RunnerBase):
                 local_seed = (seed + hash(uid)) & 0xFFFFFFFF if seed > 0 else None
                 local_rng = _random.Random(local_seed)
                 inject_astar_target(
-                    client=client, entity=ent,
+                    client=client,
+                    entity=ent,
                     routes_path=routes_path,
-                    rng=local_rng, log=self.log,
+                    rng=local_rng,
+                    log=self.log,
                     route_name=route_name,
                     progress_cb=progress_cb,
                 )
 
         workers = int(os.environ.get("OPENSIM_INJECT_WORKERS", "8"))
         inject_startup_concurrent(
-            client, self._scenario_cfg.get("entities", []),
-            inject_fn=_inject_one, max_workers=workers, log=self.log)
+            client,
+            self._scenario_cfg.get("entities", []),
+            inject_fn=_inject_one,
+            max_workers=workers,
+            log=self.log,
+        )
 
         # 通知引擎基于注入后的真实路线重配静态 zone(详见 _astar_navigator
         # publish_regenerate_zones 文档)。无 generate 块时为 no-op。
@@ -217,21 +244,38 @@ class SearchTrackRunner(RunnerBase):
             # 引擎报 "no entity" 启动失败)。
             return json.loads(Path(path).read_text(encoding="utf-8-sig"))
         except Exception as e:
-            print(f"[{self.scenario_name}] WARNING: failed to load scenario "
-                  f"{path}: {e!r}", file=sys.stderr, flush=True)
+            print(
+                f"[{self.scenario_name}] WARNING: failed to load scenario "
+                f"{path}: {e!r}",
+                file=sys.stderr,
+                flush=True,
+            )
             return {}
 
 
-def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
-        start_sim: bool = True, output_dir: str = "output",
-        host: str = "127.0.0.1", port: int = 6379, dry_run: bool = False,
-        quiet: bool = False, sim_binary: str | None = None,
-        seed: int = 0, visualize: bool = False, viz_dir: str | None = None,
-        open_browser: bool = True,
-        mode: str = "train", photo_mode: str = "auto",
-        photo_enabled: bool | None = None,
-        accuracy: float = 0.85, noise_sigma_m: float = 50.0,
-        yolo_model_path: str = "") -> dict:
+def run(
+    agent_cls,
+    *,
+    duration: float = 600.0,
+    scenario: str | None = None,
+    start_sim: bool = True,
+    output_dir: str = "output",
+    host: str = "127.0.0.1",
+    port: int = 6379,
+    dry_run: bool = False,
+    quiet: bool = False,
+    sim_binary: str | None = None,
+    seed: int = 0,
+    visualize: bool = False,
+    viz_dir: str | None = None,
+    open_browser: bool = True,
+    mode: str = "train",
+    photo_mode: str = "auto",
+    photo_enabled: bool | None = None,
+    accuracy: float = 0.85,
+    noise_sigma_m: float = 50.0,
+    yolo_model_path: str = "",
+) -> dict:
     """Convenience entry point for players.
 
     ``seed`` (>0) randomizes the scene (target route, and the UAV+target
@@ -245,22 +289,29 @@ def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
       * ``accuracy`` / ``noise_sigma_m`` — AccuracySimulator params
       * ``yolo_model_path`` — YOLO model path (eval mode)
     """
-    from . import DEFAULT_SCENARIO_JSON
     from competition.sdk.core.runner import resolve_photo_mode
+
+    from . import DEFAULT_SCENARIO_JSON
+
     cfg = ScenarioConfig(
         scenario_name="search_track",
         scenario_path=scenario or DEFAULT_SCENARIO_JSON,
         duration_s=duration,
-        redis_host=host, redis_port=port,
+        redis_host=host,
+        redis_port=port,
         output_dir=output_dir,
         sim_binary=sim_binary,
         start_sim_flag=start_sim,
-        dry_run=dry_run, quiet=quiet,
-        seed=seed, visualize=visualize, viz_dir=viz_dir,
+        dry_run=dry_run,
+        quiet=quiet,
+        seed=seed,
+        visualize=visualize,
+        viz_dir=viz_dir,
         open_browser=open_browser,
         run_mode=mode,
         photo_mode=resolve_photo_mode(photo_mode, photo_enabled),
-        accuracy=accuracy, noise_sigma_m=noise_sigma_m,
+        accuracy=accuracy,
+        noise_sigma_m=noise_sigma_m,
         yolo_model_path=yolo_model_path,
     )
     return SearchTrackRunner(cfg, agent_cls).run()

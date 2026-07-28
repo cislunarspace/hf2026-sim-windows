@@ -11,6 +11,7 @@ Tests:
   * FR-021: when a peer re-joins after being marked lost, the new round
     lets the recovered peer re-compete for the same target.
 """
+
 from __future__ import annotations
 
 import sys
@@ -22,17 +23,25 @@ EXAMPLE_DIR = HERE.parent
 if str(EXAMPLE_DIR) not in sys.path:
     sys.path.insert(0, str(EXAMPLE_DIR))
 
-from search_track.auction_allocator import (  # noqa: E402
-    AuctionAllocator, AuctionMessage, AuctionOutcome, Bid,
+from search_track.auction_allocator import (
     AllocatorState,
+    AuctionAllocator,
+    AuctionMessage,
 )
 
 
-def _bid(bidder: str, target: str, value: float,
-         auction_id: str = "a1") -> AuctionMessage:
-    return AuctionMessage(kind="bid", auction_id=auction_id, round=1,
-                          target_uid=target, bidder_uid=bidder,
-                          bid_value=value, n_active_peers=2)
+def _bid(
+    bidder: str, target: str, value: float, auction_id: str = "a1"
+) -> AuctionMessage:
+    return AuctionMessage(
+        kind="bid",
+        auction_id=auction_id,
+        round=1,
+        target_uid=target,
+        bidder_uid=bidder,
+        bid_value=value,
+        n_active_peers=2,
+    )
 
 
 class AuctionAllocatorBasicTest(unittest.TestCase):
@@ -89,12 +98,28 @@ class AuctionAllocatorBasicTest(unittest.TestCase):
         # Round 2 — re-broadcast
         a.start_auction("t1", auction_id="a1", round=2)
         # u2 raises bid
-        a.observe_bid(AuctionMessage(kind="bid", auction_id="a1", round=2,
-                                     target_uid="t1", bidder_uid="u2",
-                                     bid_value=0.95, n_active_peers=2))
-        a.observe_bid(AuctionMessage(kind="bid", auction_id="a1", round=2,
-                                     target_uid="t1", bidder_uid="u1",
-                                     bid_value=0.6, n_active_peers=2))
+        a.observe_bid(
+            AuctionMessage(
+                kind="bid",
+                auction_id="a1",
+                round=2,
+                target_uid="t1",
+                bidder_uid="u2",
+                bid_value=0.95,
+                n_active_peers=2,
+            )
+        )
+        a.observe_bid(
+            AuctionMessage(
+                kind="bid",
+                auction_id="a1",
+                round=2,
+                target_uid="t1",
+                bidder_uid="u1",
+                bid_value=0.6,
+                n_active_peers=2,
+            )
+        )
         out_round2 = a.outcome_for("a1")
         self.assertEqual(out_round2.winner_uid, "u2")
         self.assertAlmostEqual(out_round2.bid_value, 0.95)
@@ -125,12 +150,28 @@ class AuctionAllocatorBasicTest(unittest.TestCase):
         self.assertEqual(out.winner_uid, "u1")
         # u2 (recovered) bids higher in a fresh round
         a.start_auction("t1", auction_id="a1", round=2)
-        a.observe_bid(AuctionMessage(kind="bid", auction_id="a1", round=2,
-                                     target_uid="t1", bidder_uid="u2",
-                                     bid_value=0.95, n_active_peers=2))
-        a.observe_bid(AuctionMessage(kind="bid", auction_id="a1", round=2,
-                                     target_uid="t1", bidder_uid="u1",
-                                     bid_value=0.5, n_active_peers=2))
+        a.observe_bid(
+            AuctionMessage(
+                kind="bid",
+                auction_id="a1",
+                round=2,
+                target_uid="t1",
+                bidder_uid="u2",
+                bid_value=0.95,
+                n_active_peers=2,
+            )
+        )
+        a.observe_bid(
+            AuctionMessage(
+                kind="bid",
+                auction_id="a1",
+                round=2,
+                target_uid="t1",
+                bidder_uid="u1",
+                bid_value=0.5,
+                n_active_peers=2,
+            )
+        )
         out2 = a.outcome_for("a1")
         self.assertEqual(out2.winner_uid, "u2")
         self.assertFalse(out2.conflict)

@@ -19,6 +19,7 @@ The classifier can decide early (before the full window) once the running
 span already exceeds the threshold, so fast targets are classified in well
 under 2 s.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -33,6 +34,7 @@ class DecoyClassifier:
     Feed it ``observe(sim_time, lat, lon)`` each tick the target is detected.
     Read ``decision`` (None until decided) and ``label``.
     """
+
     move_threshold_m: float = 5.0
     min_window_s: float = 1.5
     min_samples: int = 10
@@ -47,10 +49,10 @@ class DecoyClassifier:
     max_jump_m: float = 15.0
     # Samples: list of (sim_time, lat, lon).
     samples: list[tuple[float, float, float]] = field(default_factory=list)
-    decision: str | None = None        # "real" | "decoy" | None
-    decided_at: float | None = None    # sim_time when decided
-    started_at: float | None = None    # sim_time of first sample
-    _max_jump: float = 0.0             # max per-tick displacement seen
+    decision: str | None = None  # "real" | "decoy" | None
+    decided_at: float | None = None  # sim_time when decided
+    started_at: float | None = None  # sim_time of first sample
+    _max_jump: float = 0.0  # max per-tick displacement seen
 
     def reset(self) -> None:
         self.samples.clear()
@@ -59,8 +61,9 @@ class DecoyClassifier:
         self.started_at = None
         self._max_jump = 0.0
 
-    def observe(self, sim_time: float, lat: float | None,
-                lon: float | None) -> str | None:
+    def observe(
+        self, sim_time: float, lat: float | None, lon: float | None
+    ) -> str | None:
         """Record one detected-frame sample and maybe decide.
 
         Returns the decision ("real"/"decoy") once made, else None. After a
@@ -86,8 +89,11 @@ class DecoyClassifier:
         # Early decision: a SMOOTH, moving target is REAL before the full
         # window elapses. (Jumping/mixed streams do NOT qualify — they are
         # the nearest-target switching between target and decoys.)
-        if (span >= self.move_threshold_m and len(self.samples) >= self.min_samples
-                and smooth):
+        if (
+            span >= self.move_threshold_m
+            and len(self.samples) >= self.min_samples
+            and smooth
+        ):
             self.decision = "real"
             self.decided_at = sim_time
             return self.decision
@@ -114,7 +120,7 @@ class DecoyClassifier:
         mid_lat = sum(lats) / len(lats)
         lon_span_m = (max(lons) - min(lons)) * (111320.0 * _cos_safe(mid_lat))
         # Diagonal of the bounding box = the worst-case pairwise distance.
-        return (lat_span_m ** 2 + lon_span_m ** 2) ** 0.5
+        return (lat_span_m**2 + lon_span_m**2) ** 0.5
 
     @property
     def time_to_decide_s(self) -> float | None:
@@ -125,5 +131,6 @@ class DecoyClassifier:
 
 def _cos_safe(lat_deg: float) -> float:
     import math
+
     c = math.cos(math.radians(lat_deg))
     return c if c > 0.01 else 0.01

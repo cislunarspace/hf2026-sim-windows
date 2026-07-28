@@ -12,9 +12,9 @@ You never instantiate `Agent` directly; you subclass a scenario base
 
 ```python
 class Agent(ABC):
-    def __init__(self, my_uid: str): ...        # set by the runner
-    def configure(self, config) -> None: ...     # optional; static params
-    def reset(self) -> None: ...                 # optional; per-run reset
+    def __init__(self, my_uid: str): ...  # set by the runner
+    def configure(self, config) -> None: ...  # optional; static params
+    def reset(self) -> None: ...  # optional; per-run reset
     def decide(self, obs, dt: float) -> list[Command]: ...  # REQUIRED
     @property
     def name(self) -> str: ...

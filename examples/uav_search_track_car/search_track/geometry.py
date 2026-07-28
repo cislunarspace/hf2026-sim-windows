@@ -1,4 +1,5 @@
 """Helpers shared across the example (geometry)."""
+
 import math
 
 EARTH_RADIUS_M = 6_371_000.0
@@ -19,7 +20,9 @@ def bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dlam = math.radians(lon2 - lon1)
     y = math.sin(dlam) * math.cos(phi2)
-    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(dlam)
+    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(
+        dlam
+    )
     return (math.degrees(math.atan2(y, x)) + 360.0) % 360.0
 
 

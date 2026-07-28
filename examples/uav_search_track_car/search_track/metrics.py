@@ -1,4 +1,5 @@
 """Metrics recorder — search time, track time, track-in-view fraction."""
+
 from __future__ import annotations
 
 import csv
@@ -82,7 +83,9 @@ class MetricsRecorder:
             }
         )
 
-    def finalize(self, *, controller_name: str, seed: int | None, config_snapshot: dict[str, Any]) -> RunMetrics:
+    def finalize(
+        self, *, controller_name: str, seed: int | None, config_snapshot: dict[str, Any]
+    ) -> RunMetrics:
         self._metrics.sim_duration = (
             (self._last_sim_time - self._sim_t0)
             if self._last_sim_time is not None and self._sim_t0 is not None

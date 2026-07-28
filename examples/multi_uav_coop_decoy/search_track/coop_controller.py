@@ -21,19 +21,23 @@ Output: list of dicts ready for MultiSimClient.publish_dict(). Mixing
 ControlCommand-shaped dicts (set_destination / set_orientation) and
 CommCommand-shaped dicts (comm.broadcast / comm.send).
 """
+
 from __future__ import annotations
 
 from dataclasses import replace
 from typing import Any
 
 from examples.uav_search_track_car.search_track.commands import (
-    CommandTarget, ControlCommand,
+    CommandTarget,
+    ControlCommand,
 )
 from examples.uav_search_track_car.search_track.fsm_controller import (
     FsmSearchTrackController,
 )
 from examples.uav_search_track_car.search_track.geometry import (
-    bearing_deg, haversine_m, los_angles,
+    bearing_deg,
+    haversine_m,
+    los_angles,
 )
 from examples.uav_search_track_car.search_track.search_strategies import (
     sweep_orientation,
@@ -138,10 +142,12 @@ class CoopController:
         self._reassign_period_s: float = 55.0
         self._search_start_sim_time: float | None = None
         self._dwell_target_s: float = 25.0  # time-on-target before self-done
-        self._clf: "DecoyClassifier | None" = None  # lazily built per TRACK
-        self._verify_clf: "DecoyClassifier | None" = None  # SEARCH-phase verify
+        self._clf: DecoyClassifier | None = None  # lazily built per TRACK
+        self._verify_clf: DecoyClassifier | None = None  # SEARCH-phase verify
         self._verify_pos: tuple[float, float] | None = None  # target being verified
-        self._known_real: dict[str, tuple[float, float, float]] = {}  # key->(lat,lon,first_seen_t)
+        self._known_real: dict[
+            str, tuple[float, float, float]
+        ] = {}  # key->(lat,lon,first_seen_t)
         self._self_done: set[str] = set()
         self._cur_real_key: str | None = None
         self._dwell_acc: float = 0.0
@@ -163,7 +169,9 @@ class CoopController:
         self._decoy_cooldown_s: float = 12.0
         self._decoy_cooldown_radius_m: float = 80.0
         self._decoy_avoid_margin_deg: float = 25.0
-        self._decoy_cooldowns: list[tuple[float, float, float]] = []  # lat, lon, expire_t
+        self._decoy_cooldowns: list[
+            tuple[float, float, float]
+        ] = []  # lat, lon, expire_t
         # Confirmed-real target filter.  After the classifier says REAL,
         # gimbal/loiter commands follow this filtered state instead of raw
         # decoy-contaminated detection.target_position.
@@ -194,15 +202,17 @@ class CoopController:
         if hasattr(self._fsm, "configure"):
             self._fsm.configure(cfg)
         if isinstance(cfg, dict) or hasattr(cfg, "get"):
-            self._broadcast_period = float(cfg.get(
-                "coop_broadcast_period", self._broadcast_period))
+            self._broadcast_period = float(
+                cfg.get("coop_broadcast_period", self._broadcast_period)
+            )
             # Sector-search config. search_radius/altitude come from the
             # top-level config (exposed as AlgorithmConfig attributes);
             # the rest from `advanced`.
             search_radius = float(cfg.get("search_radius", 800.0))
             search_alt = float(cfg.get("search_altitude_agl", 300.0))
             self._use_sector_search = bool(
-                cfg.get("use_sector_search", self._use_sector_search))
+                cfg.get("use_sector_search", self._use_sector_search)
+            )
             # expand_time: prefer explicit key, fall back to
             # search_sweep_time for backward compat.
             expand_time = float(cfg.get("expand_time", 0.0))
@@ -215,32 +225,36 @@ class CoopController:
                 search_radius=search_radius,
                 expand_time=expand_time,
                 sector_angular_speed_dps=float(
-                    cfg.get("sector_angular_speed_dps", 40.0)),
-                initial_radius_frac=float(
-                    cfg.get("initial_radius_frac", 0.15)),
-                radius_dither_frac=float(
-                    cfg.get("radius_dither_frac", 0.08)),
+                    cfg.get("sector_angular_speed_dps", 40.0)
+                ),
+                initial_radius_frac=float(cfg.get("initial_radius_frac", 0.15)),
+                radius_dither_frac=float(cfg.get("radius_dither_frac", 0.08)),
                 search_sweep_time=expand_time,  # legacy compat
             )
             self._sweep_period = float(cfg.get("sweep_period", self._sweep_period))
             self._sweep_pitch_min = float(
-                cfg.get("sweep_pitch_min", self._sweep_pitch_min))
+                cfg.get("sweep_pitch_min", self._sweep_pitch_min)
+            )
             self._sweep_pitch_max = float(
-                cfg.get("sweep_pitch_max", self._sweep_pitch_max))
+                cfg.get("sweep_pitch_max", self._sweep_pitch_max)
+            )
             self._track_jump_threshold_m = float(
-                cfg.get("track_jump_threshold_m",
-                        self._track_jump_threshold_m))
+                cfg.get("track_jump_threshold_m", self._track_jump_threshold_m)
+            )
             # Task 3 cooperative summon config.
-            self._coop_summon = bool(cfg.get("cooperative_summon",
-                                             self._coop_summon))
-            self._sector_commitment = bool(cfg.get("sector_commitment",
-                                                   self._sector_commitment))
-            self._dwell_target_s = float(cfg.get("dwell_target_s",
-                                                 self._dwell_target_s))
-            self._track_standoff_m = float(cfg.get("track_standoff_m",
-                                                  self._track_standoff_m))
+            self._coop_summon = bool(cfg.get("cooperative_summon", self._coop_summon))
+            self._sector_commitment = bool(
+                cfg.get("sector_commitment", self._sector_commitment)
+            )
+            self._dwell_target_s = float(
+                cfg.get("dwell_target_s", self._dwell_target_s)
+            )
+            self._track_standoff_m = float(
+                cfg.get("track_standoff_m", self._track_standoff_m)
+            )
             self._track_orbit_radius_m = float(
-                cfg.get("track_orbit_radius_m", self._track_orbit_radius_m))
+                cfg.get("track_orbit_radius_m", self._track_orbit_radius_m)
+            )
         self._configured = True
 
     def set_fleet_index(self, index: int, size: int) -> None:
@@ -269,8 +283,11 @@ class CoopController:
             self._search_start_sim_time = sim_t
         # "Last real" = the last sim_time the classifier confirmed REAL, or
         # the search start if never confirmed.
-        ref = self._last_real_sim_time if self._last_real_sim_time is not None \
+        ref = (
+            self._last_real_sim_time
+            if self._last_real_sim_time is not None
             else self._search_start_sim_time
+        )
         if sim_t - ref >= self._reassign_period_s:
             self._sector_offset = (self._sector_offset + 1) % max(1, self._fleet_size)
             self._last_real_sim_time = sim_t  # give the new wedge a full period
@@ -281,7 +298,8 @@ class CoopController:
         if self._sector_params is not None:
             # SectorSearchParams is a frozen-friendly dataclass; rebuild it.
             self._sector_params = SectorSearchParams(
-                base_lat=float(lat), base_lon=float(lon),
+                base_lat=float(lat),
+                base_lon=float(lon),
                 base_alt=self._sector_params.base_alt,
                 search_radius=self._sector_params.search_radius,
                 expand_time=self._sector_params.expand_time,
@@ -381,7 +399,7 @@ class CoopController:
         #    view for THIS tick. The anchor itself is held until k_lost
         #    confirms the loss; if the gimbal slews back to the original
         #    target the next tick, the FSM's hysteresis absorbs it.
-        was_tracking_pre = (self._fsm.mode == "TRACK")
+        was_tracking_pre = self._fsm.mode == "TRACK"
         # Note: the track-anchor spoof-loss (_maybe_spoof_loss) is DISABLED.
         # It was added for the auto_track gimbal silently switching targets,
         # but with auto_track OFF the gimbal no longer auto-switches, and the
@@ -398,9 +416,13 @@ class CoopController:
         # path and stop gating so the in-progress track is not undone.
         det = view_me.detection
         search_decoy_hit = (
-            det is not None and det.detected and det.target_position is not None
-            and (getattr(det, "target_type", "") == "decoy_vehicle"
-                 or self._detection_in_decoy_cooldown(view_me, state.sim_time))
+            det is not None
+            and det.detected
+            and det.target_position is not None
+            and (
+                getattr(det, "target_type", "") == "decoy_vehicle"
+                or self._detection_in_decoy_cooldown(view_me, state.sim_time)
+            )
         )
         if not self._real_track_active and search_decoy_hit:
             view_me = self._spoof_detection_lost(view_me)
@@ -417,8 +439,9 @@ class CoopController:
         if self._real_track_active and not was_tracking_pre:
             det = view_me.detection
             if det is not None and det.detected and det.target_position is not None:
-                key = _pos_key(det.target_position.latitude,
-                               det.target_position.longitude)
+                key = _pos_key(
+                    det.target_position.latitude, det.target_position.longitude
+                )
                 if self._real_target_key is not None and key != self._real_target_key:
                     view_me = self._spoof_detection_lost(view_me)
                     self._force_search()
@@ -426,10 +449,12 @@ class CoopController:
         # UAV to its angular wedge. Disabled in coop-summon mode OR when the
         # scenario's targets move across sectors (sector_commitment=false).
         if self._sector_commitment and not self._coop_summon:
-            view_me = self._maybe_sector_filter(view_me, was_tracking_pre,
-                                                state.sim_time)
-            view_me = self._maybe_track_decoy_gate(view_me, was_tracking_pre,
-                                                   state.sim_time)
+            view_me = self._maybe_sector_filter(
+                view_me, was_tracking_pre, state.sim_time
+            )
+            view_me = self._maybe_track_decoy_gate(
+                view_me, was_tracking_pre, state.sim_time
+            )
         else:
             # Coop mode: the FSM must NOT enter TRACK from raw detections
             # (that orbits decoys). We verify targets in flight and commit
@@ -444,8 +469,11 @@ class CoopController:
         self._update_track_anchor(was_tracking_pre, me)
 
         # 3) Track misid metrics (FR-015): if we're tracking a decoy, count it.
-        if (me.detection is not None and me.detection.detected
-                and me.detection.misid_flag):
+        if (
+            me.detection is not None
+            and me.detection.detected
+            and me.detection.misid_flag
+        ):
             self.misid_track_ticks += 1
 
         # 4) Task 3 cooperative summon: classify the tracked target (reject
@@ -498,8 +526,11 @@ class CoopController:
             # the FSM command path sees it, so we do not point the gimbal at
             # that decoy again.
             cmds = self._track_commands_coop(state, view_me, fsm_cmds)
-        elif (self._use_sector_search and self._sector_params is not None
-                and self._fsm.mode == "SEARCH"):
+        elif (
+            self._use_sector_search
+            and self._sector_params is not None
+            and self._fsm.mode == "SEARCH"
+        ):
             cmds = self._search_commands_sector(state.sim_time)
         else:
             cmds = fsm_cmds
@@ -523,17 +554,18 @@ class CoopController:
             rlat, rlon, _ = self._known_real[self._cur_real_key]
             if state.sim_time - self._last_r_broadcast_t >= self._broadcast_period:
                 self._last_r_broadcast_t = state.sim_time
-                out.append(broadcast(
-                    self.my_uid, f"R:{rlat:.4f},{rlon:.4f}"
-                ).to_publish())
+                out.append(
+                    broadcast(self.my_uid, f"R:{rlat:.4f},{rlon:.4f}").to_publish()
+                )
         elif self._fsm.mode == "TRACK" and not self._coop_summon:
             if state.sim_time - self._last_broadcast_t >= self._broadcast_period:
                 self._last_broadcast_t = state.sim_time
                 out.append(broadcast(self.my_uid, "T:?").to_publish())
         return out
 
-    def _ema_smooth(self, lat: float, lon: float, alpha: float = 0.3
-                    ) -> tuple[float, float]:
+    def _ema_smooth(
+        self, lat: float, lon: float, alpha: float = 0.3
+    ) -> tuple[float, float]:
         """Apply exponential moving average to (lat, lon) and return the
         smoothed value.  Reduces gimbal-angle jumps when detection's
         target_position alternates between real vehicles and decoys."""
@@ -565,11 +597,16 @@ class CoopController:
         det = me.detection
         if det is None:
             return me
-        return replace(me, detection=replace(
-            det, detected=False, target_position=None, azimuth_error_deg=None))
+        return replace(
+            me,
+            detection=replace(
+                det, detected=False, target_position=None, azimuth_error_deg=None
+            ),
+        )
 
-    def _is_avoided_decoy_detection(self, me: EntityState,
-                                     sim_time: float | None = None) -> bool:
+    def _is_avoided_decoy_detection(
+        self, me: EntityState, sim_time: float | None = None
+    ) -> bool:
         det = me.detection
         if det is None or not det.detected or det.target_position is None:
             return False
@@ -586,22 +623,23 @@ class CoopController:
             if sim_time > expire_t:
                 continue
             active.append((lat, lon, expire_t))
-            if haversine_m(lat, lon, tp.latitude, tp.longitude) <= self._decoy_cooldown_radius_m:
+            if (
+                haversine_m(lat, lon, tp.latitude, tp.longitude)
+                <= self._decoy_cooldown_radius_m
+            ):
                 hit = True
         self._decoy_cooldowns = active
         return hit
 
-    def _detection_in_decoy_cooldown(self, me: EntityState,
-                                      sim_time: float) -> bool:
+    def _detection_in_decoy_cooldown(self, me: EntityState, sim_time: float) -> bool:
         det = me.detection
         if det is None or not det.detected or det.target_position is None:
             return False
-        return self._point_in_decoy_cooldown(det.target_position.latitude,
-                                             det.target_position.longitude,
-                                             sim_time)
+        return self._point_in_decoy_cooldown(
+            det.target_position.latitude, det.target_position.longitude, sim_time
+        )
 
-    def _point_in_decoy_cooldown(self, lat: float, lon: float,
-                                 sim_time: float) -> bool:
+    def _point_in_decoy_cooldown(self, lat: float, lon: float, sim_time: float) -> bool:
         active = []
         hit = False
         for dlat, dlon, expire_t in self._decoy_cooldowns:
@@ -613,8 +651,9 @@ class CoopController:
         self._decoy_cooldowns = active
         return hit
 
-    def _push_point_out_of_decoy_cooldown(self, lat: float, lon: float,
-                                          sim_time: float) -> tuple[float, float]:
+    def _push_point_out_of_decoy_cooldown(
+        self, lat: float, lon: float, sim_time: float
+    ) -> tuple[float, float]:
         for dlat, dlon, expire_t in list(self._decoy_cooldowns):
             if sim_time > expire_t:
                 continue
@@ -622,12 +661,14 @@ class CoopController:
             if d > self._decoy_cooldown_radius_m:
                 continue
             bearing = bearing_deg(dlat, dlon, lat, lon) if d > 1.0 else 0.0
-            return destination_point(dlat, dlon, bearing,
-                                     self._decoy_cooldown_radius_m + 80.0)
+            return destination_point(
+                dlat, dlon, bearing, self._decoy_cooldown_radius_m + 80.0
+            )
         return lat, lon
 
-    def _mark_decoy_released(self, state: MultiSimState,
-                             me: EntityState, lat: float, lon: float) -> None:
+    def _mark_decoy_released(
+        self, state: MultiSimState, me: EntityState, lat: float, lon: float
+    ) -> None:
         """Remember a rejected decoy and its current bearing so SEARCH does
         not immediately sweep back onto it and re-enter TRACK."""
         expire_t = state.sim_time + self._decoy_cooldown_s
@@ -636,9 +677,13 @@ class CoopController:
         self._decoy_cooldown_until = expire_t
         if me.uav is not None:
             self._decoy_avoid_pan, _ = los_angles(
-                me.uav.position.latitude, me.uav.position.longitude,
-                me.uav.position.altitude, me.uav.attitude.yaw,
-                lat, lon, 0.0,
+                me.uav.position.latitude,
+                me.uav.position.longitude,
+                me.uav.position.altitude,
+                me.uav.attitude.yaw,
+                lat,
+                lon,
+                0.0,
             )
 
     def _avoid_decoy_pan(self, pan: float) -> float:
@@ -651,7 +696,11 @@ class CoopController:
             delta += 360.0
         if abs(delta) >= self._decoy_avoid_margin_deg:
             return pan
-        step = self._decoy_avoid_margin_deg if delta >= 0.0 else -self._decoy_avoid_margin_deg
+        step = (
+            self._decoy_avoid_margin_deg
+            if delta >= 0.0
+            else -self._decoy_avoid_margin_deg
+        )
         adjusted = self._decoy_avoid_pan + step
         while adjusted > 180.0:
             adjusted -= 360.0
@@ -660,8 +709,10 @@ class CoopController:
         return adjusted
 
     def _detection_is_decoy_like(self, det) -> bool:
-        return bool(getattr(det, "misid_flag", False) or
-                    getattr(det, "target_type", "") == "decoy_vehicle")
+        return bool(
+            getattr(det, "misid_flag", False)
+            or getattr(det, "target_type", "") == "decoy_vehicle"
+        )
 
     def _real_predicted_pos(self, sim_time: float) -> tuple[float, float] | None:
         key = self._cur_real_key
@@ -671,8 +722,7 @@ class CoopController:
         dt = sim_time - last_t
         if dt <= 0.0 or dt > 5.0:
             return lat, lon
-        return (lat + self._real_vel_lat_dps * dt,
-                lon + self._real_vel_lon_dps * dt)
+        return (lat + self._real_vel_lat_dps * dt, lon + self._real_vel_lon_dps * dt)
 
     def _predict_real_filter(self, sim_time: float) -> None:
         """Advance the confirmed-real filter using its velocity estimate."""
@@ -683,8 +733,10 @@ class CoopController:
         self._known_real[key] = (pred[0], pred[1], sim_time)
 
     def _real_coast_expired(self, sim_time: float) -> bool:
-        return (self._real_last_meas_t is not None and
-                sim_time - self._real_last_meas_t > self._real_coast_timeout_s)
+        return (
+            self._real_last_meas_t is not None
+            and sim_time - self._real_last_meas_t > self._real_coast_timeout_s
+        )
 
     def _update_real_filter(self, sim_time: float, lat: float, lon: float) -> bool:
         """Initialize/update the confirmed-real target filter.
@@ -736,9 +788,9 @@ class CoopController:
 
     # ── helpers ────────────────────────────────────────────────────────────
 
-    def _maybe_sector_filter(self, me: EntityState,
-                             was_tracking: bool,
-                             sim_time: float = 0.0) -> EntityState:
+    def _maybe_sector_filter(
+        self, me: EntityState, was_tracking: bool, sim_time: float = 0.0
+    ) -> EntityState:
         """While SEARCHING, drop detections of targets outside this UAV's
         sector so the FSM never accumulates k_acquire for (and thus never
         commits to) a target another UAV owns.
@@ -768,20 +820,24 @@ class CoopController:
         step = 360.0 / self._fleet_size
         lo = (eff % self._fleet_size) * step
         hi = lo + step
-        brg = bearing_deg(base_lat, base_lon,
-                          det.target_position.latitude,
-                          det.target_position.longitude)
+        brg = bearing_deg(
+            base_lat,
+            base_lon,
+            det.target_position.latitude,
+            det.target_position.longitude,
+        )
         if lo <= brg < hi:
             return me  # target is in my sector — keep the detection
         # Out of sector: spoof not-detected so the FSM keeps searching and
         # does not lock a target a peer will own.
-        spoofed_det = replace(det, detected=False, target_position=None,
-                              azimuth_error_deg=None)
+        spoofed_det = replace(
+            det, detected=False, target_position=None, azimuth_error_deg=None
+        )
         return replace(me, detection=spoofed_det)
 
-    def _maybe_track_decoy_gate(self, me: EntityState,
-                                was_tracking: bool,
-                                sim_time: float = 0.0) -> EntityState:
+    def _maybe_track_decoy_gate(
+        self, me: EntityState, was_tracking: bool, sim_time: float = 0.0
+    ) -> EntityState:
         """Before feeding TRACK detections to the FSM, suppress obvious decoys.
 
         The classifier runs later and needs a time window, but the FSM command
@@ -795,20 +851,24 @@ class CoopController:
         det = me.detection
         if det is None or not det.detected or det.target_position is None:
             return me
-        if self._is_avoided_decoy_detection(me, sim_time) or self._detection_is_decoy_like(det):
+        if self._is_avoided_decoy_detection(
+            me, sim_time
+        ) or self._detection_is_decoy_like(det):
             return self._spoof_detection_lost(me)
         if self._fsm._tracker is not None:
             last_lat, last_lon = self._fsm._tracker._current_target
             if last_lat != 0.0 or last_lon != 0.0:
-                d = haversine_m(last_lat, last_lon,
-                                det.target_position.latitude,
-                                det.target_position.longitude)
+                d = haversine_m(
+                    last_lat,
+                    last_lon,
+                    det.target_position.latitude,
+                    det.target_position.longitude,
+                )
                 if d > self._track_jump_threshold_m:
                     return self._spoof_detection_lost(me)
         return me
 
-    def _maybe_spoof_loss(self, me: EntityState,
-                          was_tracking: bool) -> EntityState:
+    def _maybe_spoof_loss(self, me: EntityState, was_tracking: bool) -> EntityState:
         """If the detection's reported target jumped >threshold from the
         anchor we set when entering TRACK, return a view of ``me`` with
         ``detection.detected=False``. Otherwise return ``me`` unchanged.
@@ -820,15 +880,16 @@ class CoopController:
         """
         if not was_tracking:
             return me
-        if (self._track_anchor_lat is None or
-                self._track_anchor_lon is None):
+        if self._track_anchor_lat is None or self._track_anchor_lon is None:
             return me
         det = me.detection
         if det is None or not det.detected or det.target_position is None:
             return me
         d = haversine_m(
-            self._track_anchor_lat, self._track_anchor_lon,
-            det.target_position.latitude, det.target_position.longitude,
+            self._track_anchor_lat,
+            self._track_anchor_lon,
+            det.target_position.latitude,
+            det.target_position.longitude,
         )
         if d <= self._track_jump_threshold_m:
             return me
@@ -837,13 +898,14 @@ class CoopController:
         # target_position too — _track_commands_coop falls back to the
         # last known position from _fsm._tracker, which is what we want.
         spoofed_det = replace(
-            det, detected=False, target_position=None,
+            det,
+            detected=False,
+            target_position=None,
             azimuth_error_deg=None,
         )
         return replace(me, detection=spoofed_det)
 
-    def _update_track_anchor(self, was_tracking: bool,
-                             me: EntityState) -> None:
+    def _update_track_anchor(self, was_tracking: bool, me: EntityState) -> None:
         """Maintain the track anchor across FSM mode transitions.
 
         - SEARCH→TRACK edge (just entered TRACK this tick, with a real
@@ -854,7 +916,7 @@ class CoopController:
           exceed the jump threshold).
         - TRACK→SEARCH edge: clear anchor.
         """
-        is_tracking = (self._fsm.mode == "TRACK")
+        is_tracking = self._fsm.mode == "TRACK"
         det = me.detection
         det_pos = det.target_position if (det and det.detected) else None
         if not was_tracking and is_tracking and det_pos is not None:
@@ -865,21 +927,27 @@ class CoopController:
             self._track_anchor_lat = None
             self._track_anchor_lon = None
             return
-        if (was_tracking and is_tracking and det_pos is not None
-                and self._track_anchor_lat is not None
-                and self._track_anchor_lon is not None):
+        if (
+            was_tracking
+            and is_tracking
+            and det_pos is not None
+            and self._track_anchor_lat is not None
+            and self._track_anchor_lon is not None
+        ):
             d = haversine_m(
-                self._track_anchor_lat, self._track_anchor_lon,
-                det_pos.latitude, det_pos.longitude,
+                self._track_anchor_lat,
+                self._track_anchor_lon,
+                det_pos.latitude,
+                det_pos.longitude,
             )
             if d <= self._track_jump_threshold_m:
                 # Roll anchor with the moving target.
                 self._track_anchor_lat = det_pos.latitude
                 self._track_anchor_lon = det_pos.longitude
 
-    def _track_commands_coop(self, state: MultiSimState, me: EntityState,
-                             fsm_cmds: list[ControlCommand]
-                             ) -> list[ControlCommand]:
+    def _track_commands_coop(
+        self, state: MultiSimState, me: EntityState, fsm_cmds: list[ControlCommand]
+    ) -> list[ControlCommand]:
         """TRACK commands for the cooperative controller.
 
         Overrides the FSM's _track_commands to fix two issues:
@@ -901,9 +969,11 @@ class CoopController:
                 tpos = det.target_position
                 # If the tracker was never refreshed (base still at
                 # takeoff point), seed it with the actual target position.
-                if (self._fsm._tracker._last_refresh is None
-                        and self._fsm._tracker.base_lat == self._fsm._base_lat
-                        and self._fsm._tracker.base_lon == self._fsm._base_lon):
+                if (
+                    self._fsm._tracker._last_refresh is None
+                    and self._fsm._tracker.base_lat == self._fsm._base_lat
+                    and self._fsm._tracker.base_lon == self._fsm._base_lon
+                ):
                     self._fsm._tracker.reset(tpos.latitude, tpos.longitude)
             self._remember_gimbal_from_cmds(fsm_cmds)
             return fsm_cmds
@@ -913,8 +983,9 @@ class CoopController:
         if self._fsm._tracker is not None:
             last_tgt = self._fsm._tracker._current_target
             if last_tgt != (0.0, 0.0):
-                if self._point_in_decoy_cooldown(last_tgt[0], last_tgt[1],
-                                                 state.sim_time):
+                if self._point_in_decoy_cooldown(
+                    last_tgt[0], last_tgt[1], state.sim_time
+                ):
                     if self._use_sector_search and self._sector_params is not None:
                         return self._search_commands_sector(state.sim_time)
                 cmds = [
@@ -953,8 +1024,10 @@ class CoopController:
         assert self._sector_params is not None
         t = self._elapsed(sim_time)
         lat, lon, alt = sector_waypoint(
-            t, self._sector_params,
-            self._effective_fleet_index(), self._fleet_size,
+            t,
+            self._sector_params,
+            self._effective_fleet_index(),
+            self._fleet_size,
         )
         lat, lon = self._push_point_out_of_decoy_cooldown(lat, lon, sim_time)
         pan, tilt = sweep_orientation(
@@ -990,8 +1063,9 @@ class CoopController:
             ),
         ]
 
-    def _noncoop_track_reject(self, state: MultiSimState, me: EntityState,
-                              was_tracking_pre: bool) -> None:
+    def _noncoop_track_reject(
+        self, state: MultiSimState, me: EntityState, was_tracking_pre: bool
+    ) -> None:
         """Sector-spread mode: while in TRACK, classify the target and release
         a decoy so the UAV keeps searching for a REAL target. A REAL target
         (which moves) is confirmed quickly; a decoy whose reported position
@@ -1001,7 +1075,7 @@ class CoopController:
         if self._fsm.mode != "TRACK":
             return
         det = me.detection
-        if (det is None or not det.detected or det.target_position is None):
+        if det is None or not det.detected or det.target_position is None:
             return
         tp = det.target_position
         if self._coop_summon and self._cur_real_key is not None:
@@ -1009,15 +1083,19 @@ class CoopController:
             # the classifier/release path. _committed_update() owns it.
             return
         # Reset the classifier if the detection jumped to a different entity.
-        if (self._clf is not None and self._clf.samples
-                and self._clf.started_at is not None):
+        if (
+            self._clf is not None
+            and self._clf.samples
+            and self._clf.started_at is not None
+        ):
             last_lat = self._clf.samples[-1][1]
             last_lon = self._clf.samples[-1][2]
             if haversine_m(last_lat, last_lon, tp.latitude, tp.longitude) > 120.0:
                 self._clf = None
         if not was_tracking_pre or self._clf is None:
-            self._clf = DecoyClassifier(move_threshold_m=5.0,
-                                        min_window_s=1.5, min_samples=10)
+            self._clf = DecoyClassifier(
+                move_threshold_m=5.0, min_window_s=1.5, min_samples=10
+            )
         decision = self._clf.observe(state.sim_time, tp.latitude, tp.longitude)
         if decision == "decoy":
             self._mark_decoy_released(state, me, tp.latitude, tp.longitude)
@@ -1038,8 +1116,11 @@ class CoopController:
         # Timeout: a moving REAL target is confirmed fast. If we've been
         # verifying >3 s with no REAL decision, this is a decoy the classifier
         # can't settle (jumping) — release it and keep searching.
-        if (decision is None and self._clf.started_at is not None
-                and state.sim_time - self._clf.started_at > 3.0):
+        if (
+            decision is None
+            and self._clf.started_at is not None
+            and state.sim_time - self._clf.started_at > 3.0
+        ):
             self._mark_decoy_released(state, me, tp.latitude, tp.longitude)
             self._clf = None
             self._force_search()
@@ -1051,8 +1132,12 @@ class CoopController:
         det = me.detection
         if det is None:
             return me
-        return replace(me, detection=replace(
-            det, detected=False, target_position=None, azimuth_error_deg=None))
+        return replace(
+            me,
+            detection=replace(
+                det, detected=False, target_position=None, azimuth_error_deg=None
+            ),
+        )
 
     def _force_search(self) -> None:
         """Revert the FSM to SEARCH (release the current target)."""
@@ -1067,8 +1152,9 @@ class CoopController:
         self._real_track_active = False
         self._real_target_key = None
 
-    def _committed_update(self, state: MultiSimState, me: EntityState,
-                          dt: float) -> None:
+    def _committed_update(
+        self, state: MultiSimState, me: EntityState, dt: float
+    ) -> None:
         """Maintain the committed real-target lock (both modes): refresh the
         locked position with an in-range live detection so the lock follows a
         moving target (never drifting onto a decoy >200 m away). In
@@ -1083,7 +1169,9 @@ class CoopController:
         if det is not None and det.detected and det.target_position is not None:
             tp = det.target_position
             pred = self._real_predicted_pos(sim_t)
-            rlat, rlon = pred if pred is not None else self._known_real[self._cur_real_key][:2]
+            rlat, rlon = (
+                pred if pred is not None else self._known_real[self._cur_real_key][:2]
+            )
             d = haversine_m(rlat, rlon, tp.latitude, tp.longitude)
             if self._detection_is_decoy_like(det) or d > self._real_gate_m:
                 self._mark_decoy_released(state, me, tp.latitude, tp.longitude)
@@ -1103,8 +1191,9 @@ class CoopController:
                 self._cur_real_key = None
                 self._dwell_acc = 0.0
 
-    def _coop_step(self, state: MultiSimState, me: EntityState,
-                   was_tracking_pre: bool, dt: float):
+    def _coop_step(
+        self, state: MultiSimState, me: EntityState, was_tracking_pre: bool, dt: float
+    ):
         """Task 3 cooperative-summon logic. Returns ``(lat, lon)`` to converge
         to when this UAV is free and a known real target exists, else None.
 
@@ -1139,14 +1228,19 @@ class CoopController:
             # Reset the verify classifier if the detection jumped to a
             # different target (>120 m away) so we measure ONE target's
             # motion, not a blend of two.
-            if self._verify_clf is not None and self._verify_pos is not None \
-                    and haversine_m(self._verify_pos[0], self._verify_pos[1],
-                                    det_pos[0], det_pos[1]) > 120.0:
+            if (
+                self._verify_clf is not None
+                and self._verify_pos is not None
+                and haversine_m(
+                    self._verify_pos[0], self._verify_pos[1], det_pos[0], det_pos[1]
+                )
+                > 120.0
+            ):
                 self._verify_clf = None
             if self._verify_clf is None:
-                self._verify_clf = DecoyClassifier(move_threshold_m=5.0,
-                                                   min_window_s=1.5,
-                                                   min_samples=10)
+                self._verify_clf = DecoyClassifier(
+                    move_threshold_m=5.0, min_window_s=1.5, min_samples=10
+                )
                 self._verify_pos = det_pos
             decision = self._verify_clf.observe(sim_t, det_pos[0], det_pos[1])
             self._verify_pos = det_pos
@@ -1190,18 +1284,22 @@ class CoopController:
                 best = (lat, lon)
         return best
 
-    def _search_commands_converge(self, tgt_lat: float, tgt_lon: float,
-                                  sim_time: float) -> list[ControlCommand]:
+    def _search_commands_converge(
+        self, tgt_lat: float, tgt_lon: float, sim_time: float
+    ) -> list[ControlCommand]:
         """Fly toward a known real target to co-track it: set_destination to
         its position (loiter) + gimbal sweep so the camera reacquires it on
         arrival and the FSM re-enters TRACK."""
         t = self._elapsed(sim_time)
         pan, tilt = sweep_orientation(
-            t, period=self._sweep_period,
-            pitch_min=self._sweep_pitch_min, pitch_max=self._sweep_pitch_max,
+            t,
+            period=self._sweep_period,
+            pitch_min=self._sweep_pitch_min,
+            pitch_max=self._sweep_pitch_max,
         )
-        base_alt = (self._sector_params.base_alt
-                    if self._sector_params is not None else 300.0)
+        base_alt = (
+            self._sector_params.base_alt if self._sector_params is not None else 300.0
+        )
         return [
             ControlCommand(
                 target=CommandTarget.UAV,
@@ -1220,15 +1318,17 @@ class CoopController:
             ),
         ]
 
-    def _search_commands_coop(self, state: MultiSimState, me: EntityState,
-                              converge_target):
+    def _search_commands_coop(
+        self, state: MultiSimState, me: EntityState, converge_target
+    ):
         """Coop SEARCH: fly the search (or converge) waypoint while holding
         the gimbal on a detected target (LOS — to verify it in flight) or
         sweeping to find one. Never orbit a raw detection (the FSM is held
         in SEARCH), so the fleet is not stranded orbiting centre decoys."""
         t = self._elapsed(state.sim_time)
-        base_alt = (self._sector_params.base_alt
-                    if self._sector_params is not None else 300.0)
+        base_alt = (
+            self._sector_params.base_alt if self._sector_params is not None else 300.0
+        )
         if converge_target is not None:
             wlat, wlon = converge_target
             loiter = self._fsm._loiter_radius
@@ -1241,9 +1341,10 @@ class CoopController:
             # the real targets wherever they are.
             p = self._sector_params
             t = self._elapsed(state.sim_time)
-            brng = (t * p.sector_angular_speed_dps
-                    + self._fleet_index * (360.0 / max(1, self._fleet_size))
-                    ) % 360.0
+            brng = (
+                t * p.sector_angular_speed_dps
+                + self._fleet_index * (360.0 / max(1, self._fleet_size))
+            ) % 360.0
             r_min = p.search_radius * p.initial_radius_frac
             frac = min(1.0, t / max(1.0, p.expand_time))
             r = r_min + (p.search_radius - r_min) * frac
@@ -1261,9 +1362,14 @@ class CoopController:
             # gradual gimbal motion rather than a hard snap.
             slat, slon = self._ema_smooth(tp.latitude, tp.longitude)
             pan, tilt = los_angles(
-                me.uav.position.latitude, me.uav.position.longitude,
-                me.uav.position.altitude, me.uav.attitude.yaw,
-                slat, slon, tp.altitude)
+                me.uav.position.latitude,
+                me.uav.position.longitude,
+                me.uav.position.altitude,
+                me.uav.attitude.yaw,
+                slat,
+                slon,
+                tp.altitude,
+            )
             self._last_pan = pan
             self._last_tilt = tilt
             self._last_detected_sim_time = state.sim_time
@@ -1271,24 +1377,31 @@ class CoopController:
             # During SEARCH verification, detection can flicker when a decoy
             # misid roll alternates.  Hold the last LOS for a short grace
             # window instead of immediately snapping back to sweep.
-            if (self._last_detected_sim_time is not None and
-                    state.sim_time - self._last_detected_sim_time <= self._verify_hold_s):
+            if (
+                self._last_detected_sim_time is not None
+                and state.sim_time - self._last_detected_sim_time <= self._verify_hold_s
+            ):
                 pan, tilt = self._last_pan, self._last_tilt
             else:
                 pan, tilt = sweep_orientation(
-                    t, period=self._sweep_period,
+                    t,
+                    period=self._sweep_period,
                     pitch_min=self._sweep_pitch_min,
-                    pitch_max=self._sweep_pitch_max)
+                    pitch_max=self._sweep_pitch_max,
+                )
                 if state.sim_time <= self._decoy_cooldown_until:
                     pan = self._avoid_decoy_pan(pan)
         params: dict[str, Any] = {
-            "latitude": wlat, "longitude": wlon, "altitude": base_alt,
+            "latitude": wlat,
+            "longitude": wlon,
+            "altitude": base_alt,
         }
         if loiter:
             params["loiter_radius"] = loiter
         return [
             ControlCommand(
-                target=CommandTarget.UAV, cmd="set_destination", params=params),
+                target=CommandTarget.UAV, cmd="set_destination", params=params
+            ),
             ControlCommand(
                 target=CommandTarget.UAV,
                 cmd="component.gimbal_tracking.set_orientation",
@@ -1296,8 +1409,9 @@ class CoopController:
             ),
         ]
 
-    def _committed_track_commands(self, state: MultiSimState,
-                                  me: EntityState) -> list[ControlCommand]:
+    def _committed_track_commands(
+        self, state: MultiSimState, me: EntityState
+    ) -> list[ControlCommand]:
         """Track the confirmed-real filter state instead of raw detection.
 
         Accepted real detections continuously update the filter, so the UAV
@@ -1311,23 +1425,30 @@ class CoopController:
         rlat, rlon, _ = self._known_real[self._cur_real_key]
         uav = me.uav
         pan, tilt = los_angles(
-            uav.position.latitude, uav.position.longitude,
-            uav.position.altitude, uav.attitude.yaw,
-            rlat, rlon, 0.0,
+            uav.position.latitude,
+            uav.position.longitude,
+            uav.position.altitude,
+            uav.attitude.yaw,
+            rlat,
+            rlon,
+            0.0,
         )
         self._last_pan = pan
         self._last_tilt = tilt
-        base_alt = (self._sector_params.base_alt
-                    if self._sector_params is not None else uav.position.altitude)
+        base_alt = (
+            self._sector_params.base_alt
+            if self._sector_params is not None
+            else uav.position.altitude
+        )
         # Do not send the fixed-wing directly to the target centre: once it
         # overflies the point the camera must look almost straight down and the
         # target can leave the FOV.  Instead, keep a standoff orbit on the
         # current UAV side of the target while the gimbal points at target
         # centre.
-        away_bearing = bearing_deg(rlat, rlon,
-                                   uav.position.latitude, uav.position.longitude)
-        wlat, wlon = destination_point(rlat, rlon, away_bearing,
-                                       self._track_standoff_m)
+        away_bearing = bearing_deg(
+            rlat, rlon, uav.position.latitude, uav.position.longitude
+        )
+        wlat, wlon = destination_point(rlat, rlon, away_bearing, self._track_standoff_m)
         return [
             ControlCommand(
                 target=CommandTarget.UAV,
@@ -1386,12 +1507,12 @@ class CoopController:
         """
         return None  # populated by run.py via set_known_targets if needed
 
-    def _to_sim_state(self, state: MultiSimState,
-                      me: EntityState) -> SimState:
+    def _to_sim_state(self, state: MultiSimState, me: EntityState) -> SimState:
         """Project this UAV's entity view into a 016 SimState for the FSM."""
         from examples.uav_search_track_car.search_track.state import (
-            Detection, TargetState,
+            Detection,
         )
+
         assert me.uav is not None and me.gimbal is not None
         # detection: use the extended detection's base fields.
         det = me.detection
@@ -1411,6 +1532,7 @@ class CoopController:
             target_truth=None,  # FR-007: controllers never see ground truth
         )
 
+
 def _pos_key(lat: float, lon: float) -> str:
     """Discretise a position to a ~11 m grid key (0.0001 deg) so the same
     target reported by multiple UAVs / ticks maps to one key."""
@@ -1418,7 +1540,8 @@ def _pos_key(lat: float, lon: float) -> str:
 
 
 def tracked_uid_is_likely_shared(
-        me: EntityState, peer_tracking: dict[str, str]) -> bool:
+    me: EntityState, peer_tracking: dict[str, str]
+) -> bool:
     """Heuristic: is the target I am detecting likely already tracked by a peer?
 
     Without a target uid in the detection, and without peer target positions

@@ -15,16 +15,18 @@ asserts this by reflection.
 
 See contracts/isolation.md for the precise allow/deny rules.
 """
+
 from __future__ import annotations
 
-from typing import Tuple
-
 from .observation import (
-    AreaSpec, CommStats, Detection, Message, MissionBriefing, Observation,
-    SelfView, ZoneSpec,
+    CommStats,
+    Detection,
+    Message,
+    MissionBriefing,
+    Observation,
+    SelfView,
 )
 from .world_state import EntityTruth, WorldState
-
 
 _EMPTY_DETECTION = Detection(detected=False, confidence=0.0)
 
@@ -90,8 +92,11 @@ def _project_self(me: EntityTruth) -> SelfView:
     comm = me.raw.get("comm", {}) or {}
     return SelfView(
         uid=me.uid,
-        lat=me.lat, lon=me.lon, alt=me.alt,
-        heading_deg=me.heading, speed=me.speed,
+        lat=me.lat,
+        lon=me.lon,
+        alt=me.alt,
+        heading_deg=me.heading,
+        speed=me.speed,
         gimbal_pan=float(gim.get("pan_angle", 0.0)),
         gimbal_tilt=float(gim.get("tilt_angle", 0.0)),
         gimbal_fov_deg=float(gim.get("fov", gim.get("fov_deg", 30.0))),
@@ -102,7 +107,7 @@ def _project_self(me: EntityTruth) -> SelfView:
     )
 
 
-def _project_inbox(me: EntityTruth) -> Tuple[Message, ...]:
+def _project_inbox(me: EntityTruth) -> tuple[Message, ...]:
     """Project THIS entity's own comm inbox — only sender uid + payload.
 
     The sender's pose is never included (that would leak another entity's
@@ -121,8 +126,9 @@ def _project_inbox(me: EntityTruth) -> Tuple[Message, ...]:
     )
 
 
-def build_obs(world_state: WorldState, entity_uid: str,
-              briefing: MissionBriefing) -> Observation:
+def build_obs(
+    world_state: WorldState, entity_uid: str, briefing: MissionBriefing
+) -> Observation:
     """Build one agent's Observation from the full world state.
 
     Reads ONLY ``world_state.entities[entity_uid]``. Other entities and

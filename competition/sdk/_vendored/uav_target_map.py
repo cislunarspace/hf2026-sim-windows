@@ -19,10 +19,10 @@ callers (each example's ``run.py``) adapt their own state shape
 :class:`UavDetection` inputs. That keeps the common package unit-testable
 without circular imports.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .geometry import haversine_m
 
@@ -36,24 +36,26 @@ class UavDetection:
     ``gimbal_tracking.detection`` record; ``destroyed`` comes from
     ``platform.status == "destroyed"``.
     """
+
     uid: str
     detected: bool
-    target_lat: Optional[float] = None
-    target_lon: Optional[float] = None
-    target_type: str = ""          # "ground_vehicle" | "decoy_vehicle" | ""
+    target_lat: float | None = None
+    target_lon: float | None = None
+    target_type: str = ""  # "ground_vehicle" | "decoy_vehicle" | ""
     misid_flag: bool = False
     destroyed: bool = False
-    confidence: float = 0.0        # detection.confidence: 1.0=centered, 0=edge
+    confidence: float = 0.0  # detection.confidence: 1.0=centered, 0=edge
 
 
 @dataclass(frozen=True)
 class TargetMatch:
     """Result of resolving one UAV's detection to a target."""
-    target_uid: Optional[str]      # matched true-target uid, or None
-    is_effective: bool             # tracking a real (non-decoy) target
-    was_misid: bool                # matched a decoy (misidentification)
-    confidence: float = 0.0        # tracking quality: 1.0=centered, 0=edge
-    decoy_uid: Optional[str] = None  # matched decoy uid (set when was_misid)
+
+    target_uid: str | None  # matched true-target uid, or None
+    is_effective: bool  # tracking a real (non-decoy) target
+    was_misid: bool  # matched a decoy (misidentification)
+    confidence: float = 0.0  # tracking quality: 1.0=centered, 0=edge
+    decoy_uid: str | None = None  # matched decoy uid (set when was_misid)
 
 
 def resolve_uav_to_target(
@@ -82,39 +84,50 @@ def resolve_uav_to_target(
     # Build a single candidate list tagged with a real/decoy flag.
     candidates: list[tuple[str, tuple[float, float], bool]] = [
         (uid, pos, False) for uid, pos in true_targets.items()
-    ] + [
-        (uid, pos, True) for uid, pos in decoys.items()
-    ]
+    ] + [(uid, pos, True) for uid, pos in decoys.items()]
 
     result: dict[str, TargetMatch] = {}
     for u in uavs:
-        if (u.destroyed or not u.detected
-                or u.target_lat is None or u.target_lon is None
-                or not candidates):
-            result[u.uid] = TargetMatch(target_uid=None, is_effective=False,
-                                        was_misid=False)
+        if (
+            u.destroyed
+            or not u.detected
+            or u.target_lat is None
+            or u.target_lon is None
+            or not candidates
+        ):
+            result[u.uid] = TargetMatch(
+                target_uid=None, is_effective=False, was_misid=False
+            )
             continue
 
-        best_uid: Optional[str] = None
+        best_uid: str | None = None
         best_is_decoy = False
-        best_d: Optional[float] = None
+        best_d: float | None = None
         for cuid, cpos, is_decoy in candidates:
             d = haversine_m(u.target_lat, u.target_lon, cpos[0], cpos[1])
             if best_d is None or d < best_d:
                 best_d, best_uid, best_is_decoy = d, cuid, is_decoy
 
         if best_uid is None or best_d is None or best_d > max_match_m:
-            result[u.uid] = TargetMatch(target_uid=None, is_effective=False,
-                                        was_misid=False)
+            result[u.uid] = TargetMatch(
+                target_uid=None, is_effective=False, was_misid=False
+            )
             continue
 
         if best_is_decoy:
-            result[u.uid] = TargetMatch(target_uid=None, is_effective=False,
-                                        was_misid=True, confidence=0.0,
-                                        decoy_uid=best_uid)
+            result[u.uid] = TargetMatch(
+                target_uid=None,
+                is_effective=False,
+                was_misid=True,
+                confidence=0.0,
+                decoy_uid=best_uid,
+            )
         else:
-            result[u.uid] = TargetMatch(target_uid=best_uid, is_effective=True,
-                                        was_misid=False,
-                                        confidence=u.confidence,
-                                        decoy_uid=None)
+            result[u.uid] = TargetMatch(
+                target_uid=best_uid,
+                is_effective=True,
+                was_misid=False,
+                confidence=u.confidence,
+                decoy_uid=None,
+            )
     return result

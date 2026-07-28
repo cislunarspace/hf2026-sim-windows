@@ -3,11 +3,11 @@
 Validates that the SwarmState dataclass + parse_swarm_state correctly
 read the kernel's published `zones` bucket and per-entity fields.
 """
+
 from __future__ import annotations
 
-import unittest
-
 import sys
+import unittest
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -15,39 +15,68 @@ EXAMPLE_DIR = HERE.parent
 if str(EXAMPLE_DIR) not in sys.path:
     sys.path.insert(0, str(EXAMPLE_DIR))
 
-from search_track.state import SwarmState, parse_swarm_state  # noqa: E402
+from search_track.state import parse_swarm_state
 
 
 def _seed_state() -> dict:
     return {
-        "sim_time": 12.5, "status": "running",
+        "sim_time": 12.5,
+        "status": "running",
         "20001": {
-            "type": "fixed_wing_uav", "name": "uav_01",
-            "platform": {"position": {"latitude": 27.0, "longitude": 124.99, "altitude": 600.0},
-                         "status": "active"},
-            "comm": {"enabled": True, "range_m": 1000.0,
-                     "external_jammed": True,
-                     "stats": {"sent": 3, "delivered": 1}},
+            "type": "fixed_wing_uav",
+            "name": "uav_01",
+            "platform": {
+                "position": {"latitude": 27.0, "longitude": 124.99, "altitude": 600.0},
+                "status": "active",
+            },
+            "comm": {
+                "enabled": True,
+                "range_m": 1000.0,
+                "external_jammed": True,
+                "stats": {"sent": 3, "delivered": 1},
+            },
             "gimbal_tracking": {"detection": {"detected": True, "misid_flag": False}},
         },
         "10001": {
-            "type": "ground_vehicle", "name": "target_01",
-            "platform": {"position": {"latitude": 27.01, "longitude": 124.990, "altitude": 0.0}},
+            "type": "ground_vehicle",
+            "name": "target_01",
+            "platform": {
+                "position": {"latitude": 27.01, "longitude": 124.990, "altitude": 0.0}
+            },
         },
         "30001": {
-            "type": "decoy_vehicle", "name": "decoy_01",
-            "platform": {"position": {"latitude": 26.999, "longitude": 124.9895, "altitude": 0.0}},
+            "type": "decoy_vehicle",
+            "name": "decoy_01",
+            "platform": {
+                "position": {"latitude": 26.999, "longitude": 124.9895, "altitude": 0.0}
+            },
         },
         "zones": {
             "air_defense": [
-                {"polygon": [[27.010, 124.9895], [27.010, 124.9905],
-                             [27.020, 124.9905], [27.020, 124.9895]],
-                 "alt_min": 0.0, "alt_max": 2500.0}],
+                {
+                    "polygon": [
+                        [27.010, 124.9895],
+                        [27.010, 124.9905],
+                        [27.020, 124.9905],
+                        [27.020, 124.9895],
+                    ],
+                    "alt_min": 0.0,
+                    "alt_max": 2500.0,
+                }
+            ],
             "comm_jam_static": [],
             "comm_jam_random": [
-                {"polygon": [[27.000, 124.9900], [27.000, 124.9910],
-                             [27.010, 124.9910], [27.010, 124.9900]],
-                 "alt_min": 0.0, "alt_max": 5000.0}],
+                {
+                    "polygon": [
+                        [27.000, 124.9900],
+                        [27.000, 124.9910],
+                        [27.010, 124.9910],
+                        [27.010, 124.9900],
+                    ],
+                    "alt_min": 0.0,
+                    "alt_max": 5000.0,
+                }
+            ],
         },
     }
 

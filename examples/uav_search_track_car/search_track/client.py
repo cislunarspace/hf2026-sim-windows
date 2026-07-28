@@ -1,4 +1,5 @@
 """SimClient — minimal Redis wrapper for sim:commands / sim:state."""
+
 from __future__ import annotations
 
 import json
@@ -9,7 +10,6 @@ import redis
 
 from .commands import ControlCommand
 from .state import SimState, parse_sim_state
-
 
 CMD_CHANNEL = "sim:commands"
 STATE_CHANNEL = "sim:state"
@@ -41,9 +41,7 @@ class SimClient:
         self._latest_state: SimState | None = None
 
     def connect(self) -> None:
-        self._redis = redis.Redis(
-            host=self.host, port=self.port, decode_responses=True
-        )
+        self._redis = redis.Redis(host=self.host, port=self.port, decode_responses=True)
         self._redis.ping()
         self._pubsub = self._redis.pubsub(ignore_subscribe_messages=True)
         self._pubsub.subscribe(STATE_CHANNEL)
@@ -167,7 +165,7 @@ class SimClient:
     def send_engine(self, verb: str) -> int:
         return self.publish_dict({"cmd": verb, "params": {}})
 
-    def __enter__(self) -> "SimClient":
+    def __enter__(self) -> SimClient:
         self.connect()
         return self
 

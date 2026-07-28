@@ -31,26 +31,28 @@ completion and 83% misid):
     * Only consumes: sim:state (parsed SwarmState) + peer comm.inbox
       payloads (R:/T: format, info-isolated strings).
 """
+
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Optional
 
-from .state import SwarmState, UavView, ZoneView
 from .sector_search import SectorSearchParams, sector_waypoint
-
+from .state import SwarmState, ZoneView
 
 # ── geometry helpers (mirror the C++ kernel + 016/017) ─────────────────────
+
 
 def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Approximate distance in metres between two lat/lon points."""
     R = 6_371_000.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
-    dp = math.radians(lon2 - lon1)
+    math.radians(lon2 - lon1)
     dl = math.radians(lon2 - lon1)
-    a = math.sin(math.radians(lat2 - lat1) / 2) ** 2 + \
-        math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    a = (
+        math.sin(math.radians(lat2 - lat1) / 2) ** 2
+        + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    )
     return 2 * R * math.asin(min(1.0, math.sqrt(a)))
 
 
@@ -63,14 +65,16 @@ def _point_in_poly(lat: float, lon: float, polygon: list) -> bool:
     for i in range(n):
         yi, xi = polygon[i]
         yj, xj = polygon[(i - 1) % n]
-        if ((yi > lat) != (yj > lat)) and \
-           (lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-30) + xi):
+        if ((yi > lat) != (yj > lat)) and (
+            lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-30) + xi
+        ):
             inside = not inside
     return inside
 
 
-def _nearest_edge_projection(lat: float, lon: float,
-                              polygon: list) -> tuple[float, float]:
+def _nearest_edge_projection(
+    lat: float, lon: float, polygon: list
+) -> tuple[float, float]:
     """Return the closest point on the polygon boundary to (lat, lon)."""
     best = polygon[0]
     best_d = _haversine_m(lat, lon, best[0], best[1])
@@ -82,8 +86,7 @@ def _nearest_edge_projection(lat: float, lon: float,
         ab_lat = b[0] - a[0]
         if ab_lat == 0 and ab_lon == 0:
             continue
-        t = ((lat - a[0]) * ab_lat + (lon - a[1]) * ab_lon) / \
-            (ab_lat ** 2 + ab_lon ** 2)
+        t = ((lat - a[0]) * ab_lat + (lon - a[1]) * ab_lon) / (ab_lat**2 + ab_lon**2)
         t = max(0.0, min(1.0, t))
         proj = (a[0] + t * ab_lat, a[1] + t * ab_lon)
         d = _haversine_m(lat, lon, proj[0], proj[1])
@@ -93,8 +96,9 @@ def _nearest_edge_projection(lat: float, lon: float,
     return best
 
 
-def _avoid_zone(lat: float, lon: float, zone: ZoneView,
-                margin_m: float) -> tuple[float, float]:
+def _avoid_zone(
+    lat: float, lon: float, zone: ZoneView, margin_m: float
+) -> tuple[float, float]:
     """Push (lat, lon) outside ``zone`` with ``margin_m`` extra buffer."""
     edge = _nearest_edge_projection(lat, lon, zone.polygon)
     cx = sum(p[0] for p in zone.polygon) / len(zone.polygon)
@@ -107,13 +111,15 @@ def _avoid_zone(lat: float, lon: float, zone: ZoneView,
     push_m = margin_m
     dlat_per_m = 1.0 / 111_320.0
     dlon_per_m = 1.0 / (111_320.0 * max(math.cos(math.radians(edge[0])), 1e-6))
-    return (edge[0] + dlat / norm * push_m * dlat_per_m,
-            edge[1] + dlon / norm * push_m * dlon_per_m)
+    return (
+        edge[0] + dlat / norm * push_m * dlat_per_m,
+        edge[1] + dlon / norm * push_m * dlon_per_m,
+    )
 
 
-def _gimbal_sweep(t: float, period: float = 4.0,
-                  pitch_min: float = -90.0,
-                  pitch_max: float = -90.0) -> tuple[float, float]:
+def _gimbal_sweep(
+    t: float, period: float = 4.0, pitch_min: float = -90.0, pitch_max: float = -90.0
+) -> tuple[float, float]:
     """Triangle-wave pan sweep + steep tilt (camera footprint sweep).
 
     At 3000m AGL with FOV 30°, a -90° tilt (straight down) gives a
@@ -128,8 +134,9 @@ def _gimbal_sweep(t: float, period: float = 4.0,
     return pan, tilt
 
 
-def _los_pan_tilt(uav_lat: float, uav_lon: float, uav_alt: float,
-                  tgt_lat: float, tgt_lon: float) -> tuple[float, float]:
+def _los_pan_tilt(
+    uav_lat: float, uav_lon: float, uav_alt: float, tgt_lat: float, tgt_lon: float
+) -> tuple[float, float]:
     """Approximate pan/tilt to keep a ground target centred in the gimbal.
 
     Used when the controller knows the target position (cooperative
@@ -141,10 +148,12 @@ def _los_pan_tilt(uav_lat: float, uav_lon: float, uav_alt: float,
     dlat = tgt_lat - uav_lat
     dlon = tgt_lon - uav_lon
     # Bearing from UAV to target (true-north convention).
-    bearing = math.degrees(math.atan2(
-        dlon * math.cos(math.radians(uav_lat)),
-        dlat,
-    ))
+    bearing = math.degrees(
+        math.atan2(
+            dlon * math.cos(math.radians(uav_lat)),
+            dlat,
+        )
+    )
     bearing = (bearing + 360.0) % 360.0
     # Tilt: -90° when overhead, less negative when far. Steeper
     # is better at high altitude (the FOV is small relative to
@@ -163,6 +172,7 @@ def _los_pan_tilt(uav_lat: float, uav_lon: float, uav_alt: float,
 
 # ── decoy classifier ──────────────────────────────────────────────────────
 
+
 @dataclass
 class _DecoyClassifier:
     """Motion-based real-vs-decoy classifier (inline copy of 017's).
@@ -180,8 +190,8 @@ class _DecoyClassifier:
     min_samples: int = 8
     max_jump_m: float = 80.0
     samples: list = field(default_factory=list)
-    decision: Optional[str] = None      # "real" | "decoy" | None
-    started_at: Optional[float] = None
+    decision: str | None = None  # "real" | "decoy" | None
+    started_at: float | None = None
     _max_jump: float = 0.0
 
     def reset(self) -> None:
@@ -190,8 +200,9 @@ class _DecoyClassifier:
         self.started_at = None
         self._max_jump = 0.0
 
-    def observe(self, sim_time: float, lat: Optional[float],
-                lon: Optional[float]) -> Optional[str]:
+    def observe(
+        self, sim_time: float, lat: float | None, lon: float | None
+    ) -> str | None:
         if self.decision is not None:
             return self.decision
         if lat is None or lon is None:
@@ -207,13 +218,18 @@ class _DecoyClassifier:
         window = sim_time - self.started_at
         smooth = self._max_jump < self.max_jump_m
         # Early decision: smooth + moving → REAL before full window elapses.
-        if (span >= self.move_threshold_m
-                and len(self.samples) >= self.min_samples and smooth):
+        if (
+            span >= self.move_threshold_m
+            and len(self.samples) >= self.min_samples
+            and smooth
+        ):
             self.decision = "real"
             return self.decision
         # Window elapsed: decide.
         if window >= self.min_window_s and len(self.samples) >= self.min_samples:
-            self.decision = "real" if (span >= self.move_threshold_m and smooth) else "decoy"
+            self.decision = (
+                "real" if (span >= self.move_threshold_m and smooth) else "decoy"
+            )
             return self.decision
         return None
 
@@ -231,6 +247,7 @@ class _DecoyClassifier:
 
 
 # ── controller ─────────────────────────────────────────────────────────────
+
 
 @dataclass
 class SwarmController:
@@ -257,22 +274,22 @@ class SwarmController:
     last_avoided_zones: list = field(default_factory=list)
 
     # ── sector-search config (set via configure / set_fleet_index) ──
-    _sector_params: Optional[SectorSearchParams] = None
+    _sector_params: SectorSearchParams | None = None
     _fleet_index: int = 0
     _fleet_size: int = 1
     _configured: bool = False
 
     # ── track / decoy state ──
-    _tracked_uid: Optional[str] = None          # uid of the real target committed
-    _tracked_lat: Optional[float] = None        # last known position (for LOS)
-    _tracked_lon: Optional[float] = None
-    _track_started_t: float = -1e9             # sim_time when committed
+    _tracked_uid: str | None = None  # uid of the real target committed
+    _tracked_lat: float | None = None  # last known position (for LOS)
+    _tracked_lon: float | None = None
+    _track_started_t: float = -1e9  # sim_time when committed
     _track_lost_timeout_s: float = 5.0
     track_duration_s: dict = field(default_factory=dict)  # keyed by target uid
     discovered_targets: set = field(default_factory=set)
-    _decoy_avoid: set = field(default_factory=set)        # set of (lat,lon) keys
-    _clf: Optional[_DecoyClassifier] = None
-    _clf_started_t: Optional[float] = None
+    _decoy_avoid: set = field(default_factory=set)  # set of (lat,lon) keys
+    _clf: _DecoyClassifier | None = None
+    _clf_started_t: float | None = None
     _decoy_timeout_s: float = 3.0
 
     # ── cooperative summon state ──
@@ -281,7 +298,7 @@ class SwarmController:
     _peer_tracking: dict = field(default_factory=dict)
     _last_broadcast_t: float = -1e9
     _broadcast_period: float = 1.0
-    _summon_target: Optional[tuple] = None    # (lat, lon) we're flying to
+    _summon_target: tuple | None = None  # (lat, lon) we're flying to
 
     # Tunables (set via configure()).
     _acquire_range_m: float = 1500.0
@@ -344,14 +361,19 @@ class SwarmController:
     def set_sector_center(self, lat: float, lon: float) -> None:
         if self._sector_params is None:
             self._sector_params = SectorSearchParams(
-                base_lat=float(lat), base_lon=float(lon),
+                base_lat=float(lat),
+                base_lon=float(lon),
                 base_alt=self._search_altitude_m,
-                search_radius=2500.0, expand_time=25.0)
+                search_radius=2500.0,
+                expand_time=25.0,
+            )
         else:
             p = self._sector_params
             self._sector_params = SectorSearchParams(
-                base_lat=float(lat), base_lon=float(lon),
-                base_alt=p.base_alt, search_radius=p.search_radius,
+                base_lat=float(lat),
+                base_lon=float(lon),
+                base_alt=p.base_alt,
+                search_radius=p.search_radius,
                 expand_time=p.expand_time,
                 sector_angular_speed_dps=p.sector_angular_speed_dps,
                 initial_radius_frac=p.initial_radius_frac,
@@ -382,41 +404,51 @@ class SwarmController:
         uav = state.uavs.get(self.my_uid)
         if not uav:
             return []
-        return [z for z in state.zones
-                if z.alt_min - 1e-3 <= uav.altitude <= z.alt_max + 1e-3]
+        return [
+            z
+            for z in state.zones
+            if z.alt_min - 1e-3 <= uav.altitude <= z.alt_max + 1e-3
+        ]
 
     def _filter_sam_zones(self, state: SwarmState) -> list:
         """Air-defense polygons (separate from comm-jam)."""
         uav = state.uavs.get(self.my_uid)
         if not uav:
             return []
-        return [z for z in state.zones
-                if z.type == "air_defense"
-                and z.alt_min - 1e-3 <= uav.altitude <= z.alt_max + 1e-3]
+        return [
+            z
+            for z in state.zones
+            if z.type == "air_defense"
+            and z.alt_min - 1e-3 <= uav.altitude <= z.alt_max + 1e-3
+        ]
 
     def _filter_jam_zones(self, state: SwarmState) -> list:
         """Comm-jam polygons (any altitude — both static and random)."""
         uav = state.uavs.get(self.my_uid)
         if not uav:
             return []
-        return [z for z in state.zones
-                if z.type in ("comm_jam_static", "comm_jam_random")
-                and z.alt_min - 1e-3 <= uav.altitude <= z.alt_max + 1e-3]
+        return [
+            z
+            for z in state.zones
+            if z.type in ("comm_jam_static", "comm_jam_random")
+            and z.alt_min - 1e-3 <= uav.altitude <= z.alt_max + 1e-3
+        ]
 
-    def _apply_avoidance(self, lat: float, lon: float,
-                         zones: list) -> tuple[float, float]:
+    def _apply_avoidance(
+        self, lat: float, lon: float, zones: list
+    ) -> tuple[float, float]:
         avoided = []
         cur_lat, cur_lon = lat, lon
         for z in zones:
             if _point_in_poly(cur_lat, cur_lon, z.polygon):
-                cur_lat, cur_lon = _avoid_zone(cur_lat, cur_lon, z,
-                                               self.avoidance_margin_m)
+                cur_lat, cur_lon = _avoid_zone(
+                    cur_lat, cur_lon, z, self.avoidance_margin_m
+                )
                 avoided.append(z.type)
         self.last_avoided_zones = avoided
         return cur_lat, cur_lon
 
-    def _survival_altitude(self, lat: float, lon: float,
-                            sam_zones: list) -> float:
+    def _survival_altitude(self, lat: float, lon: float, sam_zones: list) -> float:
         """Climb to high_alt_threshold_m if the waypoint is over a SAM polygon.
 
         Crucial: alt_min..alt_max is 0..2500m for air_defense in this
@@ -435,10 +467,11 @@ class SwarmController:
         """Sector-divided search waypoint for this UAV's fleet slot."""
         if self._sector_params is None:
             return 0.0, 0.0, self._search_altitude_m
-        return sector_waypoint(sim_time, self._sector_params,
-                               self._fleet_index, self._fleet_size)
+        return sector_waypoint(
+            sim_time, self._sector_params, self._fleet_index, self._fleet_size
+        )
 
-    def _summon_waypoint(self) -> Optional[tuple]:
+    def _summon_waypoint(self) -> tuple | None:
         """If we have a known real target to converge on, return its
         position.  Prefer the most recently broadcast one (peers that
         just announced a target are likely the closest peers with the
@@ -468,8 +501,7 @@ class SwarmController:
                 return True
         return False
 
-    def _pos_in_sam_zone(self, lat: float, lon: float,
-                         sam_zones: list) -> bool:
+    def _pos_in_sam_zone(self, lat: float, lon: float, sam_zones: list) -> bool:
         """True if (lat, lon) lies inside any air-defense polygon."""
         for z in sam_zones:
             if _point_in_poly(lat, lon, z.polygon):
@@ -532,7 +564,9 @@ class SwarmController:
         # AGL and the climb rate is only 10 m/s — without this forced
         # climb the UAV dwells in the SAM envelope for >2s and dies
         # (hit_delay_s=2.0, hit_probability=1.0).
-        sam_zones = self._filter_sam_zones(state) if self.blind_avoidance_enabled else []
+        sam_zones = (
+            self._filter_sam_zones(state) if self.blind_avoidance_enabled else []
+        )
         jam_zones = self._filter_jam_zones(state)
 
         # ── 1) Maintenance: update tracking / decoy state. ─────────────
@@ -551,11 +585,12 @@ class SwarmController:
                 self._feed_classifier(sim_t, me.target_lat, me.target_lon)
                 decision = self._clf.decision if self._clf else None
                 if decision == "real" and self._tracked_uid is None:
-                    tgt_uid = self._nearest_real_target(me.target_lat,
-                                                        me.target_lon, state)
-                    if tgt_uid is not None and not \
-                            self._pos_in_sam_zone(me.target_lat,
-                                                   me.target_lon, sam_zones):
+                    tgt_uid = self._nearest_real_target(
+                        me.target_lat, me.target_lon, state
+                    )
+                    if tgt_uid is not None and not self._pos_in_sam_zone(
+                        me.target_lat, me.target_lon, sam_zones
+                    ):
                         self._tracked_uid = tgt_uid
                         self._tracked_lat = me.target_lat
                         self._tracked_lon = me.target_lon
@@ -574,19 +609,30 @@ class SwarmController:
                     self._tracked_lon = None
                     self._clf = None
                     self._clf_started_t = None
-                elif (decision is None and self._clf_started_t is not None
-                      and sim_t - self._clf_started_t > self._decoy_timeout_s):
+                elif (
+                    decision is None
+                    and self._clf_started_t is not None
+                    and sim_t - self._clf_started_t > self._decoy_timeout_s
+                ):
                     # Timeout: don't orbit static decoys indefinitely.
                     # But also accept if the locked position is right on
                     # top of a real target (engine probably is honest).
-                    tgt_uid = self._nearest_real_target(me.target_lat,
-                                                        me.target_lon, state)
-                    if tgt_uid is not None and \
-                            _haversine_m(me.target_lat, me.target_lon,
-                                         state.targets[tgt_uid].latitude,
-                                         state.targets[tgt_uid].longitude) < 60.0 \
-                            and not self._pos_in_sam_zone(me.target_lat,
-                                                           me.target_lon, sam_zones):
+                    tgt_uid = self._nearest_real_target(
+                        me.target_lat, me.target_lon, state
+                    )
+                    if (
+                        tgt_uid is not None
+                        and _haversine_m(
+                            me.target_lat,
+                            me.target_lon,
+                            state.targets[tgt_uid].latitude,
+                            state.targets[tgt_uid].longitude,
+                        )
+                        < 60.0
+                        and not self._pos_in_sam_zone(
+                            me.target_lat, me.target_lon, sam_zones
+                        )
+                    ):
                         # Detection is essentially on the real target.
                         self._tracked_uid = tgt_uid
                         self._tracked_lat = me.target_lat
@@ -610,7 +656,8 @@ class SwarmController:
                 # real target within acquire range.
                 if self._tracked_uid is None:
                     tgt_uid = self._nearest_real_target_in_range(
-                        me.latitude, me.longitude, state)
+                        me.latitude, me.longitude, state
+                    )
                     if tgt_uid is not None:
                         self._tracked_uid = tgt_uid
                         self._tracked_lat = me.latitude
@@ -649,28 +696,27 @@ class SwarmController:
         if self._tracked_uid is not None:
             tgt = state.targets.get(self._tracked_uid)
             if tgt is not None:
-                d = _haversine_m(me.latitude, me.longitude,
-                                 tgt.latitude, tgt.longitude)
+                d = _haversine_m(me.latitude, me.longitude, tgt.latitude, tgt.longitude)
                 if d <= self._acquire_range_m:
                     self.track_duration_s[self._tracked_uid] = (
-                        self.track_duration_s.get(self._tracked_uid, 0.0)
-                        + period
+                        self.track_duration_s.get(self._tracked_uid, 0.0) + period
                     )
                 # No self-complete — the _track_lost_timeout_s mechanism
                 # handles release when detection is naturally lost.
                 # The 120s cumulative track requirement in the coverage
                 # test is met by letting UAVs track indefinitely.
 
-
         # ── 2) Pick destination waypoint. ──────────────────────────────
-        if self._tracked_uid is not None and \
-                self._tracked_uid in state.targets:
+        if self._tracked_uid is not None and self._tracked_uid in state.targets:
             tgt = state.targets[self._tracked_uid]
             # Loiter directly above the locked target (LOS hold).
             d_lat, d_lon = tgt.latitude, tgt.longitude
             gimbal_pan, gimbal_tilt = _los_pan_tilt(
-                me.latitude, me.longitude, me.altitude,
-                tgt.latitude, tgt.longitude,
+                me.latitude,
+                me.longitude,
+                me.altitude,
+                tgt.latitude,
+                tgt.longitude,
             )
         elif self._summon_waypoint() is not None:
             sp = self._summon_waypoint()
@@ -678,13 +724,13 @@ class SwarmController:
             # While flying to summon, sweep the gimbal so we re-acquire
             # on arrival.
             gimbal_pan, gimbal_tilt = _gimbal_sweep(
-                sim_t, period=4.0,
+                sim_t,
+                period=4.0,
                 pitch_min=self._sweep_pitch_min,
                 pitch_max=self._sweep_pitch_max,
             )
             # Arrived at the summon point (within loiter radius)?
-            d_to_summon = _haversine_m(me.latitude, me.longitude,
-                                       d_lat, d_lon)
+            d_to_summon = _haversine_m(me.latitude, me.longitude, d_lat, d_lon)
             if d_to_summon <= self._loiter_radius_m * 2:
                 # We've arrived but didn't detect → drop the summon so
                 # we go back to sector search (avoids orbiting an empty
@@ -693,7 +739,8 @@ class SwarmController:
         else:
             d_lat, d_lon, _ = self._search_waypoint(sim_t)
             gimbal_pan, gimbal_tilt = _gimbal_sweep(
-                sim_t, period=4.0,
+                sim_t,
+                period=4.0,
                 pitch_min=self._sweep_pitch_min,
                 pitch_max=self._sweep_pitch_max,
             )
@@ -712,8 +759,9 @@ class SwarmController:
             if uav_in:
                 # UAV is inside the SAM envelope — escape immediately
                 # using the UAV's position to find the nearest exit.
-                d_lat, d_lon = _avoid_zone(me.latitude, me.longitude, z,
-                                           self.avoidance_margin_m)
+                d_lat, d_lon = _avoid_zone(
+                    me.latitude, me.longitude, z, self.avoidance_margin_m
+                )
                 d_alt = self.high_alt_threshold_m
                 break
             need_avoid = wp_in
@@ -726,37 +774,43 @@ class SwarmController:
                 uav_s = me.latitude < slat_min
                 wp_n = d_lat > slat_max
                 wp_s = d_lat < slat_min
-                lon_ok = (slon_min <= me.longitude <= slon_max) or \
-                         (slon_min <= d_lon <= slon_max)
+                lon_ok = (slon_min <= me.longitude <= slon_max) or (
+                    slon_min <= d_lon <= slon_max
+                )
                 need_avoid = ((uav_s and wp_n) or (uav_n and wp_s)) and lon_ok
             if need_avoid:
                 d_alt = self.high_alt_threshold_m
                 # Push destination to the UAV's side of the zone (using
                 # the UAV position for edge projection) so the UAV never
                 # has to cross through the zone to reach its waypoint.
-                d_lat, d_lon = _avoid_zone(me.latitude, me.longitude, z,
-                                           self.avoidance_margin_m)
+                d_lat, d_lon = _avoid_zone(
+                    me.latitude, me.longitude, z, self.avoidance_margin_m
+                )
                 break
 
         # ── 4) Build command list. ─────────────────────────────────────
-        cmds.append({
-            "unique_id": self.my_uid,
-            "cmd": "set_destination",
-            "params": {"latitude": d_lat, "longitude": d_lon,
-                       "altitude": d_alt},
-        })
-        cmds.append({
-            "unique_id": self.my_uid,
-            "cmd": "component.gimbal_tracking.set_orientation",
-            "params": {"pan": gimbal_pan, "tilt": gimbal_tilt},
-        })
+        cmds.append(
+            {
+                "unique_id": self.my_uid,
+                "cmd": "set_destination",
+                "params": {"latitude": d_lat, "longitude": d_lon, "altitude": d_alt},
+            }
+        )
+        cmds.append(
+            {
+                "unique_id": self.my_uid,
+                "cmd": "component.gimbal_tracking.set_orientation",
+                "params": {"pan": gimbal_pan, "tilt": gimbal_tilt},
+            }
+        )
 
         # ── 5) Cooperative broadcast (suppress if jammed). ────────────
         # Only broadcast if we hold a REAL target AND we're not in a
         # comm-jam zone (saves the 4Hz quota for when the message
         # actually has a chance of arriving).
-        if self._tracked_uid is not None and \
-                not self._is_in_jam_zone(me.latitude, me.longitude, jam_zones):
+        if self._tracked_uid is not None and not self._is_in_jam_zone(
+            me.latitude, me.longitude, jam_zones
+        ):
             if sim_t - self._last_broadcast_t >= self._broadcast_period:
                 self._last_broadcast_t = sim_t
                 # Use detection position (fresh), not the locked uid pos.
@@ -769,11 +823,13 @@ class SwarmController:
                     else:
                         payload = ""
                 if payload:
-                    cmds.append({
-                        "unique_id": self.my_uid,
-                        "cmd": "comm.broadcast",
-                        "params": {"payload": payload},
-                    })
+                    cmds.append(
+                        {
+                            "unique_id": self.my_uid,
+                            "cmd": "comm.broadcast",
+                            "params": {"payload": payload},
+                        }
+                    )
         return cmds
 
     # ── helpers ────────────────────────────────────────────────────────
@@ -799,8 +855,9 @@ class SwarmController:
     def _release_decoy(self, lat: float, lon: float) -> None:
         self._decoy_avoid.add((round(lat, 4), round(lon, 4)))
 
-    def _nearest_real_target(self, lat: float, lon: float,
-                              state: SwarmState) -> Optional[str]:
+    def _nearest_real_target(
+        self, lat: float, lon: float, state: SwarmState
+    ) -> str | None:
         """Find the nearest real target by position. We never use the
         engine's reported target_type — only the parsed SwarmState's
         ``targets`` mapping (real targets) and ``decoys`` mapping
@@ -814,8 +871,9 @@ class SwarmController:
                 best_uid = uid
         return best_uid
 
-    def _nearest_real_target_in_range(self, lat: float, lon: float,
-                                       state: SwarmState) -> Optional[str]:
+    def _nearest_real_target_in_range(
+        self, lat: float, lon: float, state: SwarmState
+    ) -> str | None:
         """Like :meth:`_nearest_real_target` but only returns a target
         that lies within ``self._acquire_range_m`` of (lat, lon). Used
         for the synthetic / test path where the engine reports

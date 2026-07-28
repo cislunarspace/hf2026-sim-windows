@@ -7,6 +7,7 @@ same two channels (sim:commands / sim:state) as 016 — no new channels.
 The client is UAV-agnostic: it does not assume a fixed uav_id. Instead it
 discovers UAVs from each state frame by scanning entities of kind=="uav".
 """
+
 from __future__ import annotations
 
 import json
@@ -16,7 +17,6 @@ from typing import Any
 import redis
 
 from .multi_state import MultiSimState, parse_multi_sim_state
-
 
 CMD_CHANNEL = "sim:commands"
 STATE_CHANNEL = "sim:state"
@@ -39,9 +39,7 @@ class MultiSimClient:
         self._latest_state: MultiSimState | None = None
 
     def connect(self) -> None:
-        self._redis = redis.Redis(
-            host=self.host, port=self.port, decode_responses=True
-        )
+        self._redis = redis.Redis(host=self.host, port=self.port, decode_responses=True)
         self._redis.ping()
         self._pubsub = self._redis.pubsub(ignore_subscribe_messages=True)
         self._pubsub.subscribe(STATE_CHANNEL)
@@ -137,7 +135,7 @@ class MultiSimClient:
         }
         return self._redis.publish(EVENTS_CHANNEL, json.dumps(message))
 
-    def __enter__(self) -> "MultiSimClient":
+    def __enter__(self) -> MultiSimClient:
         self.connect()
         return self
 

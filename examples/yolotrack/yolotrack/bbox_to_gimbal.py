@@ -2,6 +2,7 @@
 
 本模块是整个 yolotrack 的几何核心，无任何外部依赖，便于单测。
 """
+
 from __future__ import annotations
 
 
@@ -29,9 +30,7 @@ def bbox_to_pan_tilt_delta(
     if W <= 0 or H <= 0:
         raise ValueError(f"image_size 必须为正: got {image_size}")
     if hfov_deg < 0 or vfov_deg < 0:
-        raise ValueError(
-            f"视场角必须为非负: got hfov={hfov_deg}, vfov={vfov_deg}"
-        )
+        raise ValueError(f"视场角必须为非负: got hfov={hfov_deg}, vfov={vfov_deg}")
 
     # 归一化到 [-1, 1]：图像中心 = 0
     dx_norm = (cx - W / 2.0) / (W / 2.0)
