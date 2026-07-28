@@ -8,7 +8,7 @@
 赛题一跳过 COORDINATE（单机无协同）。
 
 算法：
-  - EKF（Rust）用于目标位置估计和速度估计
+  - IMM 滤波器（Rust，CV+CA+CT 三模型）用于目标位置估计和速度估计
   - 阿基米德螺旋搜索
   - LOS 瞄准 + 前馈飞行跟踪
   - VERIFY：3 秒窗口，速度阈值判别诱饵
@@ -25,7 +25,7 @@ from competition.sdk.core.commands import (
 from competition.sdk.scenarios.search_track import SearchTrackAgent
 from competition.sdk.scenarios.search_track.observation import SearchTrackObs
 
-from algorithms.estimation.ekf import BearingOnlyEKF
+from algorithms.estimation.ekf import ImmFilter
 from algorithms.estimation.geometry import bearing_rad, haversine_m
 from algorithms.search.spiral import generate_spiral
 from algorithms.tracking.gimbal import compute_gimbal_angles, choose_fov
@@ -50,14 +50,14 @@ _TRACK_SPEED = 25.0      # 跟踪速度（m/s）
 _LOITER_RADIUS = 200.0   # 盘旋半径（m）
 _LEAD_TIME_S = 1.5       # 前馈时间（s）
 _GRACE_FRAMES = 20       # 丢失容忍帧数（~2s @ 10Hz）
-_VERIFY_FRAMES = 30      # VERIFY 窗口帧数（3s @ 10Hz）
+_VERIFY_FRAMES = 80      # VERIFY 窗口帧数（8s @ 10Hz），3s 不足以分离速度
 _ENGAGE_FRAMES = 10      # ENGAGE 等待 EKF 收敛帧数
 _ATTACK_TIME_S = 20.0    # ATTACK 累计盯防时间（秒）
 _REPORT_INTERVAL = 1.0   # 上报间隔（秒）
 _SPIRAL_RADIUS_M = 1500  # 螺旋搜索半径（m）
 _SPIRAL_PITCH_M = 300    # 螺旋螺距（m），由 FOV 覆盖宽度决定
 _ASSUME_RANGE_M = 800.0  # 首次检测假设距离（m）
-_VERIFY_SPEED_THRESH = 3.0  # VERIFY 速度阈值（m/s），真目标 ~8 m/s，诱饵 ~0 m/s
+_VERIFY_SPEED_THRESH = 3.9  # VERIFY 速度阈值（m/s），8s 窗口下召回 94%/误判 2%
 
 
 class MySearchTrackAgent(SearchTrackAgent):
@@ -95,9 +95,9 @@ class MySearchTrackAgent(SearchTrackAgent):
         det = obs.self.detection
         cmds: List[Command] = []
 
-        # 初始化 EKF（用 UAV 初始位置作为坐标原点）
+        # 初始化 IMM（用 UAV 初始位置作为坐标原点）
         if self._ekf is None:
-            self._ekf = BearingOnlyEKF(obs.self.lat, obs.self.lon)
+            self._ekf = ImmFilter(obs.self.lat, obs.self.lon)
 
         # 生成搜索航点（如果还没有）
         if not self._search_waypoints:
@@ -208,6 +208,7 @@ class MySearchTrackAgent(SearchTrackAgent):
             else:
                 self._ekf.predict(dt)
                 self._ekf.update_bearing(obs.self.lat, obs.self.lon, bearing)
+                self._ekf.update_range(obs.self.lat, obs.self.lon, range_m)
         else:
             # 丢失检测 → predict only
             if self._ekf.is_initialized():
@@ -226,7 +227,7 @@ class MySearchTrackAgent(SearchTrackAgent):
                 return self._do_engage(obs, dt)
             else:
                 # 诱饵 → 回 SEARCH
-                self._ekf = BearingOnlyEKF(obs.self.lat, obs.self.lon)
+                self._ekf = ImmFilter(obs.self.lat, obs.self.lon)
                 self._state = State.SEARCH
                 return self._do_search(obs, dt)
 
@@ -242,12 +243,15 @@ class MySearchTrackAgent(SearchTrackAgent):
         if det.detected and det.target_lat is not None and det.target_lon is not None:
             bearing = bearing_rad(obs.self.lat, obs.self.lon,
                                   det.target_lat, det.target_lon)
+            range_m = haversine_m(obs.self.lat, obs.self.lon,
+                                  det.target_lat, det.target_lon)
             if not self._ekf.is_initialized():
                 self._ekf.initialize(obs.self.lat, obs.self.lon,
-                                     bearing, _ASSUME_RANGE_M)
+                                     bearing, range_m)
             else:
                 self._ekf.predict(dt)
                 self._ekf.update_bearing(obs.self.lat, obs.self.lon, bearing)
+                self._ekf.update_range(obs.self.lat, obs.self.lon, range_m)
             self._lost_frames = 0
         else:
             if self._ekf.is_initialized():
@@ -303,12 +307,15 @@ class MySearchTrackAgent(SearchTrackAgent):
         if det.detected and det.target_lat is not None and det.target_lon is not None:
             bearing = bearing_rad(obs.self.lat, obs.self.lon,
                                   det.target_lat, det.target_lon)
+            range_m = haversine_m(obs.self.lat, obs.self.lon,
+                                  det.target_lat, det.target_lon)
             if not self._ekf.is_initialized():
                 self._ekf.initialize(obs.self.lat, obs.self.lon,
-                                     bearing, _ASSUME_RANGE_M)
+                                     bearing, range_m)
             else:
                 self._ekf.predict(dt)
                 self._ekf.update_bearing(obs.self.lat, obs.self.lon, bearing)
+                self._ekf.update_range(obs.self.lat, obs.self.lon, range_m)
             self._lost_frames = 0
         else:
             if self._ekf.is_initialized():

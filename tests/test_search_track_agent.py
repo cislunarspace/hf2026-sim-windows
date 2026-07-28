@@ -127,11 +127,12 @@ class TestTrackPhase:
             obs = _make_obs(lat=27.0 + i * 0.0001)
             agent.decide(obs, dt=0.1)
 
-        # 目标以 ~30 m/s 向东运动（足够快，EKF 能估计出 > 3 m/s）
+        # 目标以 ~30 m/s 向东运动（足够快，IMM 能估计出 > 3.9 m/s）
         # UAV 向北运动产生视差
+        # VERIFY 窗口 80 帧 + ENGAGE 需要额外帧 → 共 130 帧
         target_lon_offset = 0.0
         found_report = False
-        for i in range(80):
+        for i in range(130):
             target_lon_offset += 0.00003  # ~3 m/s east
             uav_lat = 27.0 + i * 0.0002   # UAV 向北运动
             obs = _make_obs(
