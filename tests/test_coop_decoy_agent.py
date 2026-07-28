@@ -155,6 +155,40 @@ class TestCoopAgentComms:
         fly_cmd = _find_cmd(cmds, "set_destination")
         assert fly_cmd is not None, "JOIN 状态应有飞行命令"
 
+    def test_join_timeout_returns_to_search(self):
+        """JOIN 超时（未检测到目标）应回 SEARCH，避免收敛到已放弃的诱饵。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        # 收到 announce 进入 JOIN
+        msg = MagicMock()
+        msg.payload = "A:27.010,125.010"
+        msg.sender_uid = "uav_2"
+        agent.decide(_make_obs(comm_inbox=(msg,)), dt=0.1)
+        assert agent._state.value == "JOIN"
+        # 无检测、无新 announce，跑超过 JOIN 超时（30s）
+        for i in range(310):
+            agent.decide(_make_obs(), dt=0.1)
+        assert agent._state.value == "SEARCH", "JOIN 超时后应回 SEARCH"
+        assert agent._shared_target is None, "超时后共享目标应清空"
+
+    def test_announce_expires(self):
+        """announce 超过 15s 未更新应过期。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        msg = MagicMock()
+        msg.payload = "A:27.010,125.010"
+        msg.sender_uid = "uav_2"
+        agent.decide(_make_obs(comm_inbox=(msg,)), dt=0.1)
+        assert agent._shared_target is not None
+        # 跑 16s 无新消息（16s > 15s 过期窗口）
+        for i in range(160):
+            agent.decide(_make_obs(), dt=0.1)
+        assert agent._shared_target is None, "announce 应已过期"
+
     def test_broadcast_format(self):
         """长机首次 TRACK 应广播 A:lat,lon（announce）。"""
         agent = CoopDecoyAgent("uav_1")

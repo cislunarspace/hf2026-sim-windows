@@ -42,6 +42,9 @@ _TRACK_DWELL_S = 20.0      # 盯防摧毁时间（s）
 _TRACK_GRACE_S = 2.0       # 丢失容忍时间（s）
 _TRACK_TIMEOUT_S = 35.0    # 跟踪超时（s）
 
+_JOIN_TIMEOUT_S = 30.0     # JOIN 超时（s），超时未进 TRACK 回 SEARCH
+_ANNOUNCE_EXPIRE_S = 15.0  # announce 过期时间（s），防止收敛到已放弃的诱饵
+
 _BC_INTERVAL = 0.5         # 广播间隔（s，2Hz）
 _REPORT_INTERVAL = 1.0     # 上报间隔（s）
 
@@ -100,6 +103,8 @@ class CoopDecoyAgent(CoopAgent):
         self._last_bc_time = 0.0
         self._known_decoys: List[Tuple[float, float]] = []
         self._shared_target: Optional[Tuple[float, float]] = None
+        self._shared_target_time: float = -1.0  # 收到 announce 的 sim_time，-1=未收到
+        self._join_time: float = 0.0
         self._is_wingman: bool = False  # True=僚机（收到 announce 加入），False=长机
 
     def reset(self) -> None:
@@ -118,6 +123,8 @@ class CoopDecoyAgent(CoopAgent):
         self._last_bc_time = 0.0
         self._known_decoys = []
         self._shared_target = None
+        self._shared_target_time = -1.0
+        self._join_time = 0.0
         self._is_wingman = False
 
     def decide(self, obs: CoopObs, dt: float) -> List[Command]:
@@ -125,8 +132,9 @@ class CoopDecoyAgent(CoopAgent):
         det = obs.self.detection
         cmds: List[Command] = []
 
-        # 处理队友消息
+        # 处理队友消息 + 过期清理
         self._ingest_comms(obs.comm_inbox)
+        self._expire_shared_target()
 
         # 状态分发
         if self._state == State.SEARCH:
@@ -150,6 +158,7 @@ class CoopDecoyAgent(CoopAgent):
                 try:
                     la, lo = p[2:].split(",")
                     self._shared_target = (float(la), float(lo))
+                    self._shared_target_time = self._sim_time
                 except Exception:
                     pass
             elif p.startswith("T:") and self._shared_target is None:
@@ -157,8 +166,17 @@ class CoopDecoyAgent(CoopAgent):
                 try:
                     la, lo = p[2:].split(",")
                     self._shared_target = (float(la), float(lo))
+                    self._shared_target_time = self._sim_time
                 except Exception:
                     pass
+
+    def _expire_shared_target(self) -> None:
+        """过期 announce 清理：超过时限未收到新消息则放弃共享目标。"""
+        if (self._shared_target is not None
+                and self._shared_target_time >= 0.0
+                and self._sim_time - self._shared_target_time > _ANNOUNCE_EXPIRE_S):
+            self._shared_target = None
+            self._shared_target_time = -1.0
 
     def _make_announce(self, tgt_lat: float, tgt_lon: float) -> Command:
         """广播 announce：确认真目标，需要僚机。"""
@@ -194,6 +212,7 @@ class CoopDecoyAgent(CoopAgent):
             if not near_decoy:
                 self._state = State.JOIN
                 self._target = self._shared_target
+                self._join_time = 0.0
                 self._imm = None
                 return self._do_join(obs, dt)
 
@@ -265,6 +284,7 @@ class CoopDecoyAgent(CoopAgent):
             if d > 200.0:  # 不同目标，队友确认的是另一个
                 self._state = State.JOIN
                 self._target = self._shared_target
+                self._join_time = 0.0
                 self._imm = None
                 return self._do_join(obs, dt)
 
@@ -376,10 +396,15 @@ class CoopDecoyAgent(CoopAgent):
     def _do_join(self, obs: CoopObs, dt: float) -> List[Command]:
         cmds = []
         det = obs.self.detection
+        self._join_time += dt
 
-        # 丢失目标超时 → SEARCH
-        if self._target is None:
+        # JOIN 超时（announce 过期或始终未检测到目标）→ SEARCH
+        if self._target is None or self._join_time >= _JOIN_TIMEOUT_S:
             self._state = State.SEARCH
+            self._target = None
+            self._shared_target = None
+            self._shared_target_time = -1.0
+            self._join_time = 0.0
             return self._do_search(obs, dt)
 
         # 检测到目标后开始跟踪

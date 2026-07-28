@@ -66,7 +66,7 @@ class MySearchTrackAgent(SearchTrackAgent):
     def __init__(self, my_uid: str):
         super().__init__(my_uid)
         self._state: State = State.ACQUIRE
-        self._ekf: Optional[BearingOnlyEKF] = None
+        self._ekf: Optional[ImmFilter] = None
         self._search_waypoints: List[Tuple[float, float]] = []
         self._wp_idx: int = 0
         self._lost_frames: int = 0
