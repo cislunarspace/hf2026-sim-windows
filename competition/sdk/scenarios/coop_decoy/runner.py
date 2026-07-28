@@ -45,7 +45,7 @@ DEFAULT_K = 2
 
 class CoopDecoyRunner(RunnerBase):
     scenario_name = "coop_decoy"
-    controllable_types = frozenset({"uav"})
+    controllable_types: set[str] = frozenset({"uav"})
 
     def __init__(self, cfg: ScenarioConfig, agent_cls, log=print) -> None:
         super().__init__(cfg, log)

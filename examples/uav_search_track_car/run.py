@@ -123,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
         results = runner.run(
             n=seed_count,
             seed_base=seed_base,
-            controller_name=None,  # populated below
+            controller_name=None,
             config_snapshot={"controller": None},
         )
         log(

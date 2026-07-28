@@ -7,6 +7,7 @@ base_class_names 是逗号分隔的基类名清单(如 'SearchTrackAgent,Agent')
 脚本用 ast 静态分析,不 import 不执行参赛者代码。
 stdout 输出一行 JSON, stderr 仅诊断信息。
 """
+
 import ast
 import json
 import sys
@@ -53,12 +54,16 @@ def find_entry_class(tree: ast.Module, targets: list[str]) -> ast.ClassDef | Non
 
 def main() -> int:
     if len(sys.argv) < 3:
-        print(json.dumps({"found": False, "error": "usage: parse_agent.py <file> <base_classes>"}))
+        print(
+            json.dumps(
+                {"found": False, "error": "usage: parse_agent.py <file> <base_classes>"}
+            )
+        )
         return 2
     py_file = sys.argv[1]
     targets = [t.strip() for t in sys.argv[2].split(",") if t.strip()]
     try:
-        with open(py_file, "r", encoding="utf-8-sig") as f:
+        with open(py_file, encoding="utf-8-sig") as f:
             src = f.read()
         tree = ast.parse(src, filename=py_file)
     except (SyntaxError, OSError) as e:
@@ -72,12 +77,16 @@ def main() -> int:
 
     doc = ast.get_docstring(cls) or ""
     short = doc.split("\n", 1)[0].strip() if doc else ""
-    print(json.dumps({
-        "found": True,
-        "entryClass": cls.name,
-        "shortName": short,
-        "docstring": doc,
-    }))
+    print(
+        json.dumps(
+            {
+                "found": True,
+                "entryClass": cls.name,
+                "shortName": short,
+                "docstring": doc,
+            }
+        )
+    )
     return 0
 
 

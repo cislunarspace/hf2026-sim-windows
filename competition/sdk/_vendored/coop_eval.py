@@ -34,6 +34,7 @@ adversarial example blends ``0.7*completion + 0.3*alive`` into the total.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from .geometry import haversine_m as _haversine_m
@@ -684,7 +685,9 @@ class CoopTrackingEvaluator:
         if last is not None and sim_time - last < 1.0:
             return
         self._last_report_time[best_uid] = sim_time
+        self._sum_d_sq.setdefault(best_uid, 0.0)
         self._sum_d_sq[best_uid] += live_d * live_d
+        self._n_reports.setdefault(best_uid, 0)
         self._n_reports[best_uid] += 1
         # scenario-1 continuous-designation timeseries (spec 2026-07-15):
         # record this 1Hz sample so _dimension("accuracy") can apply the

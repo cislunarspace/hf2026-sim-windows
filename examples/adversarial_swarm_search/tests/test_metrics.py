@@ -15,10 +15,7 @@ EXAMPLE_DIR = HERE.parent
 if str(EXAMPLE_DIR) not in sys.path:
     sys.path.insert(0, str(EXAMPLE_DIR))
 
-from search_track.metrics import (
-    AuctionOutcome,
-    RunMetrics,
-)
+from search_track.metrics import AuctionOutcome, RunMetrics
 from search_track.state import SwarmState, UavView
 
 

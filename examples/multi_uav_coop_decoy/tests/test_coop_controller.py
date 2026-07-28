@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[3]
@@ -543,7 +544,7 @@ def test_classifier_real_latches_track_active_flag():
     me = state.entities["20001"]
 
     class RealClassifier:
-        samples = []  # noqa: RUF012
+        samples: ClassVar[list] = []
         started_at = 1.0
 
         def observe(self, *_args):
@@ -628,7 +629,7 @@ def test_real_decision_does_not_commit_in_sector_spread_mode():
 
     # Pretend the motion classifier has already confirmed this detection.
     class RealClassifier:
-        samples = []  # noqa: RUF012
+        samples: ClassVar[list] = []
         started_at = 1.0
 
         def observe(self, *_args):

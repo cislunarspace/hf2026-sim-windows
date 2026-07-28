@@ -379,7 +379,9 @@ def _plan_full_route(
 
 
 def pick_route(
-    routes_path: str, rng: random.Random | None = None, route_name: str | None = None
+    routes_path: str,
+    rng: random.Random | None = None,
+    route_name: str | None = None,
 ) -> dict | None:
     """单条随机选路（无种子，仅用于无种子的单实体场景）。
 

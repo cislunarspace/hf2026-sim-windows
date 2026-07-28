@@ -23,9 +23,7 @@ if str(EXAMPLE_DIR) not in sys.path:
     sys.path.insert(0, str(EXAMPLE_DIR))
 
 from search_track.auction_allocator import AuctionMessage
-from search_track.distributed_coop_controller import (
-    DistributedCoopController,
-)
+from search_track.distributed_coop_controller import DistributedCoopController
 from search_track.fleet_membership import Heartbeat
 
 N_UAVS = 10

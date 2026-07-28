@@ -124,6 +124,7 @@ def test_inject_skips_targets_not_in_state():
 
 
 def test_build_controllers_assigns_distinct_fleet_indices():
+
     uav_uids = ["20001", "20002", "20003"]
     # Minimal first state carrying the three UAVs for the centroid path.
     ents = {}

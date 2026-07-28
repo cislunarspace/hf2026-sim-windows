@@ -231,7 +231,7 @@ class RunnerBase:
     """
 
     scenario_name: str = ""
-    controllable_types: set = frozenset({"uav"})
+    controllable_types: set[str] = frozenset({"uav"})
     # Default agent class for the homogeneous case. Subclasses set this, OR
     # override make_agent_for for heterogeneous dispatch (reserved).
     agent_cls: type[Agent] | None = None
