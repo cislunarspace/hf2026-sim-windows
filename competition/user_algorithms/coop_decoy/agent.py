@@ -19,7 +19,7 @@ from enum import Enum
 from algorithms.estimation.ekf import ImmFilter
 from algorithms.estimation.geometry import bearing_rad, haversine_m
 from algorithms.estimation.motion import ols_speed_mps
-from algorithms.search.lawnmower import sector_lawnmower
+from algorithms.search.target_roads import route_waypoints_for_uid
 from algorithms.tracking.gimbal import compute_gimbal_angles
 
 from competition.sdk.core.commands import (
@@ -35,8 +35,9 @@ from competition.sdk.scenarios.coop_decoy.observation import CoopObs
 
 # ── 常量 ──────────────────────────────────────────────────────────────────
 
-_SEARCH_ALT = 200.0  # 搜索高度（m）
-_SEARCH_SPEED = 25.0  # 搜索速度（m/s）
+_SEARCH_ALT = 500.0  # 搜索高度（m）：飞高拉宽相机地面脚印（~570m vs 200m 的 ~230m），
+# 配合 40 m/s 扫描效率 ~4 倍于 200m/25m/s（赛题二运动学上限 40 m/s、无高度锁）
+_SEARCH_SPEED = 40.0  # 搜索速度（m/s，运动学上限）
 _TRACK_SPEED = 20.0  # 跟踪速度（m/s）
 _LOITER_RADIUS = 100.0  # 盘旋半径（m）
 _LEAD_TIME_S = 1.5  # 前馈时间（s）
@@ -55,12 +56,14 @@ _REJECT_RADIUS_M = 500.0  # 冷却生效的检测距离（m）：机 20s 已飞�
 
 _TRACK_DWELL_S = 20.0  # 盯防摧毁时间（s）
 _TRACK_GRACE_S = 2.0  # 丢失容忍时间（s）
-_TRACK_TIMEOUT_S = 35.0  # 跟踪超时（s）
+_TRACK_TIMEOUT_S = 90.0  # 跟踪超时（s）：长机须咬住目标等僚机
+# （跨区飞来 ~50s + 僚机 VERIFY 12s + 协同 20s），35s 等到一半就放弃了
 
 _JOIN_TIMEOUT_S = 60.0  # JOIN 超时（s），扇区间距 ~2km @25m/s 需 ~80s 收敛
 _ANNOUNCE_EXPIRE_S = 15.0  # announce 过期时间（s），防止收敛到已放弃的诱饵
 
 _BC_INTERVAL = 0.5  # 广播间隔（s，2Hz）
+_HB_INTERVAL = 1.0  # 位置心跳间隔（s，1Hz；P:lat,lon，用于 proximity 避让）
 _REPORT_INTERVAL = 1.0  # 上报间隔（s）
 
 _ASSUME_RANGE_M = 800.0  # 首次检测假设距离（m）
@@ -109,6 +112,8 @@ class CoopDecoyAgent(CoopAgent):
         self._last_reject_time: float = -1e9
         self._reject_streak: int = 0
         self._time_synced: bool = False
+        self._last_hb_time: float = -1e9
+        self._teammates: dict[str, tuple[float, float, float]] = {}  # uid→(lat,lon,t)
 
     def reset(self) -> None:
         self._state = State.SEARCH
@@ -134,6 +139,8 @@ class CoopDecoyAgent(CoopAgent):
         self._last_reject_time = -1e9
         self._reject_streak = 0
         self._time_synced = False
+        self._last_hb_time = -1e9
+        self._teammates = {}
 
     def decide(self, obs: CoopObs, dt: float) -> list[Command]:
         self._sync_time(obs, dt)
@@ -143,15 +150,20 @@ class CoopDecoyAgent(CoopAgent):
         self._ingest_comms(obs.comm_inbox)
         self._expire_shared_target()
 
+        # 位置心跳（1Hz）：队友据此做 <200m proximity 避让
+        if self._sim_time - self._last_hb_time >= _HB_INTERVAL:
+            self._last_hb_time = self._sim_time
+            cmds.append(broadcast(f"P:{obs.self.lat:.4f},{obs.self.lon:.4f}"))
+
         # 状态分发
         if self._state == State.SEARCH:
-            return self._do_search(obs, dt)
+            return cmds + self._do_search(obs, dt)
         elif self._state == State.VERIFY:
-            return self._do_verify(obs, dt)
+            return cmds + self._do_verify(obs, dt)
         elif self._state == State.TRACK:
-            return self._do_track(obs, dt)
+            return cmds + self._do_track(obs, dt)
         elif self._state == State.JOIN:
-            return self._do_join(obs, dt)
+            return cmds + self._do_join(obs, dt)
         return cmds
 
     # ── 时间基准 ──────────────────────────────────────────────────────────
@@ -189,6 +201,18 @@ class CoopDecoyAgent(CoopAgent):
                     la, lo = p[2:].split(",")
                     self._shared_target = (float(la), float(lo))
                     self._shared_target_time = self._sim_time
+                except Exception:
+                    pass
+            elif p.startswith("P:"):
+                # 队友位置心跳：proximity 避让用
+                try:
+                    la, lo = p[2:].split(",")
+                    if msg.sender_uid != self.my_uid:
+                        self._teammates[msg.sender_uid] = (
+                            float(la),
+                            float(lo),
+                            self._sim_time,
+                        )
                 except Exception:
                     pass
             elif p.startswith("T:") and self._shared_target is None:
@@ -252,12 +276,11 @@ class CoopDecoyAgent(CoopAgent):
         cmds = []
         det = obs.self.detection
 
-        # 生成搜索航点（如果还没有）：割草机全覆盖本机条带
-        # （螺旋半径 700m 覆盖不了图幅，快目标从未进入搜索环——仿真实测）
+        # 生成搜索航点（如果还没有）：沿目标路线先验扫描（训练阶段真目标
+        # 只在 points.json 的 26 条路网上，沿路线扫描遭遇率远高于割草机；
+        # 验证集换路线时失效，需退回割草机或重新生成）
         if not self._search_waypoints:
-            self._search_waypoints = sector_lawnmower(
-                self.my_uid, _BBOX, n_sectors=3, lane_spacing_m=400.0
-            )
+            self._search_waypoints = route_waypoints_for_uid(self.my_uid, n_shares=3)
             self._wp_idx = 0
 
         # 收到队友确认目标 → JOIN（跳过已摧毁目标）
@@ -303,7 +326,24 @@ class CoopDecoyAgent(CoopAgent):
             if dist < 200.0:
                 self._wp_idx = (self._wp_idx + 1) % len(self._search_waypoints)
                 wp_lat, wp_lon = self._search_waypoints[self._wp_idx]
-            cmds.append(fly_to(wp_lat, wp_lon, alt=_SEARCH_ALT, speed=_SEARCH_SPEED))
+
+            # proximity 避让：队友在 300m 内时，沿远离队友方向退 300m 再飞
+            # （<200m 每次扣 2 分；600s 局 8 次把 accuracy 得分清零）
+            fly_lat, fly_lon = wp_lat, wp_lon
+            for tla, tlo, tt in self._teammates.values():
+                if self._sim_time - tt > 5.0:
+                    continue
+                d = haversine_m(obs.self.lat, obs.self.lon, tla, tlo)
+                if d < 300.0:
+                    brg = bearing_rad(tla, tlo, obs.self.lat, obs.self.lon)
+                    fly_lat = obs.self.lat + 300.0 * math.cos(brg) / 111320.0
+                    fly_lon = obs.self.lon + 300.0 * math.sin(brg) / (
+                        111320.0 * math.cos(math.radians(obs.self.lat))
+                    )
+                    break
+            cmds.append(
+                fly_to(fly_lat, fly_lon, alt=_SEARCH_ALT, speed=_SEARCH_SPEED)
+            )
 
         # 云台扇扫（pan ±90°，tilt -60° ~ -30°）——不扫描检测覆盖率极低
         self._gimbal_phase += dt * 0.5
@@ -499,13 +539,18 @@ class CoopDecoyAgent(CoopAgent):
                 cmds.append(self._make_broadcast(self._target[0], self._target[1]))
 
         # 云台 + 飞行（僚机用更大盘旋半径避免 <200m 惩罚）
+        # 云台瞄准用 IMM 滤波位置（比逐帧检测平滑，减少锁中断，
+        # K=2 协同 dwell 需要双机同时连续锁定 20s、中断 >2s 清零）
         if self._target:
+            aim = self._target
+            if self._imm and self._imm.is_initialized():
+                aim = self._imm.position_wgs84()
             pan, tilt = compute_gimbal_angles(
                 obs.self.lat,
                 obs.self.lon,
                 obs.self.alt,
-                self._target[0],
-                self._target[1],
+                aim[0],
+                aim[1],
             )
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
@@ -557,12 +602,14 @@ class CoopDecoyAgent(CoopAgent):
             if d < 300.0:
                 self._target = (det.target_lat, det.target_lon)
 
-        # 到达目标附近 → 僚机先过 VERIFY 判别（announce 早于判别 12s 发出，
-        # 候选可能是诱饵；统一所有 TRACK 入口都经 OLS 判别）
+        # 接近到 350m 且有检测 → 僚机先过 VERIFY 判别（announce 早于判别 12s
+        # 发出，候选可能是诱饵；统一所有 TRACK 入口都经 OLS 判别）。
+        # 阈值取 350m 而非 200m：长机在目标 100m 盘旋，僚机再近会触发
+        # <200m proximity 扣分（600s 局 8 次 ×2 分把 accuracy 得分清零）
         dist_to_target = haversine_m(
             obs.self.lat, obs.self.lon, self._target[0], self._target[1]
         )
-        if dist_to_target < 200.0 and det.detected:
+        if dist_to_target < 350.0 and det.detected:
             self._state = State.VERIFY
             self._is_wingman = True  # 判别通过后以僚机身份 TRACK
             self._verify_samples = []

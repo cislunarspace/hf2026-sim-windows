@@ -117,7 +117,9 @@ class TestCoopAgentSearch:
             obs = _make_obs()
             cmds = agent.decide(obs, dt=0.1)
             bc = _find_cmd(cmds, "comm.broadcast")
-            assert bc is None, "搜索阶段不应广播"
+            assert bc is None or not bc.params["payload"].startswith(("A:", "T:")), (
+                "搜索阶段不应广播目标消息（P: 心跳除外）"
+            )
 
 
 class TestCoopAgentVerify:
@@ -285,6 +287,30 @@ class TestCoopAgentVerifyOls:
         gimbal_cmd = _find_cmd(cmds, "component.gimbal_tracking.set_orientation")
         assert gimbal_cmd is not None, "SEARCH 应有云台扫描命令"
 
+    def test_position_heartbeat_broadcast(self):
+        """应以 ~1Hz 广播 P:lat,lon 位置心跳（proximity 避让用）。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        n_hb = 0
+        for i in range(30):  # 3s
+            cmds = agent.decide(_make_obs(), dt=0.1)
+            bc = _find_cmd(cmds, "comm.broadcast")
+            if bc is not None and bc.params["payload"].startswith("P:"):
+                n_hb += 1
+        assert 1 <= n_hb <= 4, f"3s 内心跳应 1~4 次，实际 {n_hb}"
+
+    def test_ingest_p_records_teammate(self):
+        """收到 P: 心跳应记录队友位置。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        msg = MagicMock()
+        msg.payload = "P:27.0010,125.0010"
+        msg.sender_uid = "uav_2"
+        agent.decide(_make_obs(comm_inbox=(msg,)), dt=0.1)
+        assert "uav_2" in agent._teammates
+        la, lo, _ = agent._teammates["uav_2"]
+        assert abs(la - 27.001) < 1e-3
+
     def test_join_goes_through_verify(self):
         """僚机 JOIN 到达目标附近后应先 VERIFY 判别，不直接 TRACK。"""
         agent = CoopDecoyAgent("uav_2")
@@ -380,9 +406,14 @@ class TestCoopAgentComms:
 
         obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005)
         cmds = agent.decide(obs, dt=0.1)
-        bc = _find_cmd(cmds, "comm.broadcast")
-        assert bc is not None, "TRACK 阶段应广播"
-        payload = bc.params["payload"]
+        bcs = [
+            c for c in cmds
+            if isinstance(c, Command)
+            and c.verb == "comm.broadcast"
+            and c.params["payload"].startswith("A:")
+        ]
+        assert bcs, "TRACK 阶段长机首次应 announce"
+        payload = bcs[0].params["payload"]
         assert payload.startswith("A:"), f"长机首次应 announce，实际: {payload}"
 
     def test_announce_triggers_join(self):
