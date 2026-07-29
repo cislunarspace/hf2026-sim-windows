@@ -118,13 +118,11 @@ class MySearchTrackAgent(SearchTrackAgent):
         if self._ekf is None:
             self._ekf = ImmFilter(obs.self.lat, obs.self.lon)
 
-        # 生成搜索航点（如果还没有）
+        # 生成搜索航点（如果还没有）。briefing.target_initial_pos 是
+        # SearchTrackPolicy 随机化**之前**的原坐标，UAV 已同步偏移过去；
+        # 以原坐标为螺旋中心会偏离真实目标位置，以自身位置为中心才贴合
         if not self._search_waypoints:
-            target_pos = obs.briefing.target_initial_pos
-            if target_pos:
-                center_lat, center_lon = target_pos
-            else:
-                center_lat, center_lon = obs.self.lat, obs.self.lon
+            center_lat, center_lon = obs.self.lat, obs.self.lon
             self._search_waypoints = generate_spiral(
                 center_lat,
                 center_lon,
@@ -148,20 +146,16 @@ class MySearchTrackAgent(SearchTrackAgent):
 
         return cmds
 
-    # ── ACQUIRE：飞向目标初始位置 ──────────────────────────────────────
+    # ── ACQUIRE：直接进入 SEARCH（briefing.target_initial_pos 是随机化前的坐标，
+    # SearchTrackPolicy 把 UAV 和目标同步偏移后，agent 飞向原始坐标是错位点。
+    # 检测才是可靠入口——直接走路线先验扫描）──
 
     def _do_acquire(self, obs: SearchTrackObs, dt: float) -> list[Command]:
         cmds = [set_gimbal_fov(_SEARCH_FOV)]
-        target_pos = obs.briefing.target_initial_pos
-        if target_pos:
-            cmds.append(
-                fly_to(
-                    target_pos[0],
-                    target_pos[1],
-                    speed=_SEARCH_SPEED,
-                    loiter_radius=_LOITER_RADIUS,
-                )
-            )
+        # 如果 brief 给的初始位与当前位置差小于 500m，直接进入 SEARCH
+        # （否则也直接 SEARCH，让检测引路——路线先验扫描比飞向错位点有效）
+        self._state = State.SEARCH
+        return self._do_search(obs, dt)
         # 检查是否已到达附近（或直接收到检测）
         if obs.self.detection.detected:
             self._state = State.VERIFY
