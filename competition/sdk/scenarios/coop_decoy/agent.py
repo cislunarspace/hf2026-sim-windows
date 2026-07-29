@@ -1,6 +1,7 @@
 """Coop-decoy scenario Agent base class."""
-
 from __future__ import annotations
+
+from typing import List
 
 from ...core.agent import Agent
 from ...core.commands import Command
@@ -18,5 +19,5 @@ class CoopAgent(Agent):
     target) and parse incoming messages yourself.
     """
 
-    def decide(self, obs: CoopObs, dt: float) -> list[Command]:  # type: ignore[override]
+    def decide(self, obs: CoopObs, dt: float) -> List[Command]:  # type: ignore[override]
         raise NotImplementedError

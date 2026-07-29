@@ -3,7 +3,6 @@
 The simplest scenario (1 UAV / 1 target, no decoys). Validates the core
 SDK end-to-end. Player implements ``SearchTrackAgent.decide()``.
 """
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,10 +15,6 @@ SCENARIO_DIR = Path(__file__).resolve().parents[3] / "scenarios" / "search_track
 DEFAULT_SCENARIO_JSON = str(SCENARIO_DIR / "scenario.json")
 
 __all__ = [
-    "DEFAULT_SCENARIO_JSON",
-    "SCENARIO_DIR",
-    "SearchTrackAgent",
-    "SearchTrackObs",
-    "SearchTrackRunner",
-    "run",
+    "SearchTrackAgent", "SearchTrackObs", "SearchTrackRunner",
+    "run", "SCENARIO_DIR", "DEFAULT_SCENARIO_JSON",
 ]

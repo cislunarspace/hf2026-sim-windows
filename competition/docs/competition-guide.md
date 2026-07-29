@@ -28,7 +28,6 @@
 ```python
 from competition.sdk.scenarios.search_track import SearchTrackAgent
 
-
 class MyAgent(SearchTrackAgent):
     def decide(self, obs, dt):
         # 读 obs，返回指令列表
@@ -249,7 +248,6 @@ python -m competition run \
 ```python
 from competition.sdk.scenarios.search_track import SearchTrackAgent
 from competition.sdk.core.commands import fly_to, point_gimbal
-
 
 class MyAgent(SearchTrackAgent):
     def reset(self):

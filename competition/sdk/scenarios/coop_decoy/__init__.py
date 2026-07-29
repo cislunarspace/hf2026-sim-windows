@@ -4,7 +4,6 @@
 Coordination happens ONLY via the constrained comm channel (≤50B, rate/
 range/jam limited) — strict isolation means no agent sees teammate poses.
 """
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -17,10 +16,6 @@ SCENARIO_DIR = Path(__file__).resolve().parents[3] / "scenarios" / "coop_decoy"
 DEFAULT_SCENARIO_JSON = str(SCENARIO_DIR / "scenario.json")
 
 __all__ = [
-    "DEFAULT_SCENARIO_JSON",
-    "SCENARIO_DIR",
-    "CoopAgent",
-    "CoopDecoyRunner",
-    "CoopObs",
-    "run",
+    "CoopAgent", "CoopObs", "CoopDecoyRunner",
+    "run", "SCENARIO_DIR", "DEFAULT_SCENARIO_JSON",
 ]

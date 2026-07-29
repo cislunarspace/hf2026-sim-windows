@@ -30,15 +30,14 @@ destroyed, a reset). Only ``completion_rate`` is monotonic (progress).
 Dimension weights are example-specific (see ``profile_*`` factories). The
 adversarial example blends ``0.7*completion + 0.3*alive`` into the total.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from .geometry import haversine_m as _haversine_m
 from .uav_target_map import TargetMatch
+
 
 # ── per-target state machine ─────────────────────────────────────────────
 
@@ -46,12 +45,11 @@ from .uav_target_map import TargetMatch
 @dataclass
 class _TargetState:
     """Per real-target destroy state machine (overhauled scoring)."""
-
-    dwell_accumulated: float = 0.0  # cooperative dwell toward destroy
+    dwell_accumulated: float = 0.0       # cooperative dwell toward destroy
     interruption_accumulated: float = 0.0
     has_dwell: bool = False
-    destroyed: bool = False  # killed (≥1 UAV for dwell_target_s)
-    destroyed_at: float | None = None
+    destroyed: bool = False              # killed (≥1 UAV for dwell_target_s)
+    destroyed_at: Optional[float] = None
     resets: int = 0
     coop_ticks: int = 0
     cur_trackers: int = 0
@@ -66,12 +64,11 @@ class _DecoyState:
     A decoy is "identified" after ≥1 UAV tracks it for dwell_target_s; once
     identified it stops contributing to the misid-penalty dimension.
     """
-
     dwell_accumulated: float = 0.0
     interruption_accumulated: float = 0.0
     has_dwell: bool = False
     identified: bool = False
-    identified_at: float | None = None
+    identified_at: Optional[float] = None
     resets: int = 0
     cur_trackers: int = 0
 
@@ -81,12 +78,10 @@ class _DecoyState:
 # Fallback terrain bbox used only if the CSV cannot be read. Matches the
 # HeightSample.csv rectangle to ~3 decimals. Real value is derived below.
 _TERRAIN_BBOX_FALLBACK: tuple[tuple[float, float], tuple[float, float]] = (
-    (26.982, 124.980),
-    (27.025, 125.020),
-)
+    (26.982, 124.980), (27.025, 125.020))
 
 
-def _terrain_csv_path() -> Path:
+def _terrain_csv_path() -> "Path":
     """Resolve the terrain CSV path.
 
     Preference order: ``OPENSIM_TERRAIN_CSV`` env var, then the repo-rooted
@@ -95,16 +90,14 @@ def _terrain_csv_path() -> Path:
     """
     import os
     from pathlib import Path
-
     env = os.environ.get("OPENSIM_TERRAIN_CSV")
     if env:
         return Path(env)
     return Path(__file__).resolve().parents[3] / "config" / "HeightSample.csv"
 
 
-def _terrain_bbox_from_csv(
-    csv_path: Path | None = None,
-) -> tuple[tuple[float, float], tuple[float, float]]:
+def _terrain_bbox_from_csv(csv_path: "Path | None" = None
+                           ) -> tuple[tuple[float, float], tuple[float, float]]:
     """Stream-scan the terrain CSV and return its WGS84 bbox.
 
     Returns ``((lat_min, lon_min), (lat_max, lon_max))``. The CSV header is
@@ -117,7 +110,6 @@ def _terrain_bbox_from_csv(
     """
     import csv as _csv
     from pathlib import Path
-
     path = Path(csv_path) if csv_path is not None else _terrain_csv_path()
     try:
         with open(path, newline="", encoding="utf-8") as fh:
@@ -126,12 +118,10 @@ def _terrain_bbox_from_csv(
             # Locate columns by header name (case-insensitive) to be robust
             # against column re-ordering. Require both axes present.
             lower = [h.strip().lower() for h in header]
-            lon_idx = next(
-                (i for i, h in enumerate(lower) if h.startswith("lon")), None
-            )
-            lat_idx = next(
-                (i for i, h in enumerate(lower) if h.startswith("lat")), None
-            )
+            lon_idx = next((i for i, h in enumerate(lower)
+                            if h.startswith("lon")), None)
+            lat_idx = next((i for i, h in enumerate(lower)
+                            if h.startswith("lat")), None)
             if lon_idx is None or lat_idx is None:
                 raise ValueError(f"CSV header {header!r} missing lat/lon cols")
             lat_min = lat_max = lon_min = lon_max = None
@@ -145,42 +135,30 @@ def _terrain_bbox_from_csv(
                     lat_min = lat_max = lat
                     lon_min = lon_max = lon
                 else:
-                    if lat < lat_min:
-                        lat_min = lat
-                    elif lat > lat_max:
-                        lat_max = lat
-                    if lon < lon_min:
-                        lon_min = lon
-                    elif lon > lon_max:
-                        lon_max = lon
+                    if lat < lat_min: lat_min = lat
+                    elif lat > lat_max: lat_max = lat
+                    if lon < lon_min: lon_min = lon
+                    elif lon > lon_max: lon_max = lon
                 n += 1
             if n == 0:
                 raise ValueError("CSV has no data rows")
         return ((lat_min, lon_min), (lat_max, lon_max))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — scoring must not crash
         import sys
-
-        print(
-            f"[coop_eval] WARNING: terrain bbox from CSV failed ({exc!r}); "
-            f"falling back to hardcoded value",
-            file=sys.stderr,
-        )
+        print(f"[coop_eval] WARNING: terrain bbox from CSV failed ({exc!r}); "
+              f"falling back to hardcoded value", file=sys.stderr)
         return _TERRAIN_BBOX_FALLBACK
 
 
-def _terrain_bbox_cache_path() -> Path:
+def _terrain_bbox_cache_path() -> "Path":
     """Resolve the JSON cache path for the terrain bbox."""
     from pathlib import Path
-
     return Path(__file__).resolve().parents[3] / "config" / "terrain_bbox.json"
 
 
-def _load_terrain_bbox_cache() -> (
-    tuple[tuple[float, float], tuple[float, float]] | None
-):
+def _load_terrain_bbox_cache() -> "tuple[tuple[float, float], tuple[float, float]] | None":
     """Return cached bbox if the JSON cache is valid, else None."""
     import json
-
     path = _terrain_bbox_cache_path()
     try:
         with open(path, encoding="utf-8-sig") as f:
@@ -193,12 +171,9 @@ def _load_terrain_bbox_cache() -> (
         return None
 
 
-def _save_terrain_bbox_cache(
-    bbox: tuple[tuple[float, float], tuple[float, float]],
-) -> None:
+def _save_terrain_bbox_cache(bbox: "tuple[tuple[float, float], tuple[float, float]]") -> None:
     """Persist the computed bbox to JSON. Best-effort; failures are non-fatal."""
     import json
-
     (lat_min, lon_min), (lat_max, lon_max) = bbox
     data = {
         "lat_min": lat_min,
@@ -212,11 +187,8 @@ def _save_terrain_bbox_cache(
             json.dump(data, f, indent=2)
     except Exception as e:
         import sys
-
-        print(
-            f"[coop_eval] WARNING: failed to write terrain bbox cache: {e!r}",
-            file=sys.stderr,
-        )
+        print(f"[coop_eval] WARNING: failed to write terrain bbox cache: {e!r}",
+              file=sys.stderr)
 
 
 # Single source of truth for the map extent. Derived lazily from the terrain
@@ -225,7 +197,7 @@ def _save_terrain_bbox_cache(
 # ((lat_min, lon_min), (lat_max, lon_max)). Used as the boundary-excursion
 # penalty's mission_bbox; UAVs may fly up to ``penalty_boundary_margin_m``
 # (500 m) outside this rectangle without penalty.
-_TERRAIN_BBOX: tuple[tuple[float, float], tuple[float, float]] | None = None
+_TERRAIN_BBOX: Optional[tuple[tuple[float, float], tuple[float, float]]] = None
 
 
 def _get_terrain_bbox() -> tuple[tuple[float, float], tuple[float, float]]:
@@ -255,34 +227,31 @@ class ScoringProfile:
       * ``mission_time`` — scenario 3 only: T_done vs T0_s/T_flex_s.
       * ``alive``        — scenario 3 only: surviving UAV fraction.
     """
-
     name: str
-    K: int  # cooperative threshold (trackers needed)
-    dwell_target_s: float = 20.0  # destroy/identify threshold
-    grace_s: float = 2.0  # interruption tolerance before reset
-    duration_s: float = 60.0  # run duration (for completion ratio)
+    K: int                              # cooperative threshold (trackers needed)
+    dwell_target_s: float = 20.0        # destroy/identify threshold
+    grace_s: float = 2.0                # interruption tolerance before reset
+    duration_s: float = 60.0            # run duration (for completion ratio)
     weights: dict[str, float] = field(default_factory=dict)
     # targeting-accuracy dimension (scenarios 2/3)
-    D_max_m: float | None = None  # RMSE at which accuracy scores 0
+    D_max_m: Optional[float] = None     # RMSE at which accuracy scores 0
     # misid-penalty dimension (scenarios 2/3)
-    misid_cap_s: float | None = None  # undestroyed-decoy track seconds -> 0
+    misid_cap_s: Optional[float] = None  # undestroyed-decoy track seconds -> 0
     # mission-time dimension (scenario 3 only)
-    T0_s: float | None = None  # time-to-full-kill for full marks
-    T_flex_s: float | None = None  # linear decay window past T0
+    T0_s: Optional[float] = None        # time-to-full-kill for full marks
+    T_flex_s: Optional[float] = None    # linear decay window past T0
     # pass/fail gates
-    pass_completion: float = 1.0  # required completion/kill rate
+    pass_completion: float = 1.0        # required completion/kill rate
     pass_score: float = 70.0
-    pass_alive_rate: float | None = None  # scenario 3 only
+    pass_alive_rate: Optional[float] = None   # scenario 3 only
     # post-hoc penalty deductions (NOT part of the weighted dimension sum).
     # Applied as: total_score = clamp(base_score - penalty, 0, 100).
     # All zero/None => penalty logic is fully disabled (short-circuit).
-    penalty_proximity_min_m: float = 0.0  # 0 = disabled; >0 = UAV-too-close threshold
-    penalty_boundary_margin_m: float = (
-        0.0  # 0 = disabled; >0 = allowed excursion beyond bbox
-    )
-    penalty_per_violation: float = 0.0  # 0 = whole penalty subsystem disabled
-    penalty_cap: float = 0.0  # 0 = no cap (but also no penalty when per_violation=0)
-    mission_bbox: tuple[tuple[float, float], tuple[float, float]] | None = None
+    penalty_proximity_min_m: float = 0.0        # 0 = disabled; >0 = UAV-too-close threshold
+    penalty_boundary_margin_m: float = 0.0      # 0 = disabled; >0 = allowed excursion beyond bbox
+    penalty_per_violation: float = 0.0          # 0 = whole penalty subsystem disabled
+    penalty_cap: float = 0.0                    # 0 = no cap (but also no penalty when per_violation=0)
+    mission_bbox: Optional[tuple[tuple[float, float], tuple[float, float]]] = None
 
 
 def profile_uav_search_track_car(duration_s: float = 60.0) -> ScoringProfile:
@@ -306,20 +275,15 @@ def profile_uav_search_track_car(duration_s: float = 60.0) -> ScoringProfile:
         # 语义等价「永不摧毁」;但它是合法 JSON 数字。inf 会让 score_publisher
         # 的 json.dumps 产出非标准 token 'Infinity',前端 JSON.parse 抛
         # SyntaxError 被静默吞掉 → onScoreCb 永不触发 → 面板一直 '--'。
-        K=1,
-        dwell_target_s=1e18,
-        grace_s=2.0,
-        duration_s=duration_s,
+        K=1, dwell_target_s=1e18, grace_s=2.0, duration_s=duration_s,
         weights={"accuracy": 1.0},
         D_max_m=30.0,
-        pass_completion=0.8,
-        pass_score=60.0,  # pass_completion 在 score() 中被跳过(见 §4.3)
+        pass_completion=0.8, pass_score=60.0,   # pass_completion 在 score() 中被跳过(见 §4.3)
     )
 
 
-def profile_multi_uav_coop_decoy(
-    duration_s: float = 120.0, K: int = 1
-) -> ScoringProfile:
+def profile_multi_uav_coop_decoy(duration_s: float = 120.0,
+                                 K: int = 1) -> ScoringProfile:
     """Scenario 2: targeting info + strike effect (with strike capability).
 
     Destroy all 3 real targets (track each >=20s with >=K UAVs), report
@@ -331,17 +295,11 @@ def profile_multi_uav_coop_decoy(
     """
     return ScoringProfile(
         name="multi_uav_coop_decoy",
-        K=K,
-        dwell_target_s=20.0,
-        grace_s=2.0,
-        duration_s=duration_s,
+        K=K, dwell_target_s=20.0, grace_s=2.0, duration_s=duration_s,
         weights={"kill": 0.50, "accuracy": 0.30, "mission_time": 0.20},
-        D_max_m=120.0,
-        misid_cap_s=30.0,
-        T0_s=240.0,
-        T_flex_s=180.0,
-        pass_completion=2.0 / 3.0,
-        pass_score=70.0,
+        D_max_m=120.0, misid_cap_s=30.0,
+        T0_s=240.0, T_flex_s=180.0,
+        pass_completion=2.0/3.0, pass_score=70.0,
         penalty_proximity_min_m=200.0,
         penalty_boundary_margin_m=500.0,
         penalty_per_violation=2.0,
@@ -350,9 +308,8 @@ def profile_multi_uav_coop_decoy(
     )
 
 
-def profile_adversarial_swarm_search(
-    duration_s: float = 60.0, K: int = 1
-) -> ScoringProfile:
+def profile_adversarial_swarm_search(duration_s: float = 60.0,
+                                     K: int = 1) -> ScoringProfile:
     """Scenario 3: targeting + strike + mission time (adversarial).
 
     Destroy all 10 real targets fast, report accurately, survive. Decoy
@@ -365,23 +322,14 @@ def profile_adversarial_swarm_search(
     """
     return ScoringProfile(
         name="adversarial_swarm_search",
-        K=K,
-        dwell_target_s=20.0,
-        grace_s=2.0,
-        duration_s=duration_s,
+        K=K, dwell_target_s=20.0, grace_s=2.0, duration_s=duration_s,
         weights={
-            "kill": 0.40,
-            "accuracy": 0.25,
-            "mission_time": 0.25,
+            "kill": 0.40, "accuracy": 0.25, "mission_time": 0.25,
             "alive": 0.10,
         },
-        D_max_m=150.0,
-        misid_cap_s=60.0,
-        T0_s=360.0,
-        T_flex_s=180.0,
-        pass_completion=0.7,
-        pass_score=70.0,
-        pass_alive_rate=0.5,
+        D_max_m=150.0, misid_cap_s=60.0,
+        T0_s=360.0, T_flex_s=180.0,
+        pass_completion=0.7, pass_score=70.0, pass_alive_rate=0.5,
         penalty_proximity_min_m=200.0,
         penalty_boundary_margin_m=500.0,
         penalty_per_violation=2.0,
@@ -405,16 +353,19 @@ class CoopTrackingEvaluator:
         final = ev.score(extras)          # terminal score
     """
 
-    def __init__(self, profile: ScoringProfile, true_target_uids) -> None:
+    def __init__(self, profile: ScoringProfile,
+                 true_target_uids) -> None:
         self.profile = profile
         self.targets: set[str] = set(true_target_uids)
-        self.states: dict[str, _TargetState] = {t: _TargetState() for t in self.targets}
+        self.states: dict[str, _TargetState] = {
+            t: _TargetState() for t in self.targets
+        }
         self.decoy_states: dict[str, _DecoyState] = {}
         # global accumulators
         self.undestroyed_decoy_misid_seconds: float = 0.0
         self.tick_count: int = 0
-        self._last_sim_time: float | None = None
-        self.destroyed_uids: set[str] = set()  # destroyed UAVs
+        self._last_sim_time: Optional[float] = None
+        self.destroyed_uids: set[str] = set()      # destroyed UAVs
         # targeting-report accumulators (scenarios 2/3) — per-target buckets
         self._sum_d_sq: dict[str, float] = {t: 0.0 for t in self.targets}
         self._n_reports: dict[str, int] = {t: 0 for t in self.targets}
@@ -431,7 +382,7 @@ class CoopTrackingEvaluator:
         # 与 _score_s1_accuracy 的 1Hz 网格 [0, duration_s) 对齐。否则引擎
         # 绝对 epoch(如 1782432000)永远落不进 0..duration-1 的 slot,
         # 所有拍被当成漏报 → accuracy=0。
-        self._s1_t0: float | None = None
+        self._s1_t0: Optional[float] = None
         # post-hoc penalty accumulators (edge-triggered violation counts)
         self.proximity_violations: int = 0
         self.boundary_violations: int = 0
@@ -445,13 +396,11 @@ class CoopTrackingEvaluator:
 
     # ── per-tick observation ──────────────────────────────────────────
 
-    def observe(
-        self,
-        sim_time: float,
-        uav_target_map: dict[str, TargetMatch],
-        destroyed_uids,
-        uav_positions: dict[str, tuple[float, float]] | None = None,
-    ) -> None:
+    def observe(self, sim_time: float,
+                uav_target_map: dict[str, TargetMatch],
+                destroyed_uids,
+                uav_positions: Optional[dict[str, tuple[float, float]]] = None,
+                ) -> None:
         """Advance the destroy/identify state machines by one tick.
 
         Args:
@@ -484,13 +433,10 @@ class CoopTrackingEvaluator:
         # ── scenario 1: accumulated in-view (single UAV, K=1, no decoys) ──
         # If this profile has only the "completion" weight and K==1, count
         # in-view seconds from any effective detection.
-        if (
-            tuple(self.profile.weights.keys()) == ("completion",)
-            and self.profile.K == 1
-        ):
-            any_eff = any(
-                m.is_effective for u, m in uav_target_map.items() if u not in dead_uavs
-            )
+        if (tuple(self.profile.weights.keys()) == ("completion",)
+                and self.profile.K == 1):
+            any_eff = any(m.is_effective for u, m in uav_target_map.items()
+                          if u not in dead_uavs)
             if any_eff:
                 self._s1_in_view_seconds += dt
 
@@ -500,8 +446,7 @@ class CoopTrackingEvaluator:
                 ts.cur_trackers = 0
                 continue
             trackers_t = {
-                u
-                for u, m in uav_target_map.items()
+                u for u, m in uav_target_map.items()
                 if m.is_effective and m.target_uid == t and u not in dead_uavs
             }
             n = len(trackers_t)
@@ -523,7 +468,8 @@ class CoopTrackingEvaluator:
                     ts.interruption_accumulated = 0.0
                     ts.has_dwell = False
                     ts.resets += 1
-            if not ts.destroyed and ts.dwell_accumulated >= self.profile.dwell_target_s:
+            if (not ts.destroyed
+                    and ts.dwell_accumulated >= self.profile.dwell_target_s):
                 ts.destroyed = True
                 ts.destroyed_at = sim_time
 
@@ -556,10 +502,8 @@ class CoopTrackingEvaluator:
                     ds.interruption_accumulated = 0.0
                     ds.has_dwell = False
                     ds.resets += 1
-            if (
-                not ds.identified
-                and ds.dwell_accumulated >= self.profile.dwell_target_s
-            ):
+            if (not ds.identified
+                    and ds.dwell_accumulated >= self.profile.dwell_target_s):
                 ds.identified = True
                 ds.identified_at = sim_time
 
@@ -579,8 +523,10 @@ class CoopTrackingEvaluator:
         # counted ONCE when a UAV/pair ENTERS a violating state; sustained
         # violation across ticks adds nothing. Leaving + re-entering counts
         # again. Destroyed UAVs are excluded.
-        if self.profile.penalty_per_violation > 0.0 and uav_positions is not None:
-            active = {u: pos for u, pos in uav_positions.items() if u not in dead_uavs}
+        if (self.profile.penalty_per_violation > 0.0
+                and uav_positions is not None):
+            active = {u: pos for u, pos in uav_positions.items()
+                      if u not in dead_uavs}
             # ─ proximity: pairs closer than penalty_proximity_min_m ──
             if self.profile.penalty_proximity_min_m > 0.0:
                 cur_pairs: set[tuple[str, str]] = set()
@@ -589,20 +535,15 @@ class CoopTrackingEvaluator:
                     u1, (la1, lo1) = items[i]
                     for j in range(i + 1, len(items)):
                         u2, (la2, lo2) = items[j]
-                        if (
-                            _haversine_m(la1, lo1, la2, lo2)
-                            < self.profile.penalty_proximity_min_m
-                        ):
+                        if _haversine_m(la1, lo1, la2, lo2) < self.profile.penalty_proximity_min_m:
                             cur_pairs.add((u1, u2) if u1 < u2 else (u2, u1))
                 cur_pairs_fz = frozenset(cur_pairs)
                 new_pairs = cur_pairs_fz - self._prev_proximity_pairs
                 self.proximity_violations += len(new_pairs)
                 self._prev_proximity_pairs = cur_pairs_fz
             # ─ boundary: UAVs > penalty_boundary_margin_m outside the bbox ──
-            if (
-                self.profile.penalty_boundary_margin_m > 0.0
-                and self.profile.mission_bbox is not None
-            ):
+            if (self.profile.penalty_boundary_margin_m > 0.0
+                    and self.profile.mission_bbox is not None):
                 cur_oob: set[str] = set()
                 for u, (la, lo) in active.items():
                     d_out = self._distance_outside_bbox_m(la, lo)
@@ -633,15 +574,10 @@ class CoopTrackingEvaluator:
 
     # ── targeting-report ingestion (scenarios 2/3) ──────────────────────
 
-    def record_report(
-        self,
-        lat: float,
-        lon: float,
-        target_id,
-        true_target_positions: dict[str, tuple[float, float]],
-        destroyed_true_targets: set,
-        sim_time: float,
-    ) -> None:
+    def record_report(self, lat: float, lon: float, target_id,
+                      true_target_positions: dict[str, tuple[float, float]],
+                      destroyed_true_targets: set,
+                      sim_time: float) -> None:
         """Ingest one player report; accumulate per-target RMSE.
 
         Resolves the report to the nearest LIVE true target (best_uid). If the
@@ -685,9 +621,7 @@ class CoopTrackingEvaluator:
         if last is not None and sim_time - last < 1.0:
             return
         self._last_report_time[best_uid] = sim_time
-        self._sum_d_sq.setdefault(best_uid, 0.0)
         self._sum_d_sq[best_uid] += live_d * live_d
-        self._n_reports.setdefault(best_uid, 0)
         self._n_reports[best_uid] += 1
         # scenario-1 continuous-designation timeseries (spec 2026-07-15):
         # record this 1Hz sample so _dimension("accuracy") can apply the
@@ -724,7 +658,7 @@ class CoopTrackingEvaluator:
         return sum(1 for ts in self.states.values() if ts.destroyed) / len(self.targets)
 
     @property
-    def completion_rate(self) -> float | None:
+    def completion_rate(self) -> Optional[float]:
         """Back-compat: scenario-1 in-view fraction; scenarios 2/3 kill rate.
 
         Scenario 1 in continuous-designation mode (accuracy weight, spec
@@ -732,26 +666,22 @@ class CoopTrackingEvaluator:
         misreporting kill_rate=0 (which would mislead the passed gate and
         front-end diagnostics).
         """
-        if self.profile.K == 1 and tuple(self.profile.weights.keys()) == ("accuracy",):
+        if (self.profile.K == 1
+                and tuple(self.profile.weights.keys()) == ("accuracy",)):
             return None
-        if (
-            tuple(self.profile.weights.keys()) == ("completion",)
-            and self.profile.K == 1
-        ):
+        if (tuple(self.profile.weights.keys()) == ("completion",)
+                and self.profile.K == 1):
             dur = self.profile.duration_s
             return min(1.0, self._s1_in_view_seconds / dur) if dur > 0 else 0.0
         return self.kill_rate
 
     @property
-    def mission_done_time(self) -> float | None:
+    def mission_done_time(self) -> Optional[float]:
         """Sim time when the last true target was destroyed, or None if not all."""
         if any(not ts.destroyed for ts in self.states.values()):
             return None
-        done = [
-            ts.destroyed_at
-            for ts in self.states.values()
-            if ts.destroyed and ts.destroyed_at is not None
-        ]
+        done = [ts.destroyed_at for ts in self.states.values()
+                if ts.destroyed and ts.destroyed_at is not None]
         return max(done) if done else None
 
     # ── scoring (pure function) ───────────────────────────────────────
@@ -770,9 +700,8 @@ class CoopTrackingEvaluator:
         if key == "accuracy":
             # ── scenario 1: continuous designation accuracy (spec 2026-07-15)
             # Per-tick soft-hit mean with per-20s-window "drop 2 lowest".
-            if self.profile.K == 1 and tuple(self.profile.weights.keys()) == (
-                "accuracy",
-            ):
+            if (self.profile.K == 1
+                    and tuple(self.profile.weights.keys()) == ("accuracy",)):
                 return self._score_s1_accuracy()
             # ── scenarios 2/3: per-target RMSE (unchanged) ──
             if p.D_max_m is None or not self.targets:
@@ -840,7 +769,7 @@ class CoopTrackingEvaluator:
         buckets: dict[int, list[float]] = {}
         n_slots = int(p.duration_s)  # slots 0..n_slots-1
         for slot in range(n_slots):
-            d_t = reported.get(slot, d_max)  # missed slot → D=D_max → p=0
+            d_t = reported.get(slot, d_max)   # missed slot → D=D_max → p=0
             p_t = max(0.0, 1.0 - d_t / d_max)
             buckets.setdefault(slot // int(win_s), []).append(p_t)
 
@@ -848,35 +777,30 @@ class CoopTrackingEvaluator:
         denominator = 0
         for ps in buckets.values():
             if len(ps) <= drop:
-                continue  # too few samples in window → exempt whole window
+                continue              # too few samples in window → exempt whole window
             ps_sorted = sorted(ps)
-            kept = ps_sorted[drop:]  # drop the `drop` lowest
+            kept = ps_sorted[drop:]   # drop the `drop` lowest
             numerator += sum(kept)
             denominator += len(kept)
         if denominator == 0:
             return 0.0
         return 100.0 * numerator / denominator
 
-    def score(self, extras: dict[str, Any] | None = None) -> dict[str, Any]:
+    def score(self, extras: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         """Compute the score snapshot. Pure: does not mutate state, so it is
         safe to call every tick for a live curve and once more at the end."""
         extras = extras or {}
         dim_scores = {k: self._dimension(k, extras) for k in self.profile.weights}
-        base = sum(
-            self.profile.weights[k] * dim_scores[k] for k in self.profile.weights
-        )
+        base = sum(self.profile.weights[k] * dim_scores[k]
+                   for k in self.profile.weights)
         base = max(0.0, min(100.0, base))
 
         # post-hoc penalty (excluded from the weighted dimension sum).
         if self.profile.penalty_per_violation > 0.0:
-            raw_pen = (
-                self.proximity_violations + self.boundary_violations
-            ) * self.profile.penalty_per_violation
-            penalty = (
-                min(self.profile.penalty_cap, raw_pen)
-                if self.profile.penalty_cap > 0.0
-                else raw_pen
-            )
+            raw_pen = (self.proximity_violations + self.boundary_violations) \
+                      * self.profile.penalty_per_violation
+            penalty = min(self.profile.penalty_cap, raw_pen) \
+                if self.profile.penalty_cap > 0.0 else raw_pen
         else:
             penalty = 0.0
         total = max(0.0, min(100.0, base - penalty))
@@ -888,14 +812,10 @@ class CoopTrackingEvaluator:
         if comp is None:
             passed = base >= self.profile.pass_score
         else:
-            passed = (
-                comp >= self.profile.pass_completion and base >= self.profile.pass_score
-            )
+            passed = (comp >= self.profile.pass_completion
+                      and base >= self.profile.pass_score)
         if self.profile.pass_alive_rate is not None:
-            passed = (
-                passed
-                and float(extras.get("alive_rate", 0.0)) >= self.profile.pass_alive_rate
-            )
+            passed = passed and float(extras.get("alive_rate", 0.0)) >= self.profile.pass_alive_rate
 
         per_target = {
             t: {
@@ -917,7 +837,7 @@ class CoopTrackingEvaluator:
         # _dimension). Kept for backward-compatible diagnostics.
         _total_sq = sum(self._sum_d_sq.values())
         _total_n = self.n_reports
-        rmse = (_total_sq / _total_n) ** 0.5 if _total_n else None
+        rmse = ((_total_sq / _total_n) ** 0.5 if _total_n else None)
 
         return {
             "profile": self.profile.name,

@@ -34,7 +34,6 @@
 import numpy as np
 import cv2
 
-
 def decide(self, obs, dt):
     if obs.self.photo is None:
         return []  # 本帧无画面
@@ -48,7 +47,6 @@ def decide(self, obs, dt):
 ```python
 from PIL import Image
 import io
-
 
 def decide(self, obs, dt):
     if obs.self.photo is None:
@@ -135,19 +133,14 @@ python -m competition run --scenario search_track --agent my_pkg:MyAgent --photo
 from competition.sdk.core.agent import Agent
 from competition.sdk.core.observation import Detection
 
-
 class MyAgent(Agent):
     def sensor(self, obs, dt):
-        photo = obs.self.photo  # PNG bytes（默认 auto 自动注入）
+        photo = obs.self.photo   # PNG bytes（默认 auto 自动注入）
         if photo is None:
-            return None  # 无帧 → 回退默认识别器
+            return None          # 无帧 → 回退默认识别器
         boxes = self.my_model.detect(photo)
-        return [
-            Detection(
-                detected=True, confidence=b.conf, target_lat=b.lat, target_lon=b.lon
-            )
-            for b in boxes
-        ]
+        return [Detection(detected=True, confidence=b.conf,
+                          target_lat=b.lat, target_lon=b.lon) for b in boxes]
 ```
 
 ### 端到端（直接在 `decide()` 用图）
@@ -155,10 +148,10 @@ class MyAgent(Agent):
 ```python
 class MyAgent(Agent):
     def sensor(self, obs, dt):
-        return SKIP_DETECTION  # 端到端：不跑默认识别器
+        return SKIP_DETECTION    # 端到端：不跑默认识别器
 
     def decide(self, obs, dt):
-        photo = obs.self.photo  # PNG bytes
+        photo = obs.self.photo   # PNG bytes
         if photo is None:
             return []
         action = self._policy(photo)

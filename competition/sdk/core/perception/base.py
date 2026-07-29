@@ -3,10 +3,10 @@
 所有识别器（AccuracySimulator / YoloDetector / 选手自研包装）实现同一接口，
 使 DetectionResolver 能统一调度。
 """
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import List, Optional
 
 from ..observation import Detection, Observation
 
@@ -15,9 +15,8 @@ class BaseDetector(ABC):
     """识别器接口：每帧从 obs 产出 List[Detection]。"""
 
     @abstractmethod
-    def detect(
-        self, obs: Observation, dt: float, truth_source: Detection | None = None
-    ) -> list[Detection]:
+    def detect(self, obs: Observation, dt: float,
+               truth_source: Optional[Detection] = None) -> List[Detection]:
         """产出本帧检测结果。空列表 = 本帧无检测。
 
         Args:

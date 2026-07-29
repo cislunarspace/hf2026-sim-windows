@@ -6,7 +6,6 @@ scoring engine is the judge's concern and MAY use ground truth (see
 contracts/isolation.md §5); it is physically separate from the player's
 Observation data flow.
 """
-
 from __future__ import annotations
 
 from .._vendored.coop_eval import (

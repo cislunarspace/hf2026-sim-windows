@@ -21,19 +21,14 @@ Strategy:
   * TARGET SHARE: on confirmed detection, broadcast "T:lat,lon"; on
     receiving one, converge to co-track (meet the K gate).
 """
-
 from __future__ import annotations
 
 import hashlib
 import math
+from typing import List
 
-from competition.sdk.core.commands import (
-    Command,
-    broadcast,
-    fly_to,
-    point_gimbal,
-    report_target,
-)
+from competition.sdk.core.commands import (Command, broadcast, fly_to,
+                                           point_gimbal, report_target)
 from competition.sdk.scenarios.adversarial_swarm import SwarmAgent
 from competition.sdk.scenarios.adversarial_swarm.observation import SwarmObs
 
@@ -52,7 +47,7 @@ def _in_any_approx_zone(lat, lon, briefing):
     for z in getattr(briefing, "approximate_zones", ()) or ():
         (lat_min, lon_min), (lat_max, lon_max) = z.bbox
         if lat_min <= lat <= lat_max and lon_min <= lon <= lon_max:
-            return z  # 返回区域用于读 alt_max
+            return z   # 返回区域用于读 alt_max
     return None
 
 
@@ -61,16 +56,16 @@ class SwarmDistributedAgent(SwarmAgent):
 
     def configure(self, config) -> None:
         self._search_alt: float = 500.0
-        self._evade_alt: float = 3000.0  # above SAM alt_max (2500)
+        self._evade_alt: float = 3000.0   # above SAM alt_max (2500)
         self._search_radius: float = 900.0
-        self._growth: float = 40.0  # m per revolution
-        self._ang_speed: float = 25.0  # deg/s
+        self._growth: float = 40.0         # m per revolution
+        self._ang_speed: float = 25.0      # deg/s
         self._sweep_period: float = 4.0
         self._pitch_min: float = -65.0
         self._pitch_max: float = -35.0
         # decoy rejection by motion (obs disguises decoys as ground_vehicle).
         self._motion_window: int = 20
-        self._move_thresh: float = 2.0e-4  # ~22 m over the window
+        self._move_thresh: float = 2.0e-4   # ~22 m over the window
         # state
         self._home_lat = 0.0
         self._home_lon = 0.0
@@ -92,7 +87,7 @@ class SwarmDistributedAgent(SwarmAgent):
         self._home_lat = 0.0
         self._home_lon = 0.0
 
-    def decide(self, obs: SwarmObs, dt: float) -> list[Command]:
+    def decide(self, obs: SwarmObs, dt: float) -> List[Command]:
         if self._home_lat == 0.0:
             self._home_lat = obs.self.lat
             self._home_lon = obs.self.lon
@@ -108,7 +103,7 @@ class SwarmDistributedAgent(SwarmAgent):
                     pass
 
         det = obs.self.detection
-        cmds: list[Command] = []
+        cmds: List[Command] = []
 
         # Decoy rejection by motion: obs disguises misidentified decoys as
         # "ground_vehicle", so type can't be trusted. Confirm only detections
@@ -120,23 +115,22 @@ class SwarmDistributedAgent(SwarmAgent):
             if len(self._det_window) >= self._motion_window:
                 lats = [p[0] for p in self._det_window]
                 lons = [p[1] for p in self._det_window]
-                move = (
-                    (max(lats) - min(lats)) ** 2 + (max(lons) - min(lons)) ** 2
-                ) ** 0.5
+                move = ((max(lats) - min(lats)) ** 2
+                        + (max(lons) - min(lons)) ** 2) ** 0.5
                 if move > self._move_thresh:
                     self._confirmed_lat = det.target_lat
                     self._confirmed_lon = det.target_lon
                     if self._bc_counter % 10 == 0:
-                        cmds.append(
-                            broadcast(f"T:{det.target_lat:.5f},{det.target_lon:.5f}")
-                        )
+                        cmds.append(broadcast(
+                            f"T:{det.target_lat:.5f},{det.target_lon:.5f}"))
         else:
             self._det_window.clear()
         self._bc_counter += 1
 
         # dynamic-jam self-perception → broadcast warning
         if obs.self.jammed and self._bc_counter % 10 == 0:
-            cmds.append(broadcast(f"J:{obs.self.lat:.5f},{obs.self.lon:.5f}"))
+            cmds.append(broadcast(
+                f"J:{obs.self.lat:.5f},{obs.self.lon:.5f}"))
 
         # choose action
         tgt = None
@@ -150,11 +144,8 @@ class SwarmDistributedAgent(SwarmAgent):
             zone = _in_any_approx_zone(lat, lon, obs.briefing)
             # inside an approx-zone bbox → climb above that zone's alt_max
             # (conservative; _evade_alt floors the safe altitude)
-            alt = (
-                max(self._evade_alt, zone.alt_max + 1.0)
-                if zone is not None
-                else self._search_alt
-            )
+            alt = (max(self._evade_alt, zone.alt_max + 1.0)
+                   if zone is not None else self._search_alt)
             cmds.append(fly_to(lat, lon, alt=alt, speed=30.0))
             cmds.append(point_gimbal(0.0, -60.0))
             if self._bc_counter % 10 == 0:
@@ -165,28 +156,23 @@ class SwarmDistributedAgent(SwarmAgent):
         self._t += dt
         lat, lon, pan, tilt = self._spiral()
         zone = _in_any_approx_zone(lat, lon, obs.briefing)
-        alt = (
-            max(self._evade_alt, zone.alt_max + 1.0)
-            if zone is not None
-            else self._search_alt
-        )
+        alt = (max(self._evade_alt, zone.alt_max + 1.0)
+               if zone is not None else self._search_alt)
         cmds.append(fly_to(lat, lon, alt=alt, speed=30.0))
         cmds.append(point_gimbal(pan, tilt))
         return cmds
 
     def _spiral(self) -> tuple[float, float, float, float]:
-        t = self._t + self._phase * 14.0  # ~14s phase spread across 10 UAVs
+        t = self._t + self._phase * 14.0   # ~14s phase spread across 10 UAVs
         bearing = (self._ang_speed * t) % 360.0
         revs = (self._ang_speed * t) / 360.0
         radius = max(1.0, min(self._search_radius, self._growth * revs))
         dlat = (radius * math.cos(math.radians(bearing))) / 111320.0
-        dlon = (radius * math.sin(math.radians(bearing))) / (
-            111320.0 * math.cos(math.radians(self._home_lat))
-        )
+        dlon = (radius * math.sin(math.radians(bearing))) / \
+               (111320.0 * math.cos(math.radians(self._home_lat)))
         phase = (t % self._sweep_period) / self._sweep_period
-        tilt = self._pitch_min + (self._pitch_max - self._pitch_min) * 0.5 * (
-            1 - math.cos(2 * math.pi * phase)
-        )
+        tilt = self._pitch_min + (self._pitch_max - self._pitch_min) * 0.5 * \
+               (1 - math.cos(2 * math.pi * phase))
         pan_phase = (t % (self._sweep_period * 2)) / (self._sweep_period * 2)
         pan = -90.0 + 180.0 * 0.5 * (1 - math.cos(2 * math.pi * pan_phase))
         return self._home_lat + dlat, self._home_lon + dlon, pan, tilt

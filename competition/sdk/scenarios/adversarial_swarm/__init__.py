@@ -5,7 +5,6 @@ air-defense zone and comm jamming. Pre-match-known static threats (SAM,
 static jam) appear in ``briefing.known_threats``; dynamic jam regions are
 sensed via ``obs.self.jammed`` and shared via comms.
 """
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -18,10 +17,6 @@ SCENARIO_DIR = Path(__file__).resolve().parents[3] / "scenarios" / "adversarial_
 DEFAULT_SCENARIO_JSON = str(SCENARIO_DIR / "scenario.json")
 
 __all__ = [
-    "DEFAULT_SCENARIO_JSON",
-    "SCENARIO_DIR",
-    "AdversarialSwarmRunner",
-    "SwarmAgent",
-    "SwarmObs",
-    "run",
+    "SwarmAgent", "SwarmObs", "AdversarialSwarmRunner",
+    "run", "SCENARIO_DIR", "DEFAULT_SCENARIO_JSON",
 ]

@@ -4,17 +4,15 @@
 SCAN sync_camera:{uid}:frame:* → 取最大 frame_no → HGET image。
 每 uid 一个 daemon 线程，~30Hz 轮询；get(uid) 非阻塞返回最新缓存。
 """
-
 from __future__ import annotations
 
 import re
 import threading
-from typing import Protocol
+from typing import Dict, Optional, Protocol
 
 
 class _RedisLike(Protocol):
     """redis-py 的最小子集（FakeRedis 和真 redis.Redis 都满足）。"""
-
     def hget(self, key: str, field: str): ...
     def scan_iter(self, match: str): ...
 
@@ -31,24 +29,22 @@ class PhotoCache:
         poll_interval_s: 轮询间隔（秒）。
     """
 
-    def __init__(
-        self, redis_client: _RedisLike, uids, poll_interval_s: float = 0.033
-    ) -> None:
+    def __init__(self, redis_client: _RedisLike, uids,
+                 poll_interval_s: float = 0.033) -> None:
         self._redis = redis_client
         self._uids = list(uids)
         self._poll_interval_s = poll_interval_s
-        self._cache: dict[str, bytes | None] = {uid: None for uid in self._uids}
+        self._cache: Dict[str, Optional[bytes]] = {uid: None for uid in self._uids}
         self._stop_event = threading.Event()
         self._threads: list[threading.Thread] = []
 
     def start(self) -> None:
         if self._threads:
-            return  # 已在运行，幂等
+            return   # 已在运行，幂等
         self._stop_event.clear()
         for uid in self._uids:
-            t = threading.Thread(
-                target=self._loop, args=(uid,), daemon=True, name=f"PhotoCache-{uid}"
-            )
+            t = threading.Thread(target=self._loop, args=(uid,), daemon=True,
+                                 name=f"PhotoCache-{uid}")
             t.start()
             self._threads.append(t)
 
@@ -58,7 +54,7 @@ class PhotoCache:
             t.join(timeout=1.0)
         self._threads.clear()
 
-    def get(self, uid: str) -> bytes | None:
+    def get(self, uid: str) -> Optional[bytes]:
         """返回 uid 最新帧 bytes 或 None（非阻塞）。"""
         return self._cache.get(uid)
 
@@ -67,7 +63,7 @@ class PhotoCache:
             try:
                 self._poll_once(uid)
             except Exception:
-                pass  # 瞬时错误不杀线程，下一轮重试
+                pass   # 瞬时错误不杀线程，下一轮重试
             self._stop_event.wait(self._poll_interval_s)
 
     def _poll_once(self, uid: str) -> None:

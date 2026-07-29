@@ -5,7 +5,6 @@ Mirrors the C++ TargetTrajectoryComponent::update() motion model
 can predict where a ground target WILL be when a set_position command
 takes effect, eliminating position jitter (no teleport-back).
 """
-
 from __future__ import annotations
 
 from .geometry import bearing_deg, destination, haversine_m

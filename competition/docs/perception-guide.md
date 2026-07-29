@@ -69,19 +69,18 @@ class MyPerceptionAgent(Agent):
         # 用本帧相机画面做识别（photo 需 --photo 启用 PhotoCache）
         photo = obs.self.photo
         if photo is None:
-            return None  # 无画面 → 回退默认识别器
-        boxes = self._model.detect(photo)  # 你的识别算法
-        return [
-            Detection(
-                detected=True, confidence=b.conf, target_lat=b.lat, target_lon=b.lon
-            )
-            for b in boxes
-        ]
+            return None              # 无画面 → 回退默认识别器
+        boxes = self._model.detect(photo)   # 你的识别算法
+        return [Detection(detected=True,
+                          confidence=b.conf,
+                          target_lat=b.lat,
+                          target_lon=b.lon) for b in boxes]
 
     def decide(self, obs: Observation, dt: float) -> List[Command]:
-        det = obs.self.detection  # ← 你 sensor 的产出
+        det = obs.self.detection           # ← 你 sensor 的产出
         if det.detected and det.target_lat is not None:
-            return [fly_to(det.target_lat, det.target_lon), point_gimbal(0.0, -45.0)]
+            return [fly_to(det.target_lat, det.target_lon),
+                    point_gimbal(0.0, -45.0)]
         return [point_gimbal(0.0, -45.0)]
 ```
 
@@ -99,13 +98,13 @@ class MyEndToEndAgent(Agent):
         ...
 
     def sensor(self, obs: Observation, dt: float):
-        return SKIP_DETECTION  # 端到端：不需要 detection
+        return SKIP_DETECTION          # 端到端：不需要 detection
 
     def decide(self, obs: Observation, dt: float) -> List[Command]:
-        photo = obs.self.photo  # PNG bytes（默认 photo_mode=auto 自动注入）
+        photo = obs.self.photo         # PNG bytes（默认 photo_mode=auto 自动注入）
         if photo is None:
-            return []  # 无画面 → 本帧不动
-        action = self._policy(photo)  # 端到端：图片 → 控制指令
+            return []                  # 无画面 → 本帧不动
+        action = self._policy(photo)   # 端到端：图片 → 控制指令
         return [action.to_command()]
 ```
 
@@ -117,7 +116,7 @@ class MyEndToEndAgent(Agent):
 class MyControlAgent(Agent):
     # 不写 sensor() → 默认识别器接管
     def decide(self, obs: Observation, dt: float) -> List[Command]:
-        det = obs.self.detection  # ← 默认识别器产出
+        det = obs.self.detection       # ← 默认识别器产出
         if det.detected:
             return [fly_to(det.target_lat, det.target_lon)]
         return []
@@ -150,11 +149,11 @@ class MyControlAgent(Agent):
 @dataclass(frozen=True)
 class Detection:
     detected: bool
-    confidence: float  # [0, 1]
+    confidence: float                  # [0, 1]
     target_lat: Optional[float] = None
     target_lon: Optional[float] = None
     azimuth_error_deg: Optional[float] = None
-    target_type: str = ""  # "ground_vehicle" | "decoy_vehicle" | ""
+    target_type: str = ""              # "ground_vehicle" | "decoy_vehicle" | ""
 ```
 
 **关键语义**：
@@ -210,7 +209,7 @@ class Detection:
 python -m competition run --scenario search_track \
     --agent my_pkg:MyAgent --mode train --duration 600
 
-# 任意赛题 · 验证态：真实 YOLOv8（需先 uv pip install -r examples/yolotrack/requirements.txt）
+# 任意赛题 · 验证态：真实 YOLOv8（需先 pip install -r examples/yolotrack/requirements.txt）
 python -m competition run --scenario search_track \
     --agent my_pkg:MyAgent --mode eval \
     --photo-mode on --yolo-model target_vehicle_yolov8s.pt --duration 600
@@ -266,7 +265,7 @@ python -m competition run --scenario coop_decoy \
 ## 8. `photo` 字段
 
 ```python
-obs.self.photo: Optional[bytes]  # PNG bytes | None
+obs.self.photo: Optional[bytes]   # PNG bytes | None
 ```
 
 - 内容：UE 渲染端最新一帧相机画面，**PNG 编码**的 bytes（spec 022 `sync_camera:{uid}:frame:{n}` Redis hash，magic bytes `89 50 4E 47`）。请按 PNG 解码，不要按 JPEG 解析。
@@ -276,12 +275,9 @@ obs.self.photo: Optional[bytes]  # PNG bytes | None
 - **解码示例**（PNG）：
   ```python
   import numpy as np, cv2
-
   img = cv2.imdecode(np.frombuffer(obs.self.photo, np.uint8), cv2.IMREAD_COLOR)
   # 或 PIL：
-  from PIL import Image
-  import io
-
+  from PIL import Image; import io
   img = Image.open(io.BytesIO(obs.self.photo))
   ```
 

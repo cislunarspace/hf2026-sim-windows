@@ -1,6 +1,7 @@
 """Adversarial-swarm scenario Agent base class."""
-
 from __future__ import annotations
+
+from typing import List
 
 from ...core.agent import Agent
 from ...core.commands import Command
@@ -25,5 +26,5 @@ class SwarmAgent(Agent):
     runner stops calling decide() for it (self-termination).
     """
 
-    def decide(self, obs: SwarmObs, dt: float) -> list[Command]:  # type: ignore[override]
+    def decide(self, obs: SwarmObs, dt: float) -> List[Command]:  # type: ignore[override]
         raise NotImplementedError

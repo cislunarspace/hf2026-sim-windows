@@ -28,7 +28,6 @@ of ``competition/``. The visualization lives under ``<root>/visualization``.
 For a minimal release that ships only ``competition/`` + the binary, copy the
 ``visualization/`` folder in too (or set ``--viz-dir``).
 """
-
 from __future__ import annotations
 
 import http.server
@@ -39,32 +38,34 @@ import threading
 import time
 import webbrowser
 from pathlib import Path
+from typing import Optional
+
 
 # repo root = parent of competition/  (this file is competition/sdk/visualize.py)
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
-WS_PORT_DEFAULT = 8080  # bridge WebSocket
-VIZ_HTTP_PORT_DEFAULT = 3000  # static frontend server
+WS_PORT_DEFAULT = 8080          # bridge WebSocket
+VIZ_HTTP_PORT_DEFAULT = 3000    # static frontend server
 
 
-def _resolve_viz_dir(viz_dir: str | None) -> Path | None:
+def _resolve_viz_dir(viz_dir: Optional[str]) -> Optional[Path]:
     d = Path(viz_dir) if viz_dir else _REPO_ROOT / "visualization"
     return d if (d / "dist" / "index.html").exists() else None
 
 
-def _resolve_bridge_script(viz_dir: Path) -> Path | None:
+def _resolve_bridge_script(viz_dir: Path) -> Optional[Path]:
     """The TS source of the bridge entry point, or None if absent."""
     ts = viz_dir / "src" / "bridge" / "index.ts"
     return ts if ts.exists() else None
 
 
-def _compiled_bridge_entry(viz_dir: Path) -> Path | None:
+def _compiled_bridge_entry(viz_dir: Path) -> Optional[Path]:
     """The compiled JS entry of the bridge, if it has been built."""
     js = viz_dir / "dist-bridge" / "bridge" / "index.js"
     return js if js.exists() else None
 
 
-def _ensure_bridge_compiled(viz_dir: Path, log=print) -> Path | None:
+def _ensure_bridge_compiled(viz_dir: Path, log=print) -> Optional[Path]:
     """Compile the bridge TS → JS once (cached), return the JS entry path.
 
     Running the bridge via ``npx ts-node`` hangs on Node 24 + ts-node 10.x,
@@ -89,7 +90,7 @@ def _ensure_bridge_compiled(viz_dir: Path, log=print) -> Path | None:
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
-            shell=(sys.platform == "win32"),  # npx.cmd shim on Windows
+            shell=(sys.platform == "win32"),   # npx.cmd shim on Windows
         )
     except (FileNotFoundError, subprocess.CalledProcessError) as ex:
         log(f"[viz] bridge compile failed ({ex}); falling back to ts-node")
@@ -111,7 +112,7 @@ class _StaticServer(threading.Thread):
         super().__init__(daemon=True)
         self.viz_dir = viz_dir
         self.port = port
-        self.httpd: socketserver.TCPServer | None = None
+        self.httpd: Optional[socketserver.TCPServer] = None
         self._serve_dir = self._materialize()
 
     def _materialize(self) -> Path:
@@ -124,7 +125,6 @@ class _StaticServer(threading.Thread):
         public = self.viz_dir / "public"
         if dist.exists() and public.exists():
             import shutil
-
             for p in public.iterdir():
                 dst = dist / p.name
                 if p.is_file() and not dst.exists():
@@ -136,12 +136,11 @@ class _StaticServer(threading.Thread):
 
     def run(self) -> None:
         serve = self._serve_dir
-
-        def handler(*a, **kw):
-            return http.server.SimpleHTTPRequestHandler(*a, directory=str(serve), **kw)
-
+        handler = lambda *a, **kw: http.server.SimpleHTTPRequestHandler(
+            *a, directory=str(serve), **kw)
         try:
-            self.httpd = socketserver.TCPServer(("127.0.0.1", self.port), handler)
+            self.httpd = socketserver.TCPServer(
+                ("127.0.0.1", self.port), handler)
             self.httpd.serve_forever()
         except OSError:
             # port in use — assume something else is already serving
@@ -158,15 +157,8 @@ class VisualizationSession:
         # bridge + server auto-stopped on exit
     """
 
-    def __init__(
-        self,
-        *,
-        bridge_proc,
-        static: _StaticServer,
-        url: str,
-        log=print,
-        stderr_log=None,
-    ):
+    def __init__(self, *, bridge_proc, static: _StaticServer,
+                 url: str, log=print, stderr_log=None):
         self._bridge = bridge_proc
         self._static = static
         self.url = url
@@ -174,30 +166,20 @@ class VisualizationSession:
         self._stderr_log = stderr_log
 
     @classmethod
-    def start(
-        cls,
-        *,
-        viz_dir: str | None = None,
-        ws_port: int = WS_PORT_DEFAULT,
-        http_port: int = VIZ_HTTP_PORT_DEFAULT,
-        redis_host: str = "127.0.0.1",
-        redis_port: int = 6379,
-        open_browser: bool = True,
-        log=print,
-    ) -> VisualizationSession | None:
+    def start(cls, *, viz_dir: Optional[str] = None,
+              ws_port: int = WS_PORT_DEFAULT,
+              http_port: int = VIZ_HTTP_PORT_DEFAULT,
+              redis_host: str = "127.0.0.1", redis_port: int = 6379,
+              open_browser: bool = True, log=print) -> Optional["VisualizationSession"]:
         viz = _resolve_viz_dir(viz_dir)
         if viz is None:
-            log(
-                "[viz] visualization/dist not found — pass --viz-dir or copy "
-                "the visualization/ folder in. Running without 3D view."
-            )
+            log("[viz] visualization/dist not found — pass --viz-dir or copy "
+                "the visualization/ folder in. Running without 3D view.")
             return None
         bridge_script = _resolve_bridge_script(viz)
         if bridge_script is None:
-            log(
-                "[viz] visualization/src/bridge/index.ts not found — cannot "
-                "start the bridge. Running without 3D view."
-            )
+            log("[viz] visualization/src/bridge/index.ts not found — cannot "
+                "start the bridge. Running without 3D view.")
             return None
 
         # Decide HOW to run the bridge. Prefer the compiled JS (run via node),
@@ -217,40 +199,31 @@ class VisualizationSession:
         # so we must NOT replace the env wholesale — only override the keys
         # the bridge cares about.
         import os
-
         env = dict(os.environ)
-        env.update(
-            {
-                "WS_PORT": str(ws_port),
-                "REDIS_HOST": redis_host,
-                "REDIS_PORT": str(redis_port),
-            }
-        )
+        env.update({
+            "WS_PORT": str(ws_port),
+            "REDIS_HOST": redis_host, "REDIS_PORT": str(redis_port),
+        })
         # Keep the bridge's stderr for post-mortem (it used to be DEVNULL,
         # which made a silent start failure undiagnosable). stdout is still
         # suppressed; stderr is tee'd to a log file under the viz dir.
         stderr_log = open(viz / "bridge.stderr.log", "ab", buffering=0)
         log(f"[viz] starting bridge ({via}, ws=:{ws_port})...")
         popen_kwargs = dict(
-            cwd=str(viz),
-            env=env,
-            stdout=subprocess.DEVNULL,
-            stderr=stderr_log,
+            cwd=str(viz), env=env,
+            stdout=subprocess.DEVNULL, stderr=stderr_log,
         )
         try:
             if sys.platform == "win32" and cmd[0] == "npx":
                 # npx is a .cmd shim on Windows → needs shell=True to resolve.
                 bridge_proc = subprocess.Popen(
-                    " ".join(cmd), shell=True, **popen_kwargs
-                )
+                    " ".join(cmd), shell=True, **popen_kwargs)
             else:
                 bridge_proc = subprocess.Popen(cmd, **popen_kwargs)
         except FileNotFoundError:
             stderr_log.close()
-            log(
-                "[viz] node/npx not found on PATH — install Node.js to use "
-                "--visualize. Running without 3D view."
-            )
+            log("[viz] node/npx not found on PATH — install Node.js to use "
+                "--visualize. Running without 3D view.")
             return None
 
         # 2) static frontend server (daemon thread) — dist + public merged
@@ -265,13 +238,8 @@ class VisualizationSession:
                 webbrowser.open(url)
             except Exception:
                 pass
-        return cls(
-            bridge_proc=bridge_proc,
-            static=static,
-            url=url,
-            log=log,
-            stderr_log=stderr_log,
-        )
+        return cls(bridge_proc=bridge_proc, static=static, url=url, log=log,
+                   stderr_log=stderr_log)
 
     def stop(self) -> None:
         if self._bridge is not None and self._bridge.poll() is None:
@@ -292,7 +260,7 @@ class VisualizationSession:
                 pass
         self._log("[viz] stopped")
 
-    def __enter__(self) -> VisualizationSession:
+    def __enter__(self) -> "VisualizationSession":
         return self
 
     def __exit__(self, *exc) -> None:

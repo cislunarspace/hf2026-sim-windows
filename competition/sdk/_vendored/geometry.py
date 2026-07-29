@@ -3,7 +3,6 @@
 Kept here so the competition SDK is self-contained for release — it does
 not import anything from ``examples/``.
 """
-
 from __future__ import annotations
 
 import math
@@ -26,15 +25,13 @@ def bearing_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dlam = math.radians(lon2 - lon1)
     y = math.sin(dlam) * math.cos(phi2)
-    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(
-        dlam
-    )
+    x = (math.cos(phi1) * math.sin(phi2)
+         - math.sin(phi1) * math.cos(phi2) * math.cos(dlam))
     return (math.degrees(math.atan2(y, x)) + 360.0) % 360.0
 
 
-def destination(
-    lat: float, lon: float, bearing_deg_: float, distance_m: float
-) -> tuple[float, float]:
+def destination(lat: float, lon: float, bearing_deg_: float,
+                distance_m: float) -> tuple[float, float]:
     """Great-circle destination point.
 
     Given a start (lat, lon), an initial bearing in degrees, and a
@@ -48,16 +45,11 @@ def destination(
     theta = math.radians(bearing_deg_)
     delta = distance_m / EARTH_RADIUS_M  # angular distance
 
-    phi2 = math.asin(
-        math.sin(phi1) * math.cos(delta)
-        + math.cos(phi1) * math.sin(delta) * math.cos(theta)
-    )
+    phi2 = math.asin(math.sin(phi1) * math.cos(delta)
+                     + math.cos(phi1) * math.sin(delta) * math.cos(theta))
     lam2 = lam1 + math.atan2(
         math.sin(theta) * math.sin(delta) * math.cos(phi1),
-        math.cos(delta) - math.sin(phi1) * math.sin(phi2),
-    )
+        math.cos(delta) - math.sin(phi1) * math.sin(phi2))
 
-    return (
-        math.degrees(phi2),
-        (math.degrees(lam2) + 540.0) % 360.0 - 180.0,
-    )  # normalize lon
+    return (math.degrees(phi2),
+            (math.degrees(lam2) + 540.0) % 360.0 - 180.0)  # normalize lon

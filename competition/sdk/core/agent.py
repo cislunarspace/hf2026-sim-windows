@@ -5,14 +5,13 @@ The runner drives the lifecycle (instantiate → configure → reset → decide
 loop). See contracts/agent-interface.md for the full contract and
 invariants.
 """
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, List, Optional
 
 from .commands import Command
-from .observation import Detection, Observation
+from .observation import Detection, Observation, SKIP_DETECTION
 
 
 class Agent(ABC):
@@ -48,7 +47,7 @@ class Agent(ABC):
         return None
 
     @abstractmethod
-    def decide(self, obs: Observation, dt: float) -> list[Command]:
+    def decide(self, obs: Observation, dt: float) -> List[Command]:
         """Core decision method, called each decision cycle.
 
         Args:
@@ -60,7 +59,7 @@ class Agent(ABC):
         """
         ...
 
-    def sensor(self, obs: Observation, dt: float) -> list[Detection] | None:
+    def sensor(self, obs: Observation, dt: float) -> Optional[List[Detection]]:
         """感知回调。可选覆盖。四态返回（spec 029 §2）：
 
           List[Detection]（非空） → 自研识别结果，填入 obs.self.detection 供 decide 用
