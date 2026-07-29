@@ -1,17 +1,18 @@
 """赛题一搜索-跟踪 Agent 实现。
 
 六状态 FSM：
-  ACQUIRE → SEARCH → VERIFY → ENGAGE → ATTACK
-                                          ↓ (摧毁) → SEARCH
+  ACQUIRE → SEARCH → VERIFY → ENGAGE → ATTACK（持续盯防上报，赛题一不判摧毁）
                 LOST ←── (丢失 > 2s) ←── ENGAGE/ATTACK
+                  ↓ 在最后估计位置盘旋 ≤10s 等待重捕获，超时回 SEARCH
 
-赛题一跳过 COORDINATE（单机无协同）。
+赛题一跳过 COORDINATE（单机无协同）；赛题一 dwell_target_s=∞ 永不判摧毁，
+ATTACK 后持续跟踪上报即可。
 
 算法：
   - IMM 滤波器（Rust，CV+CA+CT 三模型）用于目标位置估计和速度估计
   - 阿基米德螺旋搜索
   - LOS 瞄准 + 前馈飞行跟踪
-  - VERIFY：3 秒窗口，速度阈值判别诱饵
+  - VERIFY：8 秒窗口（80 帧 @10Hz），速度阈值判别诱饵
   - 每秒 report_target 上报滤波位置
 """
 
@@ -53,6 +54,7 @@ _TRACK_SPEED = 25.0  # 跟踪速度（m/s）
 _LOITER_RADIUS = 200.0  # 盘旋半径（m）
 _LEAD_TIME_S = 1.5  # 前馈时间（s）
 _GRACE_FRAMES = 20  # 丢失容忍帧数（~2s @ 10Hz）
+_REACQUIRE_TIMEOUT_S = 10.0  # LOST 重捕获时限（s），超时回 SEARCH
 _VERIFY_FRAMES = 80  # VERIFY 窗口帧数（8s @ 10Hz），3s 不足以分离速度
 _ENGAGE_FRAMES = 10  # ENGAGE 等待 EKF 收敛帧数
 _ATTACK_TIME_S = 20.0  # ATTACK 累计盯防时间（秒）
@@ -76,6 +78,7 @@ class MySearchTrackAgent(SearchTrackAgent):
         self._verify_frames: int = 0
         self._engage_frames: int = 0
         self._attack_time: float = 0.0
+        self._lost_time: float = 0.0
         self._last_report_time: float = 0.0
         self._sim_time: float = 0.0
         self._gimbal_phase: float = 0.0  # 云台扫描相位
@@ -89,6 +92,7 @@ class MySearchTrackAgent(SearchTrackAgent):
         self._verify_frames = 0
         self._engage_frames = 0
         self._attack_time = 0.0
+        self._lost_time = 0.0
         self._last_report_time = 0.0
         self._sim_time = 0.0
         self._gimbal_phase = 0.0
@@ -190,7 +194,7 @@ class MySearchTrackAgent(SearchTrackAgent):
 
         return cmds
 
-    # ── VERIFY：诱饵鉴别（3 秒窗口） ──────────────────────────────────
+    # ── VERIFY：诱饵鉴别（8 秒窗口） ──────────────────────────────────
 
     def _do_verify(self, obs: SearchTrackObs, dt: float) -> list[Command]:
         cmds = []
@@ -274,6 +278,7 @@ class MySearchTrackAgent(SearchTrackAgent):
         # 丢失过多 → LOST
         if self._lost_frames >= _GRACE_FRAMES:
             self._state = State.LOST
+            self._lost_time = 0.0
             return self._do_lost(obs, dt)
 
         # 云台 LOS 瞄准
@@ -348,6 +353,7 @@ class MySearchTrackAgent(SearchTrackAgent):
         # 丢失过多 → LOST
         if self._lost_frames >= _GRACE_FRAMES:
             self._state = State.LOST
+            self._lost_time = 0.0
             return self._do_lost(obs, dt)
 
         # 云台 + 前馈飞行 + 上报
@@ -385,10 +391,36 @@ class MySearchTrackAgent(SearchTrackAgent):
 
         return cmds
 
-    # ── LOST：丢失恢复 → 重回搜索 ──────────────────────────────────────
+    # ── LOST：在最后估计位置盘旋等待重捕获 ─────────────────────────────
 
     def _do_lost(self, obs: SearchTrackObs, dt: float) -> list[Command]:
-        # 丢失后重新进入搜索模式
-        self._state = State.SEARCH
-        self._wp_idx = 0  # 从螺旋起点重新搜索
-        return self._do_search(obs, dt)
+        cmds: list[Command] = []
+        self._lost_time += dt
+        det = obs.self.detection
+
+        # 重新检测到 → 直接回 ENGAGE（赛题一无诱饵，EKF 仍是热的，无需重新 VERIFY）
+        if det.detected and det.target_lat is not None:
+            self._state = State.ENGAGE
+            self._engage_frames = 0
+            self._lost_frames = 0
+            return self._do_engage(obs, dt)
+
+        # 在滤波预测位置盘旋等待（EKF 按速度外推，扩大 FOV 提高重捕获概率）
+        if self._ekf is not None and self._ekf.is_initialized():
+            self._ekf.predict(dt)
+            est_lat, est_lon = self._ekf.position_wgs84()
+            pan, tilt = compute_gimbal_angles(
+                obs.self.lat, obs.self.lon, obs.self.alt, est_lat, est_lon
+            )
+            cmds.append(point_gimbal(pan, tilt))
+            cmds.append(set_gimbal_fov(_SEARCH_FOV))
+            cmds.append(
+                fly_to(est_lat, est_lon, speed=_TRACK_SPEED, loiter_radius=150.0)
+            )
+
+        # 超时仍无检测 → 回 SEARCH（螺旋进度保持，不从头重搜）
+        if self._lost_time >= _REACQUIRE_TIMEOUT_S:
+            self._state = State.SEARCH
+            return self._do_search(obs, dt)
+
+        return cmds

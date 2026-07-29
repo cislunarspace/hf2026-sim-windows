@@ -175,6 +175,57 @@ class TestTrackPhase:
             assert isinstance(report_cmd.params["lon"], float)
 
 
+class TestLostRecovery:
+    """LOST 恢复测试（回归：曾在最后位置不放弃，直接 _wp_idx=0 从头螺旋）。"""
+
+    def _enter_tracking(self, agent):
+        """喂移动目标帧直到进入 ENGAGE/ATTACK。"""
+        for i in range(100):
+            obs = _make_obs(
+                detected=True, target_lat=27.005, target_lon=125.005 + i * 0.00003
+            )
+            agent.decide(obs, dt=0.1)
+        assert agent._state.value in ("engage", "attack")
+
+    def test_lost_loiters_at_last_estimate(self):
+        """丢失后应在最后估计位置盘旋等待重捕获，螺旋进度不重置。"""
+        agent = MySearchTrackAgent("uav_1")
+        agent.reset()
+        self._enter_tracking(agent)
+        agent._wp_idx = 5
+
+        cmds = None
+        for i in range(25):  # 丢失 2.5s（> 2s 容忍 → LOST）
+            cmds = agent.decide(_make_obs(), dt=0.1)
+        assert agent._state.value == "lost"
+        assert agent._wp_idx == 5, "LOST 不应重置螺旋进度"
+        fly = _find_cmd(cmds, "set_destination")
+        assert fly is not None, "LOST 应飞向最后估计位置盘旋"
+
+    def test_lost_reacquire_goes_engage(self):
+        """LOST 中重新检测到目标应回 ENGAGE（赛题一无诱饵，无需重新 VERIFY）。"""
+        agent = MySearchTrackAgent("uav_1")
+        agent.reset()
+        self._enter_tracking(agent)
+        for i in range(25):
+            agent.decide(_make_obs(), dt=0.1)
+        assert agent._state.value == "lost"
+
+        obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.009)
+        agent.decide(obs, dt=0.1)
+        # EKF 仍热时可能同帧从 ENGAGE 直接进 ATTACK
+        assert agent._state.value in ("engage", "attack")
+
+    def test_lost_timeout_returns_to_search(self):
+        """LOST 超过重捕获时限仍无检测 → 回 SEARCH。"""
+        agent = MySearchTrackAgent("uav_1")
+        agent.reset()
+        self._enter_tracking(agent)
+        for i in range(150):  # 15s 无检测（> 10s 重捕获时限）
+            agent.decide(_make_obs(), dt=0.1)
+        assert agent._state.value == "search"
+
+
 class TestCommandValidity:
     """命令合法性测试。"""
 
