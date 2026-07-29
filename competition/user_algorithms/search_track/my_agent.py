@@ -82,6 +82,7 @@ class MySearchTrackAgent(SearchTrackAgent):
         self._last_report_time: float = 0.0
         self._sim_time: float = 0.0
         self._gimbal_phase: float = 0.0  # 云台扫描相位
+        self._time_synced: bool = False
 
     def reset(self) -> None:
         self._state = State.ACQUIRE
@@ -96,9 +97,21 @@ class MySearchTrackAgent(SearchTrackAgent):
         self._last_report_time = 0.0
         self._sim_time = 0.0
         self._gimbal_phase = 0.0
+        self._time_synced = False
 
     def decide(self, obs: SearchTrackObs, dt: float) -> list[Command]:
-        self._sim_time += dt
+        # 同步引擎 sim_time（score_view 每拍更新），读不到回退 dt 累加。
+        # 必须用引擎时间：runner 控制节拍远快于引擎（实测差 2.5 倍），
+        # dt 累加会让 1Hz 上报节拍失真（评分按引擎 1Hz 采样，漏报记 0）。
+        st = getattr(getattr(obs.briefing, "score_view", None), "sim_time", None)
+        if isinstance(st, (int, float)):
+            st = float(st)
+            if not self._time_synced:
+                self._last_report_time = st
+                self._time_synced = True
+            self._sim_time = st
+        else:
+            self._sim_time += dt
         cmds: list[Command] = []
 
         # 初始化 IMM（用 UAV 初始位置作为坐标原点）

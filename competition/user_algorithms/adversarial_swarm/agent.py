@@ -141,6 +141,7 @@ class SwarmSearchAgent(SwarmAgent):
         self._last_report_time = 0.0
         self._last_bc_time = 0.0
         self._last_jam_bc_time = -_JAM_BC_INTERVAL
+        self._time_synced = False
         self._known_decoys: list[tuple[float, float]] = []
         self._known_destroyed: list[tuple[float, float]] = []
         self._shared_target: tuple[float, float] | None = None
@@ -167,6 +168,7 @@ class SwarmSearchAgent(SwarmAgent):
         self._last_report_time = 0.0
         self._last_bc_time = 0.0
         self._last_jam_bc_time = -_JAM_BC_INTERVAL
+        self._time_synced = False
         self._known_decoys = []
         self._known_destroyed = []
         self._shared_target = None
@@ -175,7 +177,7 @@ class SwarmSearchAgent(SwarmAgent):
         self._is_wingman = False
 
     def decide(self, obs: SwarmObs, dt: float) -> list[Command]:
-        self._sim_time += dt
+        self._sync_time(obs, dt)
         cmds: list[Command] = []
 
         self._ingest_comms(obs.comm_inbox)
@@ -197,6 +199,26 @@ class SwarmSearchAgent(SwarmAgent):
         elif self._state == State.JOIN:
             return cmds + self._do_join(obs, dt)
         return cmds
+
+    # ── 时间基准 ──────────────────────────────────────────────────────────
+
+    def _sync_time(self, obs: SwarmObs, dt: float) -> None:
+        """同步引擎 sim_time（briefing.score_view 每拍更新），读不到回退 dt 累加。
+
+        必须用引擎时间：runner 控制节拍远快于引擎（实测差 2.5 倍），
+        dt 累加会让 OLS 速度判别和全部时间基准失真。
+        """
+        st = getattr(getattr(obs.briefing, "score_view", None), "sim_time", None)
+        if isinstance(st, (int, float)):
+            st = float(st)
+            if not self._time_synced:
+                self._last_report_time = st
+                self._last_bc_time = st
+                self._last_det_time = st
+                self._time_synced = True
+            self._sim_time = st
+        else:
+            self._sim_time += dt
 
     # ── 通信 ──────────────────────────────────────────────────────────────
 
@@ -268,7 +290,8 @@ class SwarmSearchAgent(SwarmAgent):
                 self._imm = ImmFilter(obs.self.lat, obs.self.lon)
                 self._verify_samples = []
                 self._verify_lost_s = 0.0
-                cmds.append(broadcast(f"A:{det.target_lat:.3f},{det.target_lon:.3f}"))
+                # 不在此处 announce：候选未判别，提前 announce 会让集群
+                # 收敛到同一个静止诱饵。判别通过进 TRACK 时再 announce。
                 return self._do_verify(obs, dt)
 
         # 沿螺旋航点飞行（SAM 推避）

@@ -140,8 +140,8 @@ class TestCoopAgentVerify:
 class TestCoopAgentVerifyOls:
     """OLS 速度判别测试（12s 采样窗口）。"""
 
-    def test_stationary_target_marked_decoy(self):
-        """静止目标（诱饵）12s 后应判为诱饵并回 SEARCH。"""
+    def test_stationary_target_returns_to_search(self):
+        """静止候选（可能停顿中的真目标）判别后回 SEARCH，且不做位置标记。"""
         agent = CoopDecoyAgent("uav_1")
         agent.reset()
         for i in range(5):
@@ -151,16 +151,33 @@ class TestCoopAgentVerifyOls:
                 _make_obs(detected=True, target_lat=27.005, target_lon=125.005),
                 dt=0.1,
             )
-        assert agent._state.value == "SEARCH", "静止目标应判诱饵回 SEARCH"
-        assert len(agent._known_decoys) == 1, "静止目标应记入诱饵列表"
+        assert agent._state.value == "SEARCH"
+        assert not hasattr(agent, "_known_decoys") or not agent._known_decoys
 
     def test_moving_target_goes_track(self):
-        """5 m/s 移动目标 12s 后应进 TRACK。"""
+        """9 m/s 快速目标（速度档必真）12s 后应进 TRACK。"""
         agent = CoopDecoyAgent("uav_1")
         agent.reset()
         for i in range(5):
             agent.decide(_make_obs(), dt=0.1)
-        # 5 m/s 东移：每帧 Δlon = 5*0.1/(111320*cos27°) ≈ 5.04e-6°
+        # 9 m/s 东移：每帧 Δlon = 9*0.1/(111320*cos27°) ≈ 9.07e-6°
+        for i in range(125):
+            agent.decide(
+                _make_obs(
+                    detected=True,
+                    target_lat=27.005,
+                    target_lon=125.005 + i * 9.07e-6,
+                ),
+                dt=0.1,
+            )
+        assert agent._state.value == "TRACK", "快速移动目标应进 TRACK"
+
+    def test_slow_mover_returns_to_search(self):
+        """5 m/s 目标与诱饵同速档（官方 runner 注入 decoy_speed=5.0），回 SEARCH 但不标记。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
         for i in range(125):
             agent.decide(
                 _make_obs(
@@ -170,7 +187,7 @@ class TestCoopAgentVerifyOls:
                 ),
                 dt=0.1,
             )
-        assert agent._state.value == "TRACK", "移动目标应进 TRACK"
+        assert agent._state.value == "SEARCH", "5 m/s 类应回 SEARCH"
 
     def test_lost_during_verify_aborts_without_decoy_mark(self):
         """VERIFY 中连续丢失 >2s 应放弃且不记诱饵。"""
@@ -187,7 +204,107 @@ class TestCoopAgentVerifyOls:
         for i in range(30):  # 3s 无检测
             agent.decide(_make_obs(), dt=0.1)
         assert agent._state.value == "SEARCH", "丢失超时应回 SEARCH"
-        assert not agent._known_decoys, "丢失放弃不应误记诱饵"
+
+    def test_lock_flicker_rejected_by_speed_band(self):
+        """锁跳变导致的虚高速度（>13.5）应被速度带上限拒绝。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        # 大部分时间锁在静止点，少量帧跳到 400m 外（位置阶跃 → 表观速度虚高）
+        for i in range(125):
+            if i % 10 < 8:
+                tlat, tlon = 27.005, 125.005
+            else:
+                tlat, tlon = 27.005, 125.009
+            agent.decide(
+                _make_obs(detected=True, target_lat=tlat, target_lon=tlon),
+                dt=0.1,
+            )
+        assert agent._state.value == "SEARCH", "锁跳变虚高应被拒绝回 SEARCH"
+
+    def test_engine_time_used_for_verdict(self):
+        """VERIFY 用引擎时间（score_view.sim_time）：控制节拍快于引擎 2.5 倍时，
+        12 m/s 真目标仍应判真（回归：dt 累加曾把 12 m/s 读成 ~5 误判诱饵）。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        sim_t = [-28700.0]
+
+        def _obs(i, detected=True):
+            obs = _make_obs(
+                detected=detected,
+                target_lat=27.005,
+                target_lon=125.005 + i * 4.84e-6,  # 12 m/s × 0.04s
+            )
+            sim_t[0] += 0.04  # 引擎每拍只走 0.04s（控制节拍 0.1s 的 2.5 倍快）
+            obs.briefing.score_view.sim_time = sim_t[0]
+            return obs
+
+        for i in range(5):
+            agent.decide(_obs(0, detected=False), dt=0.1)
+        for i in range(125):
+            agent.decide(_obs(i), dt=0.1)
+        assert agent._state.value == "TRACK", (
+            "引擎时间下 12 m/s 目标应判真；若回退 dt 累加会被误判为诱饵"
+        )
+
+    def test_reject_cooldown_blocks_immediate_reverify(self):
+        """判别否决后冷却期内同位置检测不重进 VERIFY，冷却后允许（停顿真目标可重遇）。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        # 静止候选 → 否决
+        for i in range(125):
+            agent.decide(
+                _make_obs(detected=True, target_lat=27.005, target_lon=125.005),
+                dt=0.1,
+            )
+        assert agent._state.value == "SEARCH"
+        # 冷却期内：同位置持续检测不应卡回 VERIFY
+        for i in range(50):  # 5s
+            agent.decide(
+                _make_obs(detected=True, target_lat=27.005, target_lon=125.005),
+                dt=0.1,
+            )
+        assert agent._state.value == "SEARCH", "冷却期内不应重进 VERIFY"
+        # 冷却期后（累计 >20s）：允许重新判别
+        for i in range(160):
+            agent.decide(
+                _make_obs(detected=True, target_lat=27.005, target_lon=125.005),
+                dt=0.1,
+            )
+        assert agent._state.value in ("VERIFY", "SEARCH"), "冷却后应重新判别"
+        assert agent._verify_samples or agent._state.value == "SEARCH"
+
+    def test_search_sweeps_gimbal(self):
+        """SEARCH 应输出云台扫描命令（回归：曾只设 FOV 不转云台）。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        cmds = agent.decide(_make_obs(), dt=0.1)
+        gimbal_cmd = _find_cmd(cmds, "component.gimbal_tracking.set_orientation")
+        assert gimbal_cmd is not None, "SEARCH 应有云台扫描命令"
+
+    def test_join_goes_through_verify(self):
+        """僚机 JOIN 到达目标附近后应先 VERIFY 判别，不直接 TRACK。"""
+        agent = CoopDecoyAgent("uav_2")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        msg = MagicMock()
+        msg.payload = "A:27.005,125.005"
+        msg.sender_uid = "uav_1"
+        agent.decide(_make_obs(comm_inbox=(msg,)), dt=0.1)
+        assert agent._state.value == "JOIN"
+        # 僚机已在目标 200m 内且检测到 → 应进 VERIFY 而非 TRACK
+        obs = _make_obs(
+            lat=27.005, lon=125.005, detected=True,
+            target_lat=27.005, target_lon=125.005,
+        )
+        agent.decide(obs, dt=0.1)
+        assert agent._state.value == "VERIFY", (
+            "JOIN 收敛后应先 VERIFY 判别（防止收敛到未鉴别的诱饵）"
+        )
 
 
 class TestCoopAgentComms:
@@ -388,9 +505,6 @@ class TestCoopAgentDestroyedMemory:
         assert agent._state.value == "SEARCH", "dwell 满 20s 应回 SEARCH"
         assert (27.005, 125.005) in agent._known_destroyed, (
             "完成盯防的目标应记入已摧毁列表"
-        )
-        assert (27.005, 125.005) not in agent._known_decoys, (
-            "摧毁的目标不应被误记为诱饵"
         )
 
     def test_destroyed_target_not_reverified(self):

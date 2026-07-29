@@ -17,3 +17,6 @@ __pycache__/
 *.pyc
 
 output/
+
+# 运行时地形数据（786MB，官方发行包文件，可用 git show 46250a8:config/HeightSample.csv 恢复）
+/config/HeightSample.csv

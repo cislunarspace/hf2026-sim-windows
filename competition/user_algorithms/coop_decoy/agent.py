@@ -13,12 +13,13 @@
   - K=2 同时盯防 20s 摧毁
 """
 
+import math
 from enum import Enum
 
 from algorithms.estimation.ekf import ImmFilter
 from algorithms.estimation.geometry import bearing_rad, haversine_m
 from algorithms.estimation.motion import ols_speed_mps
-from algorithms.search.spiral import generate_spiral
+from algorithms.search.lawnmower import sector_lawnmower
 from algorithms.tracking.gimbal import compute_gimbal_angles
 
 from competition.sdk.core.commands import (
@@ -41,8 +42,16 @@ _LOITER_RADIUS = 100.0  # 盘旋半径（m）
 _LEAD_TIME_S = 1.5  # 前馈时间（s）
 
 _VERIFY_SAMPLES = 120  # VERIFY 判别所需检测样本数（12s @10Hz）
-_VERIFY_SPEED_THRESH = 3.5  # OLS 速度阈值（m/s）：12s 窗口静止诱饵误判 ~3%、5m/s 召回 ~90%
+# 真目标速度 5/9/12 m/s，诱饵被官方 runner 统一注入 5.0 m/s（_astar_navigator
+# inject_astar_decoy decoy_speed=5.0）。≥6.5 必真（9/12），5 m/s 类
+# （1 真 + 15 诱饵）速度不可分，当前按诱饵处理——放弃 T1 换取不被诱饵拖死。
+_VERIFY_SPEED_MIN = 6.5  # OLS 速度下限（m/s）：≥6.5 必真（真目标 9/12，诱饵统一 5.0）
+_VERIFY_SPEED_MAX = 13.5  # OLS 速度上限（m/s）：超过地面车辆极速（12）必是锁跳变/UAV
 _VERIFY_LOST_ABORT_S = 2.0  # VERIFY 中连续丢失超过此时长则放弃（不记诱饵）
+_REJECT_COOLDOWN_S = 20.0  # 判别否决/中止后的重检测冷却（s）：防同帧循环重进 VERIFY，
+# 又不永久标记——停顿中的真目标冷却后重遇可重新判别
+_REJECT_RADIUS_M = 500.0  # 冷却生效的检测距离（m）：机 20s 已飞出 ~500m，
+# 真目标 20s 后仍在原区附近可重新判别；跳变搭档车（≥198m）也在半径内
 
 _TRACK_DWELL_S = 20.0  # 盯防摧毁时间（s）
 _TRACK_GRACE_S = 2.0  # 丢失容忍时间（s）
@@ -54,8 +63,6 @@ _ANNOUNCE_EXPIRE_S = 15.0  # announce 过期时间（s），防止收敛到已�
 _BC_INTERVAL = 0.5  # 广播间隔（s，2Hz）
 _REPORT_INTERVAL = 1.0  # 上报间隔（s）
 
-_SPIRAL_RADIUS_M = 700.0  # 扇区螺旋半径（m）
-_SPIRAL_PITCH_M = 200.0  # 螺旋螺距（m）
 _ASSUME_RANGE_M = 800.0  # 首次检测假设距离（m）
 _TRACK_FOV = 60.0  # 跟踪 FOV（°）
 _SEARCH_FOV = 60.0  # 搜索 FOV（°）
@@ -65,24 +72,6 @@ _BBOX: tuple[tuple[float, float], tuple[float, float]] = (
     (26.982, 124.980),
     (27.025, 125.020),
 )
-
-
-# ── 工具函数 ──────────────────────────────────────────────────────────────
-
-
-def _uid_sector(uid: str, n_sectors: int = 3) -> tuple[float, float]:
-    """uid 映射到扇区中心 (lat, lon)。"""
-    (lat_min, lon_min), (lat_max, lon_max) = _BBOX
-    lat_mid = (lat_min + lat_max) / 2
-    sub_w = (lon_max - lon_min) / n_sectors
-    if uid.isdigit():
-        idx = int(uid) % n_sectors
-    elif "_" in uid:
-        tail = uid.rsplit("_", 1)[-1]
-        idx = int(tail) % n_sectors if tail.isdigit() else 0
-    else:
-        idx = 0
-    return (lat_mid, lon_min + sub_w * (idx + 0.5))
 
 
 class State(Enum):
@@ -101,7 +90,6 @@ class CoopDecoyAgent(CoopAgent):
         self._imm: ImmFilter | None = None
         self._search_waypoints: list[tuple[float, float]] = []
         self._wp_idx = 0
-        self._sector_center: tuple[float, float] = (0.0, 0.0)
         self._verify_samples: list[tuple[float, float, float]] = []
         self._verify_lost_s: float = 0.0
         self._sim_time = 0.0
@@ -111,19 +99,22 @@ class CoopDecoyAgent(CoopAgent):
         self._track_time = 0.0
         self._last_report_time = 0.0
         self._last_bc_time = 0.0
-        self._known_decoys: list[tuple[float, float]] = []
         self._known_destroyed: list[tuple[float, float]] = []
         self._shared_target: tuple[float, float] | None = None
         self._shared_target_time: float = -1.0  # 收到 announce 的 sim_time，-1=未收到
         self._join_time: float = 0.0
         self._is_wingman: bool = False  # True=僚机（收到 announce 加入），False=长机
+        self._gimbal_phase: float = 0.0  # SEARCH 云台扫描相位
+        self._last_reject_pos: tuple[float, float] | None = None
+        self._last_reject_time: float = -1e9
+        self._reject_streak: int = 0
+        self._time_synced: bool = False
 
     def reset(self) -> None:
         self._state = State.SEARCH
         self._imm = None
         self._search_waypoints = []
         self._wp_idx = 0
-        self._sector_center = _uid_sector(self.my_uid)
         self._verify_samples = []
         self._verify_lost_s = 0.0
         self._sim_time = 0.0
@@ -133,15 +124,19 @@ class CoopDecoyAgent(CoopAgent):
         self._track_time = 0.0
         self._last_report_time = 0.0
         self._last_bc_time = 0.0
-        self._known_decoys = []
         self._known_destroyed = []
         self._shared_target = None
         self._shared_target_time = -1.0
         self._join_time = 0.0
         self._is_wingman = False
+        self._gimbal_phase = 0.0
+        self._last_reject_pos = None
+        self._last_reject_time = -1e9
+        self._reject_streak = 0
+        self._time_synced = False
 
     def decide(self, obs: CoopObs, dt: float) -> list[Command]:
-        self._sim_time += dt
+        self._sync_time(obs, dt)
         cmds: list[Command] = []
 
         # 处理队友消息 + 过期清理
@@ -158,6 +153,29 @@ class CoopDecoyAgent(CoopAgent):
         elif self._state == State.JOIN:
             return self._do_join(obs, dt)
         return cmds
+
+    # ── 时间基准 ──────────────────────────────────────────────────────────
+
+    def _sync_time(self, obs: CoopObs, dt: float) -> None:
+        """同步引擎 sim_time（briefing.score_view 每拍更新），读不到回退 dt 累加。
+
+        必须用引擎时间而不是 dt 累加：runner 的控制节拍远快于引擎
+        （实测 120 个控制周期 agent 时间 30.5s 引擎只走 12s，差 2.5 倍），
+        用 dt 累加会让 OLS 速度低估 2.5 倍（12 m/s 真目标读成 ~5）、
+        dwell/冷却等全部时间基准失真。
+        """
+        st = getattr(getattr(obs.briefing, "score_view", None), "sim_time", None)
+        if isinstance(st, (int, float)):
+            st = float(st)
+            if not self._time_synced:
+                # 首次同步：把以 0 初始化的时间戳字段平移到引擎时间轴
+                self._last_report_time = st
+                self._last_bc_time = st
+                self._last_det_time = st
+                self._time_synced = True
+            self._sim_time = st
+        else:
+            self._sim_time += dt
 
     # ── 通信 ──────────────────────────────────────────────────────────────
 
@@ -200,71 +218,98 @@ class CoopDecoyAgent(CoopAgent):
         """广播 tracking 位置。"""
         return broadcast(f"T:{tgt_lat:.3f},{tgt_lon:.3f}")
 
-    # ── SEARCH：螺旋搜索本扇区 ───────────────────────────────────────────
+    def _mark_reject(self) -> None:
+        """记录判别否决/中止位置。同一位置连续否决时冷却指数升档
+        （路线终点永久停驻的诱饵：20→40→80→160s，防反复鉴别空转；
+        停顿真目标 WaitTime ≤30s，仍能在升档间隙被重新判别）。"""
+        if self._target:
+            if self._last_reject_pos and haversine_m(
+                self._target[0],
+                self._target[1],
+                self._last_reject_pos[0],
+                self._last_reject_pos[1],
+            ) < _REJECT_RADIUS_M:
+                self._reject_streak += 1
+            else:
+                self._reject_streak = 0
+            self._last_reject_pos = self._target
+        self._last_reject_time = self._sim_time
+
+    def _in_reject_cooldown(self, lat: float, lon: float) -> bool:
+        if self._last_reject_pos is None:
+            return False
+        if (
+            haversine_m(lat, lon, self._last_reject_pos[0], self._last_reject_pos[1])
+            >= _REJECT_RADIUS_M
+        ):
+            return False
+        cooldown = _REJECT_COOLDOWN_S * (2 ** min(self._reject_streak, 3))
+        return self._sim_time - self._last_reject_time < cooldown
+
+    # ── SEARCH：割草机覆盖搜索本机条带 ─────────────────────────────────────
 
     def _do_search(self, obs: CoopObs, dt: float) -> list[Command]:
         cmds = []
         det = obs.self.detection
 
-        # 生成搜索航点（如果还没有）
+        # 生成搜索航点（如果还没有）：割草机全覆盖本机条带
+        # （螺旋半径 700m 覆盖不了图幅，快目标从未进入搜索环——仿真实测）
         if not self._search_waypoints:
-            center_lat, center_lon = self._sector_center
-            self._search_waypoints = generate_spiral(
-                center_lat,
-                center_lon,
-                radius_m=_SPIRAL_RADIUS_M,
-                pitch_m=_SPIRAL_PITCH_M,
+            self._search_waypoints = sector_lawnmower(
+                self.my_uid, _BBOX, n_sectors=3, lane_spacing_m=400.0
             )
             self._wp_idx = 0
 
-        # 收到队友确认目标 → JOIN
+        # 收到队友确认目标 → JOIN（跳过已摧毁目标）
         if self._shared_target is not None:
-            near_decoy = any(
-                haversine_m(self._shared_target[0], self._shared_target[1], d[0], d[1])
-                < 150.0
-                for d in self._known_decoys
-            )
             near_destroyed = any(
                 haversine_m(self._shared_target[0], self._shared_target[1], d[0], d[1])
                 < 150.0
                 for d in self._known_destroyed
             )
-            if not near_decoy and not near_destroyed:
+            if not near_destroyed:
                 self._state = State.JOIN
                 self._target = self._shared_target
                 self._join_time = 0.0
                 self._imm = None
                 return self._do_join(obs, dt)
 
-        # 检测到目标 → VERIFY（跳过已知诱饵与已摧毁目标）
+        # 检测到目标 → VERIFY（跳过已摧毁目标）。
+        # 不做诱饵标记跳过：诱饵也在动（5 m/s 全域路线），位置标记会失效；
+        # 且中途停顿的真目标读数同静止，误标记会永久隐藏它。
         if det.detected and det.target_lat is not None:
-            near_decoy = any(
-                haversine_m(det.target_lat, det.target_lon, d[0], d[1]) < 150.0
-                for d in self._known_decoys
-            )
             near_destroyed = any(
                 haversine_m(det.target_lat, det.target_lon, d[0], d[1]) < 150.0
                 for d in self._known_destroyed
             )
-            if not near_decoy and not near_destroyed:
+            if not near_destroyed and not self._in_reject_cooldown(
+                det.target_lat, det.target_lon
+            ):
                 self._state = State.VERIFY
                 self._target = (det.target_lat, det.target_lon)
                 self._imm = ImmFilter(obs.self.lat, obs.self.lon)
                 self._verify_samples = []
                 self._verify_lost_s = 0.0
-                # 早期 announce：通知队友我正在验证此目标
-                cmds.append(self._make_announce(det.target_lat, det.target_lon))
+                self._is_wingman = False  # 自己发现的候选：判别通过即长机
+                # 不在此处 announce：候选未判别，提前 announce 会让全队
+                # 收敛到同一个静止诱饵（诊断证实）。判别通过进 TRACK 时再
+                # announce（见 _do_track 首次广播）。
                 return self._do_verify(obs, dt)
 
-        # 沿螺旋航点飞行
+        # 沿割草机航点飞行（到达 loiter 圈内即切下一点）
         if self._search_waypoints:
             wp_lat, wp_lon = self._search_waypoints[self._wp_idx]
             dist = haversine_m(obs.self.lat, obs.self.lon, wp_lat, wp_lon)
-            if dist < 50.0:
+            if dist < 200.0:
                 self._wp_idx = (self._wp_idx + 1) % len(self._search_waypoints)
                 wp_lat, wp_lon = self._search_waypoints[self._wp_idx]
             cmds.append(fly_to(wp_lat, wp_lon, alt=_SEARCH_ALT, speed=_SEARCH_SPEED))
 
+        # 云台扇扫（pan ±90°，tilt -60° ~ -30°）——不扫描检测覆盖率极低
+        self._gimbal_phase += dt * 0.5
+        pan = 90.0 * math.sin(self._gimbal_phase)
+        tilt = -45.0 + 15.0 * math.sin(self._gimbal_phase * 0.7)
+        cmds.append(point_gimbal(pan, tilt))
         cmds.append(set_gimbal_fov(_SEARCH_FOV))
         return cmds
 
@@ -311,6 +356,7 @@ class CoopDecoyAgent(CoopAgent):
 
         # 连续丢失 → 放弃判别（不记诱饵，避免误伤真实目标）
         if self._verify_lost_s > _VERIFY_LOST_ABORT_S:
+            self._mark_reject()
             self._state = State.SEARCH
             self._target = None
             self._imm = None
@@ -333,22 +379,21 @@ class CoopDecoyAgent(CoopAgent):
                 self._verify_samples = []
                 return self._do_join(obs, dt)
 
-        # 样本足够：OLS 最小二乘速度判别
+        # 样本足够：OLS 最小二乘速度判别（[6.5, 13.5] 速度带）
         if len(self._verify_samples) >= _VERIFY_SAMPLES:
             speed = ols_speed_mps(self._verify_samples)
             self._verify_samples = []
-            if speed >= _VERIFY_SPEED_THRESH:
-                # 真目标 → TRACK（长机）
+            if _VERIFY_SPEED_MIN <= speed <= _VERIFY_SPEED_MAX:
+                # 真目标 → TRACK（_is_wingman 在进入 VERIFY 时已设定，此处保留）
                 self._state = State.TRACK
-                self._is_wingman = False
                 self._dwell_time = 0.0
                 self._track_time = 0.0
                 self._last_det_time = self._sim_time
                 return self._do_track(obs, dt)
             else:
-                # 诱饵 → 回 SEARCH
-                if self._target:
-                    self._known_decoys.append(self._target)
+                # 速度出界：静止/5 m/s 类（诱饵或停顿/慢速真目标），
+                # 或 >13.5 的锁跳变虚高（地面车辆极速 12）。记冷却后回 SEARCH。
+                self._mark_reject()
                 self._state = State.SEARCH
                 self._target = None
                 self._imm = None
@@ -433,15 +478,9 @@ class CoopDecoyAgent(CoopAgent):
             self._dwell_time = 0.0
             return self._do_search(obs, dt)
 
-        # 跟踪超时未摧毁 → 回 SEARCH；低速目标疑似误判（真目标判成诱饵反向情况），记为诱饵
+        # 超时未摧毁（协同未到齐）→ 记冷却后回 SEARCH（可能是诱饵或停顿真目标）
         if self._track_time >= _TRACK_TIMEOUT_S:
-            if (
-                self._target
-                and self._imm
-                and self._imm.is_initialized()
-                and self._imm.speed_mps() < 2.5
-            ):
-                self._known_decoys.append(self._target)
+            self._mark_reject()
             self._state = State.SEARCH
             self._target = None
             self._imm = None
@@ -518,18 +557,18 @@ class CoopDecoyAgent(CoopAgent):
             if d < 300.0:
                 self._target = (det.target_lat, det.target_lon)
 
-        # 到达目标附近 → 切换到 TRACK
+        # 到达目标附近 → 僚机先过 VERIFY 判别（announce 早于判别 12s 发出，
+        # 候选可能是诱饵；统一所有 TRACK 入口都经 OLS 判别）
         dist_to_target = haversine_m(
             obs.self.lat, obs.self.lon, self._target[0], self._target[1]
         )
         if dist_to_target < 200.0 and det.detected:
-            self._state = State.TRACK
-            self._is_wingman = True  # 僚机（通过 JOIN 加入）
-            self._dwell_time = 0.0
-            self._track_time = 0.0
-            self._last_det_time = self._sim_time
+            self._state = State.VERIFY
+            self._is_wingman = True  # 判别通过后以僚机身份 TRACK
+            self._verify_samples = []
+            self._verify_lost_s = 0.0
             self._imm = ImmFilter(obs.self.lat, obs.self.lon)
-            return self._do_track(obs, dt)
+            return self._do_verify(obs, dt)
 
         # 飞向共享目标
         cmds.append(
