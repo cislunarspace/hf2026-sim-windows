@@ -446,7 +446,7 @@ class TestCoopAgentComms:
         agent._dwell_time = 5.0
         agent._track_time = 5.0
         agent._last_det_time = 10.0
-        agent._imm = None
+        agent._filter = None
 
         obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005)
         cmds = agent.decide(obs, dt=0.1)
@@ -472,7 +472,7 @@ class TestCoopAgentTrackFilter:
         agent._dwell_time = 1.0
         agent._track_time = 1.0
         agent._last_det_time = 10.0
-        agent._imm = None
+        agent._filter = None
 
     def test_track_reports_follow_moving_target(self):
         """TRACK 中持续检测移动目标，上报位置应跟随目标而非冻结在入 TRACK 点。"""
@@ -529,7 +529,7 @@ class TestCoopAgentDestroyedMemory:
         agent._dwell_time = 19.95  # 本帧 +0.1 后满 20s
         agent._track_time = 19.95
         agent._last_det_time = 10.0
-        agent._imm = None
+        agent._filter = None
 
         obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005)
         agent.decide(obs, dt=0.1)
@@ -596,3 +596,58 @@ class TestCoopAgentCommands:
             for cmd in cmds:
                 if isinstance(cmd, Command):
                     assert cmd.verb in known_verbs, f"未知 verb: {cmd.verb}"
+
+
+class TestRecursionGuard:
+    """递归保护回归测试。"""
+
+    def test_verify_join_pingpong_no_recursion(self):
+        """回归：announce 目标 B 与 ~243m 外另一辆车的检测 A 曾让
+        VERIFY↔JOIN 同拍乒乓（A 被 JOIN 覆写为 _target 后又满足 VERIFY 的
+        'shared 与 target 不同'条件），递归重入直至 RecursionError 被
+        runner 吞掉。修复后 JOIN 不再覆写 _target，且重入走限深 _dispatch。
+        """
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        det_a = (27.001, 125.001)  # 距 UAV ~149m
+        shared_b = (27.003, 125.0)  # 距 UAV ~334m，距 A ~243m
+
+        # 自己发现候选 A → VERIFY
+        obs = _make_obs(detected=True, target_lat=det_a[0], target_lon=det_a[1])
+        agent.decide(obs, dt=0.1)
+        assert agent._state.value == "VERIFY"
+
+        # 队友 announce 目标 B，检测仍指 A：旧实现此处递归崩溃
+        msg = MagicMock()
+        msg.payload = f"A:{shared_b[0]},{shared_b[1]}"
+        msg.sender_uid = "uav_2"
+        for _ in range(10):
+            obs = _make_obs(
+                detected=True,
+                target_lat=det_a[0],
+                target_lon=det_a[1],
+                comm_inbox=(msg,),
+            )
+            cmds = agent.decide(obs, dt=0.1)
+            assert isinstance(cmds, list)
+        # 状态应收敛在 VERIFY/JOIN（协同流程内），不崩溃、不卡死
+        assert agent._state.value in ("VERIFY", "JOIN", "TRACK")
+
+    def test_dispatch_depth_capped(self):
+        """限深保护：人为制造状态振荡时 _dispatch 不超过深度上限。"""
+        from competition.user_algorithms.coop_decoy.agent import State
+
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        calls = []
+
+        def oscillate(obs, dt):
+            calls.append(1)
+            agent._state = State.SEARCH if len(calls) % 2 else State.VERIFY
+            return agent._dispatch(obs, dt)
+
+        agent._do_search = oscillate
+        agent._do_verify = oscillate
+        cmds = agent.decide(_make_obs(), dt=0.1)
+        assert isinstance(cmds, list)
+        assert len(calls) <= 7  # 顶层层 + 限深 6

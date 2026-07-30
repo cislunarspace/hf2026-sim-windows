@@ -7,7 +7,7 @@
 
 算法：
   - OLS 最小二乘速度判别诱饵（12s 采样窗口，抗 ~50m 检测噪声；
-    ImmFilter 同步更新供 TRACK 接管）
+    CvFilter 同步更新供 TRACK 接管与上报）
   - 螺旋搜索（uid 扇区分配）
   - 盘旋跟踪 + 广播协同
   - K=2 同时盯防 20s 摧毁
@@ -16,7 +16,7 @@
 import math
 from enum import Enum
 
-from algorithms.estimation.ekf import ImmFilter
+from algorithms.estimation.cv_kalman import CvFilter
 from algorithms.estimation.geometry import bearing_rad, haversine_m
 from algorithms.estimation.motion import ols_speed_mps
 from algorithms.search.target_roads import route_waypoints_for_uid
@@ -85,12 +85,12 @@ class State(Enum):
 
 
 class CoopDecoyAgent(CoopAgent):
-    """赛题二参赛 Agent：IMM 滤波 + 螺旋搜索 + 盘旋跟踪 + 广播协同。"""
+    """赛题二参赛 Agent：CvFilter 滤波 + 路线先验搜索 + 盘旋跟踪 + 广播协同。"""
 
     def __init__(self, my_uid: str):
         super().__init__(my_uid)
         self._state = State.SEARCH
-        self._imm: ImmFilter | None = None
+        self._filter: CvFilter | None = None
         self._search_waypoints: list[tuple[float, float]] = []
         self._wp_idx = 0
         self._verify_samples: list[tuple[float, float, float]] = []
@@ -112,12 +112,15 @@ class CoopDecoyAgent(CoopAgent):
         self._last_reject_time: float = -1e9
         self._reject_streak: int = 0
         self._time_synced: bool = False
+        self._sim_dt: float = 0.0  # 本拍仿真时间增量（滤波 predict 用）
+        self._last_sim_time: float | None = None
+        self._dispatch_depth: int = 0  # 状态重入深度（振荡保护）
         self._last_hb_time: float = -1e9
         self._teammates: dict[str, tuple[float, float, float]] = {}  # uid→(lat,lon,t)
 
     def reset(self) -> None:
         self._state = State.SEARCH
-        self._imm = None
+        self._filter = None
         self._search_waypoints = []
         self._wp_idx = 0
         self._verify_samples = []
@@ -139,6 +142,9 @@ class CoopDecoyAgent(CoopAgent):
         self._last_reject_time = -1e9
         self._reject_streak = 0
         self._time_synced = False
+        self._sim_dt = 0.0
+        self._last_sim_time = None
+        self._dispatch_depth = 0
         self._last_hb_time = -1e9
         self._teammates = {}
 
@@ -155,21 +161,33 @@ class CoopDecoyAgent(CoopAgent):
             self._last_hb_time = self._sim_time
             cmds.append(broadcast(f"P:{obs.self.lat:.4f},{obs.self.lon:.4f}"))
 
-        # 状态分发
+        # 状态分发（重入深度保护）
+        self._dispatch_depth = 0
+        return cmds + self._dispatch(obs, dt)
+
+    def _dispatch(self, obs: CoopObs, dt: float) -> list[Command]:
+        """按当前状态分发；状态转移后的重入统一走这里并限深。
+
+        实测曾出现 VERIFY↔JOIN 同一拍内乒乓（announce 目标与 200~300m 外
+        另一辆车的检测互相把对方当入口条件），递归重入直到 RecursionError
+        被 runner 吞掉、整拍失控。限深后本拍返回空命令，下一拍继续。
+        """
+        self._dispatch_depth += 1
+        if self._dispatch_depth > 6:
+            return []
         if self._state == State.SEARCH:
-            return cmds + self._do_search(obs, dt)
-        elif self._state == State.VERIFY:
-            return cmds + self._do_verify(obs, dt)
-        elif self._state == State.TRACK:
-            return cmds + self._do_track(obs, dt)
-        elif self._state == State.JOIN:
-            return cmds + self._do_join(obs, dt)
-        return cmds
+            return self._do_search(obs, dt)
+        if self._state == State.VERIFY:
+            return self._do_verify(obs, dt)
+        if self._state == State.TRACK:
+            return self._do_track(obs, dt)
+        return self._do_join(obs, dt)
 
     # ── 时间基准 ──────────────────────────────────────────────────────────
 
     def _sync_time(self, obs: CoopObs, dt: float) -> None:
         """同步引擎 sim_time（briefing.score_view 每拍更新），读不到回退 dt 累加。
+        同时维护 self._sim_dt（本拍仿真时间增量，供滤波 predict）。
 
         必须用引擎时间而不是 dt 累加：runner 的控制节拍远快于引擎
         （实测 120 个控制周期 agent 时间 30.5s 引擎只走 12s，差 2.5 倍），
@@ -185,9 +203,13 @@ class CoopDecoyAgent(CoopAgent):
                 self._last_bc_time = st
                 self._last_det_time = st
                 self._time_synced = True
+            sim_dt = st - self._last_sim_time if self._last_sim_time is not None else 0.0
+            self._last_sim_time = st
             self._sim_time = st
+            self._sim_dt = min(max(sim_dt, 0.0), 1.0)
         else:
             self._sim_time += dt
+            self._sim_dt = dt
 
     # ── 通信 ──────────────────────────────────────────────────────────────
 
@@ -294,8 +316,8 @@ class CoopDecoyAgent(CoopAgent):
                 self._state = State.JOIN
                 self._target = self._shared_target
                 self._join_time = 0.0
-                self._imm = None
-                return self._do_join(obs, dt)
+                self._filter = None
+                return self._dispatch(obs, dt)
 
         # 检测到目标 → VERIFY（跳过已摧毁目标）。
         # 不做诱饵标记跳过：诱饵也在动（5 m/s 全域路线），位置标记会失效；
@@ -310,14 +332,14 @@ class CoopDecoyAgent(CoopAgent):
             ):
                 self._state = State.VERIFY
                 self._target = (det.target_lat, det.target_lon)
-                self._imm = ImmFilter(obs.self.lat, obs.self.lon)
+                self._filter = CvFilter(obs.self.lat, obs.self.lon)
                 self._verify_samples = []
                 self._verify_lost_s = 0.0
                 self._is_wingman = False  # 自己发现的候选：判别通过即长机
                 # 不在此处 announce：候选未判别，提前 announce 会让全队
                 # 收敛到同一个静止诱饵（诊断证实）。判别通过进 TRACK 时再
                 # announce（见 _do_track 首次广播）。
-                return self._do_verify(obs, dt)
+                return self._dispatch(obs, dt)
 
         # 沿割草机航点飞行（到达 loiter 圈内即切下一点）
         if self._search_waypoints:
@@ -353,13 +375,13 @@ class CoopDecoyAgent(CoopAgent):
         cmds.append(set_gimbal_fov(_SEARCH_FOV))
         return cmds
 
-    # ── VERIFY：OLS 速度判别（ImmFilter 同步更新供 TRACK 接管） ──────────
+    # ── VERIFY：OLS 速度判别（CvFilter 同步更新供 TRACK 接管） ──────────
 
     def _do_verify(self, obs: CoopObs, dt: float) -> list[Command]:
         cmds = []
         det = obs.self.detection
 
-        # 锁定目标 + 采样 + ImmFilter 更新
+        # 锁定目标 + 采样 + CvFilter 更新
         if det.detected and det.target_lat is not None and det.target_lon is not None:
             self._verify_lost_s = 0.0
             self._verify_samples.append(
@@ -374,33 +396,25 @@ class CoopDecoyAgent(CoopAgent):
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
 
-            bearing = bearing_rad(
-                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
-            )
-            range_m = haversine_m(
-                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
-            )
-
-            if self._imm is not None:
-                if not self._imm.is_initialized():
-                    self._imm.initialize(obs.self.lat, obs.self.lon, bearing, range_m)
+            if self._filter is not None:
+                if not self._filter.is_initialized():
+                    self._filter.initialize(det.target_lat, det.target_lon)
                 else:
-                    self._imm.predict(dt)
-                    self._imm.update_bearing(obs.self.lat, obs.self.lon, bearing)
-                    self._imm.update_range(obs.self.lat, obs.self.lon, range_m)
+                    self._filter.predict(self._sim_dt)
+                    self._filter.update_position(det.target_lat, det.target_lon)
         else:
             self._verify_lost_s += dt
-            if self._imm is not None and self._imm.is_initialized():
-                self._imm.predict(dt)
+            if self._filter is not None and self._filter.is_initialized():
+                self._filter.predict(self._sim_dt)
 
         # 连续丢失 → 放弃判别（不记诱饵，避免误伤真实目标）
         if self._verify_lost_s > _VERIFY_LOST_ABORT_S:
             self._mark_reject()
             self._state = State.SEARCH
             self._target = None
-            self._imm = None
+            self._filter = None
             self._verify_samples = []
-            return self._do_search(obs, dt)
+            return self._dispatch(obs, dt)
 
         # 收到队友确认目标 → JOIN（优先协同）
         if self._shared_target is not None and self._target is not None:
@@ -414,9 +428,9 @@ class CoopDecoyAgent(CoopAgent):
                 self._state = State.JOIN
                 self._target = self._shared_target
                 self._join_time = 0.0
-                self._imm = None
+                self._filter = None
                 self._verify_samples = []
-                return self._do_join(obs, dt)
+                return self._dispatch(obs, dt)
 
         # 样本足够：OLS 最小二乘速度判别（[6.5, 13.5] 速度带）
         if len(self._verify_samples) >= _VERIFY_SAMPLES:
@@ -428,15 +442,15 @@ class CoopDecoyAgent(CoopAgent):
                 self._dwell_time = 0.0
                 self._track_time = 0.0
                 self._last_det_time = self._sim_time
-                return self._do_track(obs, dt)
+                return self._dispatch(obs, dt)
             else:
                 # 速度出界：静止/5 m/s 类（诱饵或停顿/慢速真目标），
                 # 或 >13.5 的锁跳变虚高（地面车辆极速 12）。记冷却后回 SEARCH。
                 self._mark_reject()
                 self._state = State.SEARCH
                 self._target = None
-                self._imm = None
-                return self._do_search(obs, dt)
+                self._filter = None
+                return self._dispatch(obs, dt)
 
         # 飞向目标区域
         if self._target:
@@ -459,8 +473,8 @@ class CoopDecoyAgent(CoopAgent):
         det = obs.self.detection
         self._track_time += dt
 
-        # 跟踪目标位置更新 + IMM 滤波（report_target 用滤波位置，
-        # 回归：TRACK 曾不更新 IMM，上报位置冻结在 VERIFY 结束时刻）
+        # 跟踪目标位置更新 + CvFilter 滤波（report_target 用滤波位置，
+        # 回归：TRACK 曾不更新滤波，上报位置冻结在 VERIFY 结束时刻）
         if det.detected and det.target_lat is not None and det.target_lon is not None:
             if self._target:
                 d = haversine_m(
@@ -468,23 +482,16 @@ class CoopDecoyAgent(CoopAgent):
                 )
                 if d < 250.0:
                     self._target = (det.target_lat, det.target_lon)
-            bearing = bearing_rad(
-                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
-            )
-            range_m = haversine_m(
-                obs.self.lat, obs.self.lon, det.target_lat, det.target_lon
-            )
-            if self._imm is None:
-                self._imm = ImmFilter(obs.self.lat, obs.self.lon)
-            if not self._imm.is_initialized():
-                self._imm.initialize(obs.self.lat, obs.self.lon, bearing, range_m)
+            if self._filter is None:
+                self._filter = CvFilter(obs.self.lat, obs.self.lon)
+            if not self._filter.is_initialized():
+                self._filter.initialize(det.target_lat, det.target_lon)
             else:
-                self._imm.predict(dt)
-                self._imm.update_bearing(obs.self.lat, obs.self.lon, bearing)
-                self._imm.update_range(obs.self.lat, obs.self.lon, range_m)
+                self._filter.predict(self._sim_dt)
+                self._filter.update_position(det.target_lat, det.target_lon)
         else:
-            if self._imm is not None and self._imm.is_initialized():
-                self._imm.predict(dt)
+            if self._filter is not None and self._filter.is_initialized():
+                self._filter.predict(self._sim_dt)
 
         # 盯防计时
         tracking = (
@@ -512,20 +519,20 @@ class CoopDecoyAgent(CoopAgent):
                 self._known_destroyed.append(self._target)
             self._state = State.SEARCH
             self._target = None
-            self._imm = None
+            self._filter = None
             self._is_wingman = False
             self._dwell_time = 0.0
-            return self._do_search(obs, dt)
+            return self._dispatch(obs, dt)
 
         # 超时未摧毁（协同未到齐）→ 记冷却后回 SEARCH（可能是诱饵或停顿真目标）
         if self._track_time >= _TRACK_TIMEOUT_S:
             self._mark_reject()
             self._state = State.SEARCH
             self._target = None
-            self._imm = None
+            self._filter = None
             self._is_wingman = False
             self._dwell_time = 0.0
-            return self._do_search(obs, dt)
+            return self._dispatch(obs, dt)
 
         # 广播：长机首次进入 TRACK 时 announce，之后定期 T: 位置
         if self._target and self._sim_time - self._last_bc_time >= _BC_INTERVAL:
@@ -542,8 +549,8 @@ class CoopDecoyAgent(CoopAgent):
         # K=2 协同 dwell 需要双机同时连续锁定 20s、中断 >2s 清零）
         if self._target:
             aim = self._target
-            if self._imm and self._imm.is_initialized():
-                aim = self._imm.position_wgs84()
+            if self._filter and self._filter.is_initialized():
+                aim = self._filter.position_wgs84()
             pan, tilt = compute_gimbal_angles(
                 obs.self.lat,
                 obs.self.lon,
@@ -566,12 +573,12 @@ class CoopDecoyAgent(CoopAgent):
             # report_target（仅确认移动目标）
             if (
                 self._sim_time - self._last_report_time >= _REPORT_INTERVAL
-                and self._imm
-                and self._imm.is_initialized()
-                and self._imm.speed_mps() > 3.0
+                and self._filter
+                and self._filter.is_initialized()
+                and self._filter.speed_mps() > 3.0
             ):
                 self._last_report_time = self._sim_time
-                est_lat, est_lon = self._imm.position_wgs84()
+                est_lat, est_lon = self._filter.position_wgs84()
                 cmds.append(report_target(est_lat, est_lon))
 
         return cmds
@@ -590,15 +597,11 @@ class CoopDecoyAgent(CoopAgent):
             self._shared_target = None
             self._shared_target_time = -1.0
             self._join_time = 0.0
-            return self._do_search(obs, dt)
+            return self._dispatch(obs, dt)
 
-        # 检测到目标后开始跟踪
-        if det.detected and det.target_lat is not None and det.target_lon is not None:
-            d = haversine_m(
-                det.target_lat, det.target_lon, self._target[0], self._target[1]
-            )
-            if d < 300.0:
-                self._target = (det.target_lat, det.target_lon)
+        # 检测不覆盖 _target：announce 位置才是收敛基准（曾把 _target 改成
+        # 检测位置，检测落在 announce 点 200~300m 外时（目标+诱饵搭档）
+        # VERIFY↔JOIN 同拍乒乓直至递归崩溃）。检测只用于云台瞄准（下方）。
 
         # 接近到 350m 且有检测 → 僚机先过 VERIFY 判别（announce 早于判别 12s
         # 发出，候选可能是诱饵；统一所有 TRACK 入口都经 OLS 判别）。
@@ -612,8 +615,8 @@ class CoopDecoyAgent(CoopAgent):
             self._is_wingman = True  # 判别通过后以僚机身份 TRACK
             self._verify_samples = []
             self._verify_lost_s = 0.0
-            self._imm = ImmFilter(obs.self.lat, obs.self.lon)
-            return self._do_verify(obs, dt)
+            self._filter = CvFilter(obs.self.lat, obs.self.lon)
+            return self._dispatch(obs, dt)
 
         # 飞向共享目标
         cmds.append(

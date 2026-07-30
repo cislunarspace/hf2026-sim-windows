@@ -58,9 +58,9 @@ git show 46250a8:config/HeightSample.csv > config/HeightSample.csv
 
 | 赛题 | 基线 | 当前（多次单局观察值） | 备注 |
 |---|---|---|---|
-| 赛题一 | 1.24 / 100 | **66.0 / 100（600s 局，passed=True）** | 机体系 pan + CvFilter + 每秒必报：resets=0、dwell 599s 全程连续、RMSE 12.9m、上报 583/600 |
-| 赛题二 | 0 / 100 | 0~8.4 | v8 best: base 8.37（accuracy 27.9），但 proximity 8 次扣光；v9 修复后 proximity 8→1，仍为 0（种子运气）。机体系 pan 修复预计有提升，未复测 |
-| 赛题三 | 未跑 | 未跑 | 骨架代码完成（`competition/user_algorithms/adversarial_swarm/agent.py`），判别策略需另议 |
+| 赛题一 | 1.24 / 100 | **66.0 / 62.7（600s 局，连续 passed）** | 机体系 pan + CvFilter + 每秒必报：resets=0、dwell 全程连续、RMSE 13~14m |
+| 赛题二 | 0 / 100 | v11+ 修复后三局 0 / 17.9 / 0（v12 含 1 kill + accuracy 30.7 历史最佳） | 递归崩溃（VERIFY↔JOIN 乒乓）已修、CvFilter 已换；单局方差极大，均值未显著移动。v14 暴露新坑：proximity 203 次——避让只在 SEARCH 有，TRACK/JOIN 三机扎堆 |
+| 赛题三 | 未跑 | 未跑 | 骨架代码完成（`competition/user_algorithms/adversarial_swarm/agent.py`），注意 **K=3**（runner DEFAULT_K=3），骨架按 K=1 设计需改 |
 
 赛题一演进（600s 单局）：v3 0.05（链路通但只报 10 次）→ v4 1.1（每秒必报 506 次但 ImmFilter 发散 RMSE 1039m）→ v5 66.0 / v6 62.7（CvFilter + 机体系 pan，两条不同随机路线，连续 passed，均零丢锁、dwell 全程连续、RMSE 13~14m）。
 
@@ -133,10 +133,11 @@ taskkill //IM opensim-sim.exe //F
 | 优先级 | 任务 | 备注 |
 |---|---|---|
 | 高 | 赛题二多种子均值验证 K=2 协同 kill | 当前单局不稳定，需 5+ 种子取均值判断机制是否真有效 |
-| 高 | 赛题三仿真验证 + 判别策略 | 目标 4-8 m/s vs 诱饵 5 m/s 速度档完全重叠，速度带不可用；需走"路线/停顿模式"（停顿时位置不动 = 移动 → 真目标；速度恒 5 无停顿 → 诱饵）|
-| 高 | 验证集路线泛化 | 手册 §5「目标小车路线会采取新路线」；`points.json` 烘焙失效；需程序化提取 `GridDataAll_18.csv`（41MB）的路网中心线，或退回割草机 + 高频扫描 |
+| 高 | 赛题三仿真验证 + 判别策略 | **K=3（非 1）**：`adversarial_swarm/runner.py:36 DEFAULT_K=3`，需 3 架同时盯防同一目标 20s 才摧毁（官方赛题描述一致；guide-v2 的"协同阈值 1"已过时）。骨架 agent 按 K=1 设计，需改协同汇聚逻辑。目标 4-8 m/s vs 诱饵 5 m/s 速度档完全重叠，速度带不可用；需走"路线/停顿模式"（停顿时位置不动 = 移动 → 真目标；速度恒 5 无停顿 → 诱饵）|
+| 高 | 验证集路线泛化 | 手册 §5「目标小车路线会采取新路线」；`points.json` 烘焙失效；需程序化提取 `GridDataAll_18.csv`（41MB）的路网中心线，或退回割草机 + 高频扫描。赛题一路线匹配失败时已回退螺旋（单测覆盖，仿真未实测） |
+| 高 | 验证集天气变化 | 官方：验证环节目标轨迹**和天气**随机变化。训练局全是 Rain（scenario 默认）；WEATHER_FACTORS 按天气缩放检出率和噪声（`default_detectors.py`），CvFilter 的 R=50² 在好天气偏保守（可接受），坏天气噪声放大需关注。赛题二验证集目标还有**躲避能力**（官方描述），现有 agent 未处理规避机动 |
 | 中 | 赛题三心跳/任务重分配 | 心跳（同赛题二 P:）+ 失联判定 + 任务拍卖/重分配 |
-| 中 | ImmFilter 纯 Python 后备实战验证 | 数值已验证（位差 0.0m、速度差 5.7e-14 m/s），但 0.7× 实时引擎下纯 Python 矩阵运算的延迟需在真实 run 中确认 |
+| 中 | ImmFilter 纯 Python 后备实战验证 | 数值已验证（位差 0.0m、速度差 5.7e-14 m/s），但 0.7× 实时引擎下纯 Python 矩阵运算的延迟需在真实 run 中确认。赛题一已改用 CvFilter（纯 Python），不再依赖 ImmFilter |
 
 ---
 
