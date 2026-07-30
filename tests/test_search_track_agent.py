@@ -115,9 +115,51 @@ class TestSearchPhase:
             or "component.gimbal_tracking.set_orientation" in verbs
         ), f"搜索阶段命令集: {verbs}，应含 fly_to 或 point_gimbal"
 
+    def test_search_reports_every_second(self):
+        """搜索阶段也必须每秒上报（评分漏报记 0；目标出生点 30s 停驶可得分）。"""
+        agent = MySearchTrackAgent("uav_1")
+        agent.reset()
+        # mock 的 target_initial_pos (27.005,125.005) 不匹配任何路线 →
+        # 回退上报出生点；首拍即应出现 report_target
+        cmds = agent.decide(_make_obs(), dt=0.1)
+        assert _find_cmd(cmds, "agent.report") is not None, "搜索首拍应上报出生点"
+        # 之后以 1s 节拍持续上报
+        reports = 0
+        for i in range(30):  # 3s
+            cmds = agent.decide(_make_obs(), dt=0.1)
+            if _find_cmd(cmds, "agent.report") is not None:
+                reports += 1
+        assert reports >= 2, f"3s 内上报 {reports} 次，应 ≥2"
+
+    def test_matched_route_reports_predicted_position(self):
+        """briefing 出生点匹配上路线时，SEARCH 应沿路线预测位置上报。"""
+        from algorithms.search.route_prior import ROUTES
+
+        agent = MySearchTrackAgent("uav_1")
+        agent.reset()
+        start = ROUTES[3][0]
+        obs = _make_obs(target_initial_pos=(start[0], start[1]))
+        cmds = agent.decide(obs, dt=0.1)
+        report = _find_cmd(cmds, "agent.report")
+        assert report is not None
+        # t≈0 预测位置即路线 Start（WaitTime=30s 内不动）
+        assert abs(report.params["lat"] - start[0]) < 1e-4
+        assert abs(report.params["lon"] - start[1]) < 1e-4
+
 
 class TestTrackPhase:
     """跟踪阶段行为测试。"""
+
+    def test_detection_enters_engage_immediately(self):
+        """赛题一无诱饵：检测到目标应当拍进 ENGAGE，不做 VERIFY 空转。"""
+        agent = MySearchTrackAgent("uav_1")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005)
+        agent.decide(obs, dt=0.1)
+        agent.decide(obs, dt=0.1)
+        assert agent._state.value in ("engage", "attack")
 
     def test_detection_triggers_tracking(self):
         """持续检测到快速移动目标后应进入跟踪模式并上报。"""
@@ -129,9 +171,8 @@ class TestTrackPhase:
             obs = _make_obs(lat=27.0 + i * 0.0001)
             agent.decide(obs, dt=0.1)
 
-        # 目标以 ~30 m/s 向东运动（足够快，IMM 能估计出 > 3.9 m/s）
-        # UAV 向北运动产生视差
-        # VERIFY 窗口 80 帧 + ENGAGE 需要额外帧 → 共 130 帧
+        # 目标以 ~30 m/s 向东运动；赛题一无 VERIFY，检测到即进 ENGAGE，
+        # EKF 收敛 + 1s 上报节拍 → 130 帧内必出现 report
         target_lon_offset = 0.0
         found_report = False
         for i in range(130):
@@ -203,7 +244,7 @@ class TestLostRecovery:
         assert fly is not None, "LOST 应飞向最后估计位置盘旋"
 
     def test_lost_reacquire_goes_engage(self):
-        """LOST 中重新检测到目标应回 ENGAGE（赛题一无诱饵，无需重新 VERIFY）。"""
+        """LOST 中重新检测到目标应回 ENGAGE（赛题一无诱饵判别，直接恢复跟踪）。"""
         agent = MySearchTrackAgent("uav_1")
         agent.reset()
         self._enter_tracking(agent)
