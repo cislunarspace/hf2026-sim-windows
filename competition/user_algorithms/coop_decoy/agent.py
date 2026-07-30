@@ -370,8 +370,7 @@ class CoopDecoyAgent(CoopAgent):
                 obs.self.lon,
                 obs.self.alt,
                 det.target_lat,
-                det.target_lon,
-            )
+                det.target_lon, uav_heading_deg=obs.self.heading_deg)
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
 
@@ -550,8 +549,7 @@ class CoopDecoyAgent(CoopAgent):
                 obs.self.lon,
                 obs.self.alt,
                 aim[0],
-                aim[1],
-            )
+                aim[1], uav_heading_deg=obs.self.heading_deg)
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
             loiter = _LOITER_RADIUS * 3 if self._is_wingman else _LOITER_RADIUS
@@ -635,8 +633,7 @@ class CoopDecoyAgent(CoopAgent):
                 obs.self.lon,
                 obs.self.alt,
                 det.target_lat,
-                det.target_lon,
-            )
+                det.target_lon, uav_heading_deg=obs.self.heading_deg)
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
         else:

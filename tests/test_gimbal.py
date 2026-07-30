@@ -87,6 +87,25 @@ class TestComputeGimbalAngles:
             )
             assert -180.0 <= pan <= 180.0, f"pan={pan:.1f}° 超出范围"
 
+    def test_pan_is_body_relative(self):
+        """pan 是机体系相对方位（引擎 point_gimbal 约定：机头=0）。
+
+        目标在正东（绝对方位 90°），UAV 航向 90°（正东）时目标在机头
+        正前方 → pan ≈ 0°；航向 0°（正北）时目标在右舷 → pan ≈ +90°。
+        """
+        pan, _ = compute_gimbal_angles(
+            uav_lat=27.0, uav_lon=125.0, uav_alt=300.0,
+            target_lat=27.0, target_lon=125.005,
+            uav_heading_deg=90.0,
+        )
+        assert abs(pan) < 5.0, f"航向 90° 时 pan={pan:.1f}°，应接近 0°"
+        pan, _ = compute_gimbal_angles(
+            uav_lat=27.0, uav_lon=125.0, uav_alt=300.0,
+            target_lat=27.0, target_lon=125.005,
+            uav_heading_deg=0.0,
+        )
+        assert abs(pan - 90.0) < 5.0, f"航向 0° 时 pan={pan:.1f}°，应接近 +90°"
+
 
 class TestChooseFov:
     """FOV 选择测试。"""

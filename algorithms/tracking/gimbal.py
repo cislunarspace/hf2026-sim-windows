@@ -15,21 +15,25 @@ def compute_gimbal_angles(
     target_lat: float,
     target_lon: float,
     target_alt: float = 0.0,
+    uav_heading_deg: float = 0.0,
 ) -> tuple[float, float]:
     """计算云台 LOS 角度，使相机瞄准目标。
 
     Args:
         uav_lat/lon/alt: UAV 位置（WGS84，高度米）
         target_lat/lon/alt: 目标位置（WGS84，高度米）
+        uav_heading_deg: UAV 航向（°，北=0 东=90）。引擎 point_gimbal 的
+            pan 是**机体系相对方位**（机头=0，api-reference：pan=0 指向前方），
+            必须扣掉航向；不传（默认 0）等价于 UAV 朝北。
 
     Returns:
         (pan_deg, tilt_deg):
-        - pan_deg: 方位角（°），北=0，东=90，南=±180，西=-90
+        - pan_deg: 机体系相对方位角（°），机头=0，右舷为正，[-180, 180]
         - tilt_deg: 俯仰角（°），水平=0，向下看=-90
     """
-    # pan：水平方位角
+    # pan：绝对方位角 − 航向 → 机体系相对方位
     pan_rad = bearing_rad(uav_lat, uav_lon, target_lat, target_lon)
-    pan_deg = math.degrees(pan_rad)
+    pan_deg = (math.degrees(pan_rad) - uav_heading_deg + 180.0) % 360.0 - 180.0
 
     # tilt：俯仰角
     ground_range = haversine_m(uav_lat, uav_lon, target_lat, target_lon)

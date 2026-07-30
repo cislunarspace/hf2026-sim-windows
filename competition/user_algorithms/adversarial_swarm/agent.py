@@ -322,8 +322,7 @@ class SwarmSearchAgent(SwarmAgent):
             )
             pan, tilt = compute_gimbal_angles(
                 obs.self.lat, obs.self.lon, obs.self.alt,
-                det.target_lat, det.target_lon,
-            )
+                det.target_lat, det.target_lon, uav_heading_deg=obs.self.heading_deg)
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
 
@@ -499,8 +498,7 @@ class SwarmSearchAgent(SwarmAgent):
         if self._target:
             pan, tilt = compute_gimbal_angles(
                 obs.self.lat, obs.self.lon, obs.self.alt,
-                self._target[0], self._target[1],
-            )
+                self._target[0], self._target[1], uav_heading_deg=obs.self.heading_deg)
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
             loiter = self._wingman_loiter if self._is_wingman else _LOITER_RADIUS
@@ -575,8 +573,7 @@ class SwarmSearchAgent(SwarmAgent):
         if det.detected and det.target_lat is not None:
             pan, tilt = compute_gimbal_angles(
                 obs.self.lat, obs.self.lon, obs.self.alt,
-                det.target_lat, det.target_lon,
-            )
+                det.target_lat, det.target_lon, uav_heading_deg=obs.self.heading_deg)
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
         else:
