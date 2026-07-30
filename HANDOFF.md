@@ -59,7 +59,7 @@ git show 46250a8:config/HeightSample.csv > config/HeightSample.csv
 | 赛题 | 基线 | 当前（多次单局观察值） | 备注 |
 |---|---|---|---|
 | 赛题一 | 1.24 / 100 | **66.0 / 62.7（600s 局，连续 passed）** | 机体系 pan + CvFilter + 每秒必报：resets=0、dwell 全程连续、RMSE 13~14m |
-| 赛题二 | 0 / 100 | v11+ 修复后三局 0 / 17.9 / 0（v12 含 1 kill + accuracy 30.7 历史最佳） | 递归崩溃（VERIFY↔JOIN 乒乓）已修、CvFilter 已换；单局方差极大，均值未显著移动。v14 暴露新坑：proximity 203 次——避让只在 SEARCH 有，TRACK/JOIN 三机扎堆 |
+| 赛题二 | 0 / 100 | 0~17.9，零稳定击杀 | 已修：递归崩溃、ImmFilter 发散、残留引擎污染、VERIFY 中止死亡螺旋、三机扎堆仲裁。当前瓶颈：VERIFY 吞吐（~15-25s/辆 × 多数判否）+ 5 m/s 速度档不可分（1 真 + 15 诱饵） |
 | 赛题三 | 未跑 | 未跑 | 骨架代码完成（`competition/user_algorithms/adversarial_swarm/agent.py`），注意 **K=3**（runner DEFAULT_K=3），骨架按 K=1 设计需改 |
 
 赛题一演进（600s 单局）：v3 0.05（链路通但只报 10 次）→ v4 1.1（每秒必报 506 次但 ImmFilter 发散 RMSE 1039m）→ v5 66.0 / v6 62.7（CvFilter + 机体系 pan，两条不同随机路线，连续 passed，均零丢锁、dwell 全程连续、RMSE 13~14m）。
@@ -132,23 +132,26 @@ taskkill //IM opensim-sim.exe //F
 
 | 优先级 | 任务 | 备注 |
 |---|---|---|
-| 高 | 赛题二多种子均值验证 K=2 协同 kill | 当前单局不稳定，需 5+ 种子取均值判断机制是否真有效 |
-| 高 | 赛题三仿真验证 + 判别策略 | **K=3（非 1）**：`adversarial_swarm/runner.py:36 DEFAULT_K=3`，需 3 架同时盯防同一目标 20s 才摧毁（官方赛题描述一致；guide-v2 的"协同阈值 1"已过时）。骨架 agent 按 K=1 设计，需改协同汇聚逻辑。目标 4-8 m/s vs 诱饵 5 m/s 速度档完全重叠，速度带不可用；需走"路线/停顿模式"（停顿时位置不动 = 移动 → 真目标；速度恒 5 无停顿 → 诱饵）|
+| 高 | 赛题二 VERIFY 吞吐与 5 m/s 档判别 | 死亡螺旋修复后链路已通（VERIFY 可持续 19s+），但 120 样本 × ~50% 检出率 ≈ 15-25s/辆，18 辆里 15 辆判否，600s 只够筛几辆；且 5 m/s 档（1 真+15 诱饵）速度不可分。方向：①缩短窗口或边跟踪边判别；②停顿模式判别（真目标有 WaitTime 停顿，诱饵恒 5 m/s 无停顿——官方赛题描述验证集目标还有躲避能力，需一并考虑）；③命中率高的车辆排序（先验路线交叉点） |
+| 高 | 赛题三仿真验证 + 判别策略 | **K=3（非 1）**：`adversarial_swarm/runner.py:36 DEFAULT_K=3`，需 3 架同时盯防同一目标 20s 才摧毁（官方赛题描述一致；guide-v2 的"协同阈值 1"已过时）。骨架 agent 按 K=1 设计，需改协同汇聚逻辑。目标 4-8 m/s vs 诱饵 5 m/s 速度档完全重叠，速度带不可用；需走"路线/停顿模式" |
 | 高 | 验证集路线泛化 | 手册 §5「目标小车路线会采取新路线」；`points.json` 烘焙失效；需程序化提取 `GridDataAll_18.csv`（41MB）的路网中心线，或退回割草机 + 高频扫描。赛题一路线匹配失败时已回退螺旋（单测覆盖，仿真未实测） |
-| 高 | 验证集天气变化 | 官方：验证环节目标轨迹**和天气**随机变化。训练局全是 Rain（scenario 默认）；WEATHER_FACTORS 按天气缩放检出率和噪声（`default_detectors.py`），CvFilter 的 R=50² 在好天气偏保守（可接受），坏天气噪声放大需关注。赛题二验证集目标还有**躲避能力**（官方描述），现有 agent 未处理规避机动 |
+| 高 | 验证集天气变化 | 官方：验证环节目标轨迹**和天气**随机变化。训练局全是 Rain（scenario 默认）；WEATHER_FACTORS 按天气缩放检出率和噪声（`default_detectors.py`），CvFilter 的 R=50² 在好天气偏保守（可接受），坏天气噪声放大需关注 |
+| 中 | 赛题二多种子均值 | 单局方差极大（0~17.9），任何策略改动需 5+ 局均值才有结论；跑前确认无残留引擎（run_fast 已自动清理） |
 | 中 | 赛题三心跳/任务重分配 | 心跳（同赛题二 P:）+ 失联判定 + 任务拍卖/重分配 |
-| 中 | ImmFilter 纯 Python 后备实战验证 | 数值已验证（位差 0.0m、速度差 5.7e-14 m/s），但 0.7× 实时引擎下纯 Python 矩阵运算的延迟需在真实 run 中确认。赛题一已改用 CvFilter（纯 Python），不再依赖 ImmFilter |
+| 中 | ImmFilter 纯 Python 后备实战验证 | 赛题一/二已改用 CvFilter（纯 Python），不再依赖 ImmFilter；rust_core 缺失时 CvFilter 同样可用 |
 
 ---
 
 ## 7. 踩过的坑（避免再踩）
 
-1. **`point_gimbal` 的 pan 是机体系相对方位（机头=0），不是绝对方位**。官方 baseline（`swarm_coordinated.py:446`）都扣航向：`pan = ((brg - heading + 180) % 360) - 180`。`compute_gimbal_angles` 此前返回绝对 bearing，三个赛题的 Agent 云台全部指偏一个航向角——UAV 静止朝北时碰巧能对，一转向目标就出 FOV，表现为"检测 2 秒后长期丢锁"（跟踪反复中断的头号根因）。已修：`compute_gimbal_angles(..., uav_heading_deg=)` 返回机体系 pan。
+1. **残留引擎会污染后续所有仿真局（测量无效化的头号环境坑）**。runner 异常退出（如 v13 夭折）后其引擎不死，继续向同一 Redis 发布 sim:state；新 runner 收到两个场景的交替状态流——`sim_time` 来回跳变（调试日志里 t 在 0.0 与真实值间振荡）、冷却/计时全乱、proximity 边沿计数爆炸（v14~v18 的 200~300 次）、dwell 永不累计。**v11~v18 的零分/异常大多是测量假象，不是 agent 行为**。`run_fast.ps1` 已在非 `-ReuseEngine` 模式启动时自动 `Stop-Process` 清理残留引擎；手工跑前也应 `taskkill //IM opensim-sim.exe //F`。
+2. **`point_gimbal` 的 pan 是机体系相对方位（机头=0），不是绝对方位**。官方 baseline（`swarm_coordinated.py:446`）都扣航向：`pan = ((brg - heading + 180) % 360) - 180`。`compute_gimbal_angles` 此前返回绝对 bearing，三个赛题的 Agent 云台全部指偏一个航向角——UAV 静止朝北时碰巧能对，一转向目标就出 FOV，表现为"检测 2 秒后长期丢锁"（跟踪反复中断的头号根因）。已修：`compute_gimbal_angles(..., uav_heading_deg=)` 返回机体系 pan。
 2. **赛题一评分只看 1Hz 上报精度（D_max=30m），漏报记 0**。报错和漏报同为 0，所以有任何位置假设就该每秒上报——目标出生后在路线 Start 停 30s（points.json 全部路线 Start.WaitTime=30），开局报出生点约 30s 满分窗口。VERIFY 判别（赛题一无诱饵）和"等 EKF 收敛再上报"都是纯丢分。
 3. **`briefing.target_initial_pos` 恒为目标真实出生点**：`prepare_scenario` 在场景随机化**之后**把所选路线 Start 写进实体初始位，引擎按 prepared scenario 生成目标（seed=0 无平移；seed>0 时 UAV 被平移、目标仍在原坐标系路线 Start）。且可匹配 points.json 26 条路线 Start → 目标全程位置可预测（`algorithms/search/route_prior.py`）。此前"坐标陷阱"的结论不成立（当时是地形缺失冻结局的误诊）。
 4. **bearing-only ImmFilter 在本场景发散**：检测直接给经纬度（完整位置量测 ±50m），bearing+range 更新的 ImmFilter 实测两帧跳离量测 ~200m。位置量测下双轴匀速卡尔曼（`algorithms/estimation/cv_kalman.py`）才是最小正确工具；速度初值方差取 25 防过冲，有路线先验时带先验速度初值消除斜坡滞后。
 5. **agent 时间基准必须用 `briefing.score_view.sim_time`（引擎真时间）**。runner 控制节拍远快于引擎（实测 2.5×），所有时间相关计算（OLS 速度、报告节拍、协同超时、冷却、滤波 predict 的 dt）**必须**用 `score_view.sim_time`，否则 `dt` 累加会让一切失真。
-6. **诱饵有 5 m/s 路线**。官方 `inject_astar_decoy decoy_speed=5.0`（`competition/sdk/scenarios/coop_decoy/runner.py:218`），"静止即诱饵"是错的。必须用最小二乘速度判别，且诱饵能跨过 [3.5, 6.5) 阈值。
+6. **VERIFY 接触丢失中止 ≠ 判别否决，混用升档冷却会形成死亡螺旋**。中止是"没看清"（无结论），否决是"判了诱饵"（有结论）。原实现中止也走 20→40→80→160s × 500m 升档冷却，密集车场里几次中止就把全场永久锁死（debug 局实测：三机 240s 零 VERIFY，rcd 恒真）。修法：中止 5s 平冷却 + 300m 半径（`_mark_abort`），否决保持升档（`_mark_reject`）。接触丢失的直接原因是 VERIFY 无检测拍不下发云台指令——UAV 40 m/s 接近中 LOS 快速变化，相机偏出 FOV；无检测拍必须持续指向滤波/最后已知位置。
+7. **诱饵有 5 m/s 路线**。官方 `inject_astar_decoy decoy_speed=5.0`（`competition/sdk/scenarios/coop_decoy/runner.py:218`），"静止即诱饵"是错的。必须用最小二乘速度判别，且诱饵能跨过 [3.5, 6.5) 阈值。
 7. **目标路线有 WaitTime 停顿**（`config/points.json` road1 start=30s）。停顿中速度=0，对应"永久诱饵"在判别读数上不可分。永远不要用位置标记跳过候选——必须用时间冷却。
 8. **检测位置 ±50m 高斯噪声**（`config/scenarios/coop_decoy/algorithm.yaml: noise_sigma_m: 50.0`）。短窗口（<8s）的速度估计失真大；12s 窗口 OLS σ_ols ≈ 1.3 m/s。
 9. **announce 时机决定全队行为**。VERIFY 入口 announce 让 3 架机围着同一诱饵空转（验证了 50 次判决 49 次判同一车）；应只在 TRACK 入口 announce。

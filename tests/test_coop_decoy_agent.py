@@ -651,3 +651,236 @@ class TestRecursionGuard:
         cmds = agent.decide(_make_obs(), dt=0.1)
         assert isinstance(cmds, list)
         assert len(calls) <= 7  # 顶层层 + 限深 6
+
+
+class TestJoinSlotDeconfliction:
+    """J: 占位与 proximity 避让测试（v14 局三机扎堆 proximity 203 次的修复）。"""
+
+    def _jmsg(self, lat, lon, sender):
+        msg = MagicMock()
+        msg.payload = f"J:{lat},{lon}"
+        msg.sender_uid = sender
+        return msg
+
+    def _amsg(self, lat, lon, sender):
+        msg = MagicMock()
+        msg.payload = f"A:{lat},{lon}"
+        msg.sender_uid = sender
+        return msg
+
+    def test_join_blocked_when_slot_taken(self):
+        """SEARCH 收到 A: 但目标已有他机 J: 占位时，不应进 JOIN。"""
+        agent = CoopDecoyAgent("uav_3")
+        agent.reset()
+        for _ in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        inbox = (
+            self._amsg(27.010, 125.010, "uav_1"),
+            self._jmsg(27.010, 125.010, "uav_2"),
+        )
+        agent.decide(_make_obs(comm_inbox=inbox), dt=0.1)
+        assert agent._state.value == "SEARCH", "已有僚机占位，第三机应继续搜索"
+
+    def test_join_proceeds_when_slot_free(self):
+        """只有 A: 没有 J: 时仍应进 JOIN（不占位的正常协同）。"""
+        agent = CoopDecoyAgent("uav_3")
+        agent.reset()
+        for _ in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        inbox = (self._amsg(27.010, 125.010, "uav_1"),)
+        agent.decide(_make_obs(comm_inbox=inbox), dt=0.1)
+        assert agent._state.value == "JOIN"
+
+    def test_join_tiebreak_backoff(self):
+        """双机同时 JOIN 同一目标的竞态：uid 大者应退让回 SEARCH。"""
+        agent = CoopDecoyAgent("uav_3")
+        agent.reset()
+        agent._state = agent._state.JOIN
+        agent._target = (27.005, 125.005)
+        agent._shared_target = (27.005, 125.005)
+        agent._join_time = 0.0
+        inbox = (self._jmsg(27.005, 125.005, "uav_2"),)
+        agent.decide(_make_obs(comm_inbox=inbox), dt=0.1)
+        assert agent._state.value == "SEARCH", "uid 大者应退让"
+        assert agent._shared_target is None
+
+    def test_join_broadcasts_claim(self):
+        """JOIN 中应以 ~2Hz 广播 J: 占位。"""
+        agent = CoopDecoyAgent("uav_2")
+        agent.reset()
+        agent._state = agent._state.JOIN
+        agent._target = (27.005, 125.005)
+        agent._join_time = 0.0
+        agent._sim_time = 10.0
+        agent._last_bc_time = 0.0
+        cmds = agent.decide(_make_obs(), dt=0.1)
+        payloads = [c.params["payload"] for c in cmds
+                    if isinstance(c, Command) and c.verb == "comm.broadcast"]
+        assert any(p.startswith("J:") for p in payloads), f"应有 J: 占位，实际: {payloads}"
+
+    def test_wingman_track_broadcasts_claim(self):
+        """僚机 TRACK 应广播 J: 占位（而不是 T:）。"""
+        agent = CoopDecoyAgent("uav_2")
+        agent.reset()
+        agent._state = agent._state.TRACK
+        agent._is_wingman = True
+        agent._target = (27.005, 125.005)
+        agent._sim_time = 10.0
+        agent._last_bc_time = 0.0
+        agent._last_report_time = 0.0
+        agent._dwell_time = 5.0
+        agent._track_time = 5.0
+        agent._last_det_time = 10.0
+        agent._filter = None
+        obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005)
+        cmds = agent.decide(obs, dt=0.1)
+        payloads = [c.params["payload"] for c in cmds
+                    if isinstance(c, Command) and c.verb == "comm.broadcast"]
+        assert any(p.startswith("J:") for p in payloads), f"应有 J: 占位，实际: {payloads}"
+        assert not any(p.startswith("T:") for p in payloads), "僚机不应再发 T:"
+
+    def test_wingman_loiter_beyond_penalty_line(self):
+        """长机 100m / 僚机 400m 同心盘旋，最近距离 300m > 200m 罚线。"""
+        agent = CoopDecoyAgent("uav_2")
+        agent.reset()
+        agent._state = agent._state.TRACK
+        agent._is_wingman = True
+        agent._target = (27.005, 125.005)
+        agent._sim_time = 10.0
+        agent._last_bc_time = 10.0
+        agent._last_report_time = 0.0
+        agent._dwell_time = 5.0
+        agent._track_time = 5.0
+        agent._last_det_time = 10.0
+        agent._filter = None
+        obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005)
+        cmds = agent.decide(obs, dt=0.1)
+        fly = _find_cmd(cmds, "set_destination")
+        assert fly is not None
+        assert fly.params["loiter_radius"] >= 400.0
+
+
+class TestTrackRoleArbitration:
+    """TRACK 角色仲裁：同一目标只能一长一僚（v15 proximity 303 的修复）。"""
+
+    def _tmsg(self, lat, lon, sender):
+        msg = MagicMock()
+        msg.payload = f"T:{lat},{lon}"
+        msg.sender_uid = sender
+        return msg
+
+    def _jmsg(self, lat, lon, sender):
+        msg = MagicMock()
+        msg.payload = f"J:{lat},{lon}"
+        msg.sender_uid = sender
+        return msg
+
+    def _enter_track_as_lead(self, agent):
+        agent._state = agent._state.TRACK
+        agent._is_wingman = False
+        agent._target = (27.005, 125.005)
+        agent._sim_time = 10.0
+        agent._last_bc_time = 10.0
+        agent._last_report_time = 0.0
+        agent._dwell_time = 1.0
+        agent._track_time = 1.0
+        agent._last_det_time = 10.0
+        agent._filter = None
+
+    def test_second_lead_demotes_to_wingman(self):
+        """双长机：uid 大者听到 uid 小长机的 T: 后应降级为僚机。"""
+        agent = CoopDecoyAgent("uav_3")
+        agent.reset()
+        self._enter_track_as_lead(agent)
+        inbox = (self._tmsg(27.005, 125.005, "uav_1"),)
+        obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005,
+                        comm_inbox=inbox)
+        agent.decide(obs, dt=0.1)
+        assert agent._state.value == "TRACK"
+        assert agent._is_wingman, "uid 大长机应降级补僚机位"
+
+    def test_second_lead_exits_when_wing_taken(self):
+        """双长机且僚机位已占：uid 最大者应退出回 SEARCH（不记否决）。"""
+        agent = CoopDecoyAgent("uav_3")
+        agent.reset()
+        self._enter_track_as_lead(agent)
+        inbox = (
+            self._tmsg(27.005, 125.005, "uav_1"),
+            self._jmsg(27.005, 125.005, "uav_2"),
+        )
+        obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005,
+                        comm_inbox=inbox)
+        agent.decide(obs, dt=0.1)
+        assert agent._state.value == "SEARCH"
+        assert agent._target is None
+
+    def test_second_wingman_exits(self):
+        """双僚机：uid 大者退出回 SEARCH。"""
+        agent = CoopDecoyAgent("uav_3")
+        agent.reset()
+        self._enter_track_as_lead(agent)
+        agent._is_wingman = True
+        inbox = (self._jmsg(27.005, 125.005, "uav_2"),)
+        obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005,
+                        comm_inbox=inbox)
+        agent.decide(obs, dt=0.1)
+        assert agent._state.value == "SEARCH"
+
+    def test_search_skips_verify_when_fully_manned(self):
+        """SEARCH 检测到的目标长僚已齐（T:+J:）时不进 VERIFY。"""
+        agent = CoopDecoyAgent("uav_3")
+        agent.reset()
+        for _ in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        inbox = (
+            self._tmsg(27.001, 125.001, "uav_1"),
+            self._jmsg(27.001, 125.001, "uav_2"),
+        )
+        obs = _make_obs(detected=True, target_lat=27.001, target_lon=125.001,
+                        comm_inbox=inbox)
+        agent.decide(obs, dt=0.1)
+        assert agent._state.value == "SEARCH", "长僚已齐的目标不应再进 VERIFY"
+
+
+class TestVerifyAbortCooldown:
+    """VERIFY 接触丢失中止的冷却行为（死亡螺旋修复回归）。"""
+
+    def _enter_verify(self, agent):
+        for _ in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        obs = _make_obs(detected=True, target_lat=27.003, target_lon=125.003)
+        agent.decide(obs, dt=0.1)
+        assert agent._state.value == "VERIFY"
+
+    def test_abort_uses_short_flat_cooldown(self):
+        """中止后 5s 内同位置不重进 VERIFY，5s 后允许；连续中止不升档。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        self._enter_verify(agent)
+        # 30 帧（3s）无检测 → 中止（阈值 2s）
+        for _ in range(30):
+            agent.decide(_make_obs(), dt=0.1)
+        assert agent._state.value == "SEARCH"
+        # 2s 内重检测同位置：挡（5s 平冷却）
+        for _ in range(20):
+            agent.decide(
+                _make_obs(detected=True, target_lat=27.003, target_lon=125.003),
+                dt=0.1,
+            )
+        assert agent._state.value == "SEARCH"
+        # 再 3s+（自中止累计 >5s）：允许重进
+        for _ in range(30):
+            agent.decide(
+                _make_obs(detected=True, target_lat=27.003, target_lon=125.003),
+                dt=0.1,
+            )
+        assert agent._state.value == "VERIFY", "5s 平冷却后应允许重新判别"
+
+    def test_verify_lost_keeps_gimbal_on_target(self):
+        """VERIFY 无检测拍应继续指向目标（防 LOS 偏出 → 接触丢失 → 中止）。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        self._enter_verify(agent)
+        cmds = agent.decide(_make_obs(), dt=0.1)  # 无检测拍
+        gimbal = _find_cmd(cmds, "component.gimbal_tracking.set_orientation")
+        assert gimbal is not None, "VERIFY 无检测拍也应输出云台指向"

@@ -39,6 +39,16 @@ $text = $text -replace '"redis_port":\s*\d+', "`"redis_port`": $redisPort"
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($scenarioJson, $text, $utf8NoBom)
 
+# 0. 清残留引擎（非复用模式）：旧引擎不退出会一直向同一 Redis 发布
+#    sim:state，新 runner 会收到两个场景的交替状态流——sim_time 来回跳变、
+#    冷却/计时全乱、proximity 边沿计数爆炸（v11~v18 多局零分/异常即此造成）。
+if (-not $ReuseEngine) {
+    Get-Process opensim-sim -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "[run_fast] 清理残留引擎 PID=$($_.Id)（ StartTime=$($_.StartTime) ）"
+        Stop-Process -Id $_.Id -Force
+    }
+}
+
 # 1. Redis（引擎从 scenario 副本读端口 6382，必须与之一致）
 if ((& $redisCli -p $redisPort ping 2>$null) -ne 'PONG') {
     Write-Host "[run_fast] 启动 Redis :$redisPort"

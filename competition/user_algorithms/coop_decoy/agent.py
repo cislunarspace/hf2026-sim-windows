@@ -14,7 +14,10 @@
 """
 
 import math
+import os
 from enum import Enum
+
+_DEBUG = os.environ.get("COOP_AGENT_DEBUG") == "1"
 
 from algorithms.estimation.cv_kalman import CvFilter
 from algorithms.estimation.geometry import bearing_rad, haversine_m
@@ -53,6 +56,10 @@ _REJECT_COOLDOWN_S = 20.0  # 判别否决/中止后的重检测冷却（s）：�
 # 又不永久标记——停顿中的真目标冷却后重遇可重新判别
 _REJECT_RADIUS_M = 500.0  # 冷却生效的检测距离（m）：机 20s 已飞出 ~500m，
 # 真目标 20s 后仍在原区附近可重新判别；跳变搭档车（≥198m）也在半径内
+_ABORT_COOLDOWN_S = 5.0  # VERIFY 接触丢失中止的平冷却（s）：不构成判别结论，
+# 只要防当拍重进空转；用判别否决的升档冷却会在密集车场形成死亡螺旋
+# （debug3 局实测：首次中止后 rcd 恒真，240s 零 VERIFY、全场锁死）
+_ABORT_RADIUS_M = 300.0  # 中止冷却的生效半径（m）：只挡同一辆车
 
 _TRACK_DWELL_S = 20.0  # 盯防摧毁时间（s）
 _TRACK_GRACE_S = 2.0  # 丢失容忍时间（s）
@@ -111,12 +118,18 @@ class CoopDecoyAgent(CoopAgent):
         self._last_reject_pos: tuple[float, float] | None = None
         self._last_reject_time: float = -1e9
         self._reject_streak: int = 0
+        self._last_abort_pos: tuple[float, float] | None = None  # VERIFY 中止记录
+        self._last_abort_time: float = -1e9
         self._time_synced: bool = False
         self._sim_dt: float = 0.0  # 本拍仿真时间增量（滤波 predict 用）
         self._last_sim_time: float | None = None
         self._dispatch_depth: int = 0  # 状态重入深度（振荡保护）
         self._last_hb_time: float = -1e9
         self._teammates: dict[str, tuple[float, float, float]] = {}  # uid→(lat,lon,t)
+        self._joiners: dict[str, tuple[float, float, float]] = {}  # uid→(lat,lon,t)，J: 占位
+        self._trackers: dict[str, tuple[float, float, float]] = {}  # uid→(lat,lon,t)，A:/T: 长机
+        self._avoid_pos: tuple[float, float] | None = None  # 仲裁退出目标的避让窗口
+        self._avoid_until: float = -1e9
 
     def reset(self) -> None:
         self._state = State.SEARCH
@@ -141,12 +154,18 @@ class CoopDecoyAgent(CoopAgent):
         self._last_reject_pos = None
         self._last_reject_time = -1e9
         self._reject_streak = 0
+        self._last_abort_pos = None
+        self._last_abort_time = -1e9
         self._time_synced = False
         self._sim_dt = 0.0
         self._last_sim_time = None
         self._dispatch_depth = 0
         self._last_hb_time = -1e9
         self._teammates = {}
+        self._joiners = {}
+        self._trackers = {}
+        self._avoid_pos = None
+        self._avoid_until = -1e9
 
     def decide(self, obs: CoopObs, dt: float) -> list[Command]:
         self._sync_time(obs, dt)
@@ -163,6 +182,13 @@ class CoopDecoyAgent(CoopAgent):
 
         # 状态分发（重入深度保护）
         self._dispatch_depth = 0
+        if _DEBUG and int(self._sim_time * 10) % 10 == 0:
+            print(
+                f"[COOP {self.my_uid}] t={self._sim_time:6.1f} {self._state.value:6s} "
+                f"pos=({obs.self.lat:.5f},{obs.self.lon:.5f}) tgt={self._target} "
+                f"wing={self._is_wingman} det={obs.self.detection.detected}",
+                flush=True,
+            )
         return cmds + self._dispatch(obs, dt)
 
     def _dispatch(self, obs: CoopObs, dt: float) -> list[Command]:
@@ -225,6 +251,18 @@ class CoopDecoyAgent(CoopAgent):
                     self._shared_target_time = self._sim_time
                 except Exception:
                     pass
+            elif p.startswith("J:"):
+                # 占位：有僚机正在收敛/协锁该目标，第三机不要再扎进去
+                try:
+                    la, lo = p[2:].split(",")
+                    if msg.sender_uid != self.my_uid:
+                        self._joiners[msg.sender_uid] = (
+                            float(la),
+                            float(lo),
+                            self._sim_time,
+                        )
+                except Exception:
+                    pass
             elif p.startswith("P:"):
                 # 队友位置心跳：proximity 避让用
                 try:
@@ -243,6 +281,19 @@ class CoopDecoyAgent(CoopAgent):
                     la, lo = p[2:].split(",")
                     self._shared_target = (float(la), float(lo))
                     self._shared_target_time = self._sim_time
+                except Exception:
+                    pass
+            # A:/T: 的发出者是该目标的长机（TRACK 中），记入 _trackers
+            # 供长/僚角色仲裁（双长机同圈盘旋是 proximity 扣分主因）
+            if p.startswith(("A:", "T:")):
+                try:
+                    la, lo = p[2:].split(",")
+                    if msg.sender_uid != self.my_uid:
+                        self._trackers[msg.sender_uid] = (
+                            float(la),
+                            float(lo),
+                            self._sim_time,
+                        )
                 except Exception:
                     pass
 
@@ -264,8 +315,39 @@ class CoopDecoyAgent(CoopAgent):
         """广播 tracking 位置。"""
         return broadcast(f"T:{tgt_lat:.3f},{tgt_lon:.3f}")
 
+    def _make_join_claim(self, tgt_lat: float, tgt_lon: float) -> Command:
+        """广播占位：我正在收敛/协锁该目标（proximity 避让，第三机勿入）。"""
+        return broadcast(f"J:{tgt_lat:.3f},{tgt_lon:.3f}")
+
+    def _join_slot_taken(self, lat: float, lon: float) -> str | None:
+        """目标附近已有他机占位（J: 10s 内、距离 <300m）→ 返回占位 uid。"""
+        for uid, (la, lo, t) in self._joiners.items():
+            if uid == self.my_uid or self._sim_time - t > 10.0:
+                continue
+            if haversine_m(lat, lon, la, lo) < 300.0:
+                return uid
+        return None
+
+    def _in_avoid_window(self, lat: float, lon: float) -> bool:
+        """仲裁退出后的避让窗口（15s、300m）：防退出后当拍重进 VERIFY 空转。"""
+        return (
+            self._avoid_pos is not None
+            and self._sim_time < self._avoid_until
+            and haversine_m(lat, lon, self._avoid_pos[0], self._avoid_pos[1]) < 300.0
+        )
+
+    def _claims_near(self, lat: float, lon: float) -> tuple[str | None, str | None]:
+        """目标附近的长机（A:/T:）与僚机（J:）占位，10s 内、300m 内有效。"""
+        lead = wing = None
+        for uid, (la, lo, t) in self._trackers.items():
+            if uid != self.my_uid and self._sim_time - t <= 10.0                     and haversine_m(lat, lon, la, lo) < 300.0:
+                lead = uid
+        wing = self._join_slot_taken(lat, lon)
+        return lead, wing
+
     def _mark_reject(self) -> None:
-        """记录判别否决/中止位置。同一位置连续否决时冷却指数升档
+        """记录判别否决位置（OLS 出界/TRACK 超时；VERIFY 接触丢失中止
+        走 _mark_abort，不进此序列）。同一位置连续否决时冷却指数升档
         （路线终点永久停驻的诱饵：20→40→80→160s，防反复鉴别空转；
         停顿真目标 WaitTime ≤30s，仍能在升档间隙被重新判别）。"""
         if self._target:
@@ -282,15 +364,27 @@ class CoopDecoyAgent(CoopAgent):
         self._last_reject_time = self._sim_time
 
     def _in_reject_cooldown(self, lat: float, lon: float) -> bool:
-        if self._last_reject_pos is None:
-            return False
-        if (
+        if self._last_reject_pos is not None and (
             haversine_m(lat, lon, self._last_reject_pos[0], self._last_reject_pos[1])
-            >= _REJECT_RADIUS_M
+            < _REJECT_RADIUS_M
         ):
-            return False
-        cooldown = _REJECT_COOLDOWN_S * (2 ** min(self._reject_streak, 3))
-        return self._sim_time - self._last_reject_time < cooldown
+            cooldown = _REJECT_COOLDOWN_S * (2 ** min(self._reject_streak, 3))
+            if self._sim_time - self._last_reject_time < cooldown:
+                return True
+        # VERIFY 接触丢失中止：5s 平冷却、300m 半径，防当拍重进空转
+        if self._last_abort_pos is not None and (
+            haversine_m(lat, lon, self._last_abort_pos[0], self._last_abort_pos[1])
+            < _ABORT_RADIUS_M
+        ):
+            return self._sim_time - self._last_abort_time < _ABORT_COOLDOWN_S
+        return False
+
+    def _mark_abort(self) -> None:
+        """VERIFY 接触丢失中止：只记短冷却，不进否决升档序列。
+        中止是'没看清'，不是'判了诱饵'——升档冷却叠在密集车场会形成
+        死亡螺旋（中止→升档→更难完成判别→再中止）。"""
+        self._last_abort_pos = self._target
+        self._last_abort_time = self._sim_time
 
     # ── SEARCH：割草机覆盖搜索本机条带 ─────────────────────────────────────
 
@@ -305,21 +399,24 @@ class CoopDecoyAgent(CoopAgent):
             self._search_waypoints = route_waypoints_for_uid(self.my_uid, n_shares=3)
             self._wp_idx = 0
 
-        # 收到队友确认目标 → JOIN（跳过已摧毁目标）
+        # 收到队友确认目标 → JOIN（跳过已摧毁目标；已有僚机占位则不去——
+        # K=2 只需双机，第三机扎进去只会触发 <200m proximity 扣分）
         if self._shared_target is not None:
             near_destroyed = any(
                 haversine_m(self._shared_target[0], self._shared_target[1], d[0], d[1])
                 < 150.0
                 for d in self._known_destroyed
             )
-            if not near_destroyed:
+            slot_taken = self._join_slot_taken(*self._shared_target)
+            if not near_destroyed and slot_taken is None:
                 self._state = State.JOIN
                 self._target = self._shared_target
                 self._join_time = 0.0
                 self._filter = None
                 return self._dispatch(obs, dt)
 
-        # 检测到目标 → VERIFY（跳过已摧毁目标）。
+        # 检测到目标 → VERIFY（跳过已摧毁目标；长机+僚机已齐的目标也跳过——
+        # K=2 已满员，第三个进去只会在同一 100m 圈里制造 proximity 扣分）。
         # 不做诱饵标记跳过：诱饵也在动（5 m/s 全域路线），位置标记会失效；
         # 且中途停顿的真目标读数同静止，误标记会永久隐藏它。
         if det.detected and det.target_lat is not None:
@@ -327,8 +424,23 @@ class CoopDecoyAgent(CoopAgent):
                 haversine_m(det.target_lat, det.target_lon, d[0], d[1]) < 150.0
                 for d in self._known_destroyed
             )
-            if not near_destroyed and not self._in_reject_cooldown(
-                det.target_lat, det.target_lon
+            lead, wing = self._claims_near(det.target_lat, det.target_lon)
+            fully_manned = lead is not None and wing is not None
+            if _DEBUG:
+                print(
+                    f"[GATE {self.my_uid}] t={self._sim_time:6.1f} "
+                    f"det=({det.target_lat:.5f},{det.target_lon:.5f}) "
+                    f"nd={near_destroyed} lead={lead} wing={wing} "
+                    f"avoid={self._in_avoid_window(det.target_lat, det.target_lon)} "
+                    f"rcd={self._in_reject_cooldown(det.target_lat, det.target_lon)} "
+                    f"shared={self._shared_target}",
+                    flush=True,
+                )
+            if (
+                not near_destroyed
+                and not fully_manned
+                and not self._in_avoid_window(det.target_lat, det.target_lon)
+                and not self._in_reject_cooldown(det.target_lat, det.target_lon)
             ):
                 self._state = State.VERIFY
                 self._target = (det.target_lat, det.target_lon)
@@ -403,13 +515,28 @@ class CoopDecoyAgent(CoopAgent):
                     self._filter.predict(self._sim_dt)
                     self._filter.update_position(det.target_lat, det.target_lon)
         else:
-            self._verify_lost_s += dt
+            # 无检测拍：继续指向滤波/最后已知位置（UAV 在 40 m/s 接近，
+            # 云台不跟随 LOS 会迅速偏出 FOV → 接触丢失 → 中止）
+            self._verify_lost_s += self._sim_dt
+            est = None
             if self._filter is not None and self._filter.is_initialized():
                 self._filter.predict(self._sim_dt)
+                est = self._filter.position_wgs84()
+            elif self._target:
+                est = self._target
+            if est is not None:
+                pan, tilt = compute_gimbal_angles(
+                    obs.self.lat,
+                    obs.self.lon,
+                    obs.self.alt,
+                    est[0],
+                    est[1], uav_heading_deg=obs.self.heading_deg)
+                cmds.append(point_gimbal(pan, tilt))
+                cmds.append(set_gimbal_fov(_TRACK_FOV))
 
-        # 连续丢失 → 放弃判别（不记诱饵，避免误伤真实目标）
+        # 连续丢失 → 放弃判别（中止不记否决，5s 平冷却防死亡螺旋）
         if self._verify_lost_s > _VERIFY_LOST_ABORT_S:
-            self._mark_reject()
+            self._mark_abort()
             self._state = State.SEARCH
             self._target = None
             self._filter = None
@@ -424,7 +551,8 @@ class CoopDecoyAgent(CoopAgent):
                 self._target[0],
                 self._target[1],
             )
-            if d > 200.0:  # 不同目标，队友确认的是另一个
+            if d > 200.0 and self._join_slot_taken(*self._shared_target) is None:
+                # 不同目标且无人占位，队友确认的是另一个
                 self._state = State.JOIN
                 self._target = self._shared_target
                 self._join_time = 0.0
@@ -452,7 +580,7 @@ class CoopDecoyAgent(CoopAgent):
                 self._filter = None
                 return self._dispatch(obs, dt)
 
-        # 飞向目标区域
+        # 飞向目标区域（僚机候选在 400m 外圈判别，避开长机的 100m 圈）
         if self._target:
             cmds.append(
                 fly_to(
@@ -460,7 +588,7 @@ class CoopDecoyAgent(CoopAgent):
                     self._target[1],
                     alt=_SEARCH_ALT,
                     speed=_SEARCH_SPEED,
-                    loiter_radius=_LOITER_RADIUS,
+                    loiter_radius=_LOITER_RADIUS * 4 if self._is_wingman else _LOITER_RADIUS,
                 )
             )
 
@@ -472,6 +600,34 @@ class CoopDecoyAgent(CoopAgent):
         cmds = []
         det = obs.self.detection
         self._track_time += dt
+
+        # 角色仲裁（每拍）：同一目标只能一长一僚，第三机退出。
+        # 独立 VERIFY→TRACK 路径不受 J: 门禁约束，多机各自判别通过后会
+        # 在同一 100m 圈里盘旋（v15 局 proximity 303 次的根因），在此仲裁：
+        # 双长机 → uid 小者留任长机，大者补僚机位（僚机位也被占则退出）；
+        # 双僚机 → uid 小者留任，大者退出。退出后不记否决（目标是真），
+        # 靠 VERIFY 入口的"长僚已齐"门禁防回卷。
+        if self._target:
+            lead, wing = self._claims_near(*self._target)
+            if not self._is_wingman and lead is not None and str(lead) < str(self.my_uid):
+                if wing is None or str(wing) >= str(self.my_uid):
+                    self._is_wingman = True  # 降级补僚机位
+                else:
+                    self._avoid_pos = self._target
+                    self._avoid_until = self._sim_time + 15.0
+                    self._state = State.SEARCH
+                    self._target = None
+                    self._filter = None
+                    self._dwell_time = 0.0
+                    return self._dispatch(obs, dt)
+            elif self._is_wingman and wing is not None and str(wing) < str(self.my_uid):
+                self._avoid_pos = self._target
+                self._avoid_until = self._sim_time + 15.0
+                self._state = State.SEARCH
+                self._target = None
+                self._filter = None
+                self._dwell_time = 0.0
+                return self._dispatch(obs, dt)
 
         # 跟踪目标位置更新 + CvFilter 滤波（report_target 用滤波位置，
         # 回归：TRACK 曾不更新滤波，上报位置冻结在 VERIFY 结束时刻）
@@ -537,7 +693,10 @@ class CoopDecoyAgent(CoopAgent):
         # 广播：长机首次进入 TRACK 时 announce，之后定期 T: 位置
         if self._target and self._sim_time - self._last_bc_time >= _BC_INTERVAL:
             self._last_bc_time = self._sim_time
-            if not self._is_wingman and self._dwell_time <= dt * 2:
+            if self._is_wingman:
+                # 僚机定期占位广播：第三机看到 J: 就不再扎进同一目标
+                cmds.append(self._make_join_claim(self._target[0], self._target[1]))
+            elif self._dwell_time <= dt * 2:
                 # 长机首次确认：announce（需要僚机）
                 cmds.append(self._make_announce(self._target[0], self._target[1]))
             else:
@@ -545,8 +704,9 @@ class CoopDecoyAgent(CoopAgent):
                 cmds.append(self._make_broadcast(self._target[0], self._target[1]))
 
         # 云台 + 飞行（僚机用更大盘旋半径避免 <200m 惩罚）
-        # 云台瞄准用 IMM 滤波位置（比逐帧检测平滑，减少锁中断，
-        # K=2 协同 dwell 需要双机同时连续锁定 20s、中断 >2s 清零）
+        # 云台瞄准用滤波位置（比逐帧检测平滑，减少锁中断，
+        # K=2 协同 dwell 需要双机同时连续锁定 20s、中断 >2s 清零）。
+        # 长机 100m / 僚机 400m 同心盘旋，最近距离 300m > 200m 罚线
         if self._target:
             aim = self._target
             if self._filter and self._filter.is_initialized():
@@ -559,7 +719,7 @@ class CoopDecoyAgent(CoopAgent):
                 aim[1], uav_heading_deg=obs.self.heading_deg)
             cmds.append(point_gimbal(pan, tilt))
             cmds.append(set_gimbal_fov(_TRACK_FOV))
-            loiter = _LOITER_RADIUS * 3 if self._is_wingman else _LOITER_RADIUS
+            loiter = _LOITER_RADIUS * 4 if self._is_wingman else _LOITER_RADIUS
             cmds.append(
                 fly_to(
                     self._target[0],
@@ -598,6 +758,22 @@ class CoopDecoyAgent(CoopAgent):
             self._shared_target_time = -1.0
             self._join_time = 0.0
             return self._dispatch(obs, dt)
+
+        # 占位冲突仲裁：他机也在收敛同一目标时，uid 大者退让回 SEARCH
+        # （双机同时收到同一 announce 的竞态；J: 心跳 10s 内有效）
+        holder = self._join_slot_taken(*self._target)
+        if holder is not None and str(holder) < str(self.my_uid):
+            self._state = State.SEARCH
+            self._target = None
+            self._shared_target = None
+            self._shared_target_time = -1.0
+            self._join_time = 0.0
+            return self._dispatch(obs, dt)
+
+        # 占位广播（2Hz）：告诉第三机这个目标已有僚机
+        if self._sim_time - self._last_bc_time >= _BC_INTERVAL:
+            self._last_bc_time = self._sim_time
+            cmds.append(self._make_join_claim(self._target[0], self._target[1]))
 
         # 检测不覆盖 _target：announce 位置才是收敛基准（曾把 _target 改成
         # 检测位置，检测落在 announce 点 200~300m 外时（目标+诱饵搭档）
