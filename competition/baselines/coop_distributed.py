@@ -184,9 +184,9 @@ class CoopDistributedAgent(CoopAgent):
         self._sweep_period: float = 4.0
         self._pitch_min: float = -60.0
         self._pitch_max: float = -30.0
-        # FOV
-        self._track_fov: float = 60.0
-        self._search_fov: float = 60.0
+        # FOV (competition rule caps camera FOV at 50°)
+        self._track_fov: float = 50.0
+        self._search_fov: float = 50.0
         # VERIFY (decoy discrimination by regression speed)
         self._verify_timeout: float = 8.0         # total verify budget
         self._verify_warmup: float = 3.0          # need ~30 samples for stable slope

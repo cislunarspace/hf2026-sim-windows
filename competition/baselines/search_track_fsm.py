@@ -175,11 +175,11 @@ class FsmAgent(SearchTrackAgent):
         # altitudes
         self._search_alt: float = 500.0
         self._loiter_alt: float = 500.0
-        # FOV: 30 -> 70 (ground coverage 80m -> 210m). Wider cone gives the
-        # gimbal LOS aiming enough angular margin that the EMA-filtered
-        # detection noise (alpha=0.15 -> ~12m -> ~2.6 deg jitter) stays well
-        # inside the 35 deg half-angle, so detected stays at ~100%.
-        self._fov_deg: float = 70.0
+        # FOV: competition rule caps the camera FOV at 50°, so use the widest
+        # legal value. The 25 deg half-angle still gives the gimbal LOS aiming
+        # enough margin that the EMA-filtered detection noise (alpha=0.15 ->
+        # ~12m -> ~2.6 deg jitter) stays well inside, keeping detected ~100%.
+        self._fov_deg: float = 50.0
         # SEARCH spiral (tightened for faster re-acquire)
         self._search_radius: float = 500.0
         self._spiral_growth_rate: float = 30.0
