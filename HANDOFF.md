@@ -58,7 +58,7 @@ git show 46250a8:config/HeightSample.csv > config/HeightSample.csv
 
 | 赛题 | 基线 | 当前（多次单局观察值） | 备注 |
 |---|---|---|---|
-| 赛题一 | 1.24 / 100 | **66.0 / 62.7（600s 局，连续 passed）** | 泛化验证已过：新路线（先验失效回退螺旋）59.8 压线、沙尘暴 67.0 passed、seed=7 随机化 64.0 passed；三项均 dwell 全程、resets=0 |
+| 赛题一 | 1.24 / 100 | **69.5（新引擎 600s，passed；旧引擎 66.0/62.7）** | 泛化验证已过：新路线（先验失效回退螺旋）59.8 压线、沙尘暴 67.0 passed、seed=7 随机化 64.0 passed；新引擎 RMSE 11.3m、dwell 全程、resets=0 |
 | 赛题二 | 0 / 100 | 0~17.9，零稳定击杀；v25 accuracy 26.9 | 已修：递归崩溃、ImmFilter 发散、残留引擎污染、VERIFY 死亡螺旋、三机扎堆仲裁、单机误判摧毁离场、VERIFY 吞吐（fast-pass+僚机直入）。当前瓶颈：双机 20s 连续协锁脆弱——检测中断 >2s 即清零重来（v25：201 coop_ticks + 2 resets） |
 | 赛题三 | 未跑 | 首局 base 11.2（accuracy 12.9 + alive 0.8），proximity 32 次罚满清零 | K=3 重写后机制全链路工作（1207 次上报、两目标有协锁迹象）。三大缺口：proximity（10 机+双僚机同圈风险）、K=3 协锁 20s 脆弱（resets 3/1）、2 机被 SAM 击毁 |
 
@@ -146,6 +146,7 @@ taskkill //IM opensim-sim.exe //F
 ## 7. 踩过的坑（避免再踩）
 
 1. **残留引擎会污染后续所有仿真局（测量无效化的头号环境坑）**。runner 异常退出（如 v13 夭折）后其引擎不死，继续向同一 Redis 发布 sim:state；新 runner 收到两个场景的交替状态流——`sim_time` 来回跳变（调试日志里 t 在 0.0 与真实值间振荡）、冷却/计时全乱、proximity 边沿计数爆炸（v14~v18 的 200~300 次）、dwell 永不累计。**v11~v18 的零分/异常大多是测量假象，不是 agent 行为**。`run_fast.ps1` 已在非 `-ReuseEngine` 模式启动时自动 `Stop-Process` 清理残留引擎；手工跑前也应 `taskkill //IM opensim-sim.exe //F`。
+2. **旧引擎（7/23 前）速度指令不生效，已随 7/27 官方更新修复**。旧二进制把 UAV 速度钉死在 min_speed 15.08 m/s（`set_speed`、`fly_to.speed` 均无效，sim:state 实测 + 手动 publish 验证）；7/27 提交 2fe5ed4「优化了无人机的速度」后 velocity 跟随指令（命令 25 → 实测 25.0）。**所有按 15 m/s 标定的时间常量（JOIN/TRACK 超时、协同汇聚估算、扫描覆盖率）都需按真实可达 40 m/s 重新评估**；赛题二/三此前的协同超时偏紧可能部分由此造成。注意官方仓库地址是 `https://www.osredm.com/hf2026/hf2026-sim-windows.git`（已加 remote `official`），旧记录的 `osredm.com/p78956324/...` 路径不是同一仓、更新滞后。
 2. **`point_gimbal` 的 pan 是机体系相对方位（机头=0），不是绝对方位**。官方 baseline（`swarm_coordinated.py:446`）都扣航向：`pan = ((brg - heading + 180) % 360) - 180`。`compute_gimbal_angles` 此前返回绝对 bearing，三个赛题的 Agent 云台全部指偏一个航向角——UAV 静止朝北时碰巧能对，一转向目标就出 FOV，表现为"检测 2 秒后长期丢锁"（跟踪反复中断的头号根因）。已修：`compute_gimbal_angles(..., uav_heading_deg=)` 返回机体系 pan。
 2. **赛题一评分只看 1Hz 上报精度（D_max=30m），漏报记 0**。报错和漏报同为 0，所以有任何位置假设就该每秒上报——目标出生后在路线 Start 停 30s（points.json 全部路线 Start.WaitTime=30），开局报出生点约 30s 满分窗口。VERIFY 判别（赛题一无诱饵）和"等 EKF 收敛再上报"都是纯丢分。
 3. **`briefing.target_initial_pos` 恒为目标真实出生点**：`prepare_scenario` 在场景随机化**之后**把所选路线 Start 写进实体初始位，引擎按 prepared scenario 生成目标（seed=0 无平移；seed>0 时 UAV 被平移、目标仍在原坐标系路线 Start）。且可匹配 points.json 26 条路线 Start → 目标全程位置可预测（`algorithms/search/route_prior.py`）。此前"坐标陷阱"的结论不成立（当时是地形缺失冻结局的误诊）。
