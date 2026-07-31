@@ -52,6 +52,13 @@ _VERIFY_SAMPLES = 120  # VERIFY 判别所需检测样本数（12s @10Hz）
 _VERIFY_SPEED_MIN = 6.5  # OLS 速度下限（m/s）：≥6.5 必真（真目标 9/12，诱饵统一 5.0）
 _VERIFY_SPEED_MAX = 13.5  # OLS 速度上限（m/s）：超过地面车辆极速（12）必是锁跳变/UAV
 _VERIFY_LOST_ABORT_S = 2.0  # VERIFY 中连续丢失超过此时长则放弃（不记诱饵）
+_FAST_PASS_S = 3.0  # 快速通过：滤波速度持续落在速度带的时长（s）。
+# 不设对称的快速判否：v0 初值下滤波速度前 ~10s 系统性低估（防过冲
+# 设计），判否带随检出率漂移、无法稳健标定——判否交给 120 样本 OLS 兜底
+_WING_BAIL_S = 15.0  # 僚机后台判别：速度持续低于阈值的 bailout 时长（s）。
+# 取 15s 是权衡：真目标 WaitTime 停顿 ≤30s，15s 内恢复不误伤；假阳性
+# 诱饵代价封顶 15s
+_WING_BAIL_SPEED = 5.5  # 僚机 bailout 速度阈值（m/s）
 _REJECT_COOLDOWN_S = 20.0  # 判别否决/中止后的重检测冷却（s）：防同帧循环重进 VERIFY，
 # 又不永久标记——停顿中的真目标冷却后重遇可重新判别
 _REJECT_RADIUS_M = 500.0  # 冷却生效的检测距离（m）：机 20s 已飞出 ~500m，
@@ -102,6 +109,8 @@ class CoopDecoyAgent(CoopAgent):
         self._wp_idx = 0
         self._verify_samples: list[tuple[float, float, float]] = []
         self._verify_lost_s: float = 0.0
+        self._fast_pass_s: float = 0.0  # 快速通过累计时长
+        self._wing_bail_s: float = 0.0  # 僚机后台判别低速累计时长
         self._sim_time = 0.0
         self._target: tuple[float, float] | None = None
         self._dwell_time = 0.0
@@ -138,6 +147,8 @@ class CoopDecoyAgent(CoopAgent):
         self._wp_idx = 0
         self._verify_samples = []
         self._verify_lost_s = 0.0
+        self._fast_pass_s = 0.0
+        self._wing_bail_s = 0.0
         self._sim_time = 0.0
         self._target = None
         self._dwell_time = 0.0
@@ -261,6 +272,18 @@ class CoopDecoyAgent(CoopAgent):
                             float(lo),
                             self._sim_time,
                         )
+                except Exception:
+                    pass
+            elif p.startswith("D:"):
+                # 队友判定的已摧毁目标：同步进已摧毁列表（不再跟踪/判别）
+                try:
+                    la, lo = p[2:].split(",")
+                    pos = (float(la), float(lo))
+                    if all(
+                        haversine_m(pos[0], pos[1], d[0], d[1]) >= 150.0
+                        for d in self._known_destroyed
+                    ):
+                        self._known_destroyed.append(pos)
                 except Exception:
                     pass
             elif p.startswith("P:"):
@@ -447,6 +470,7 @@ class CoopDecoyAgent(CoopAgent):
                 self._filter = CvFilter(obs.self.lat, obs.self.lon)
                 self._verify_samples = []
                 self._verify_lost_s = 0.0
+                self._fast_pass_s = 0.0
                 self._is_wingman = False  # 自己发现的候选：判别通过即长机
                 # 不在此处 announce：候选未判别，提前 announce 会让全队
                 # 收敛到同一个静止诱饵（诊断证实）。判别通过进 TRACK 时再
@@ -560,6 +584,25 @@ class CoopDecoyAgent(CoopAgent):
                 self._verify_samples = []
                 return self._dispatch(obs, dt)
 
+        # 快速通过：CvFilter 收敛后速度持续 3s 落在速度带 → 真目标，立即
+        # TRACK（不必等满 120 样本；OLS 兜底留给 5 m/s 类慢车的判否。
+        # 9/12 m/s 真目标判别从 ~15-25s 缩到 ~6-9s，协同汇聚更快）
+        if (
+            self._filter is not None
+            and self._filter.is_converged(15.0)
+            and _VERIFY_SPEED_MIN <= self._filter.speed_mps() <= _VERIFY_SPEED_MAX
+        ):
+            self._fast_pass_s += self._sim_dt
+            if self._fast_pass_s >= _FAST_PASS_S:
+                self._state = State.TRACK
+                self._dwell_time = 0.0
+                self._track_time = 0.0
+                self._last_det_time = self._sim_time
+                self._verify_samples = []
+                return self._dispatch(obs, dt)
+        else:
+            self._fast_pass_s = 0.0
+
         # 样本足够：OLS 最小二乘速度判别（[6.5, 13.5] 速度带）
         if len(self._verify_samples) >= _VERIFY_SAMPLES:
             speed = ols_speed_mps(self._verify_samples)
@@ -629,6 +672,27 @@ class CoopDecoyAgent(CoopAgent):
                 self._dwell_time = 0.0
                 return self._dispatch(obs, dt)
 
+        # 僚机后台判别：直入 TRACK 不设 VERIFY，若速度持续 15s <5.5 m/s
+        # （假阳性诱饵）则中止退出——不记否决（可能是 WaitTime 停顿的真目标）
+        if (
+            self._is_wingman
+            and self._filter is not None
+            and self._filter.is_converged(15.0)
+        ):
+            if self._filter.speed_mps() < _WING_BAIL_SPEED:
+                self._wing_bail_s += self._sim_dt
+                if self._wing_bail_s >= _WING_BAIL_S:
+                    self._mark_abort()
+                    self._state = State.SEARCH
+                    self._target = None
+                    self._filter = None
+                    self._is_wingman = False
+                    self._dwell_time = 0.0
+                    self._wing_bail_s = 0.0
+                    return self._dispatch(obs, dt)
+            else:
+                self._wing_bail_s = 0.0
+
         # 跟踪目标位置更新 + CvFilter 滤波（report_target 用滤波位置，
         # 回归：TRACK 曾不更新滤波，上报位置冻结在 VERIFY 结束时刻）
         if det.detected and det.target_lat is not None and det.target_lon is not None:
@@ -669,16 +733,24 @@ class CoopDecoyAgent(CoopAgent):
                 self._dwell_time = dt
             self._last_det_time = self._sim_time
 
-        # 盯防满 20s → 视为摧毁：记入已摧毁列表（不再跟踪/上报该目标），回 SEARCH
-        if self._dwell_time >= _TRACK_DWELL_S:
-            if self._target:
+        # 盯防满 20s：必须有队友同时在场（K=2 协锁）才判定摧毁。
+        # 评估器按"双机同时盯防 20s"判毁，单机 20s 不算——旧逻辑单机
+        # 满 20s 就标记摧毁并离开，亲手拆掉协锁（debug5 局实测：长机
+        # solo 满 20s 离开 + nd=True 永久拒绝返回，目标永远杀不掉）。
+        # 单机满 20s 继续盯防等僚机（announce 仍在发，T: 2Hz 持续）。
+        if self._dwell_time >= _TRACK_DWELL_S and self._target:
+            lead, wing = self._claims_near(*self._target)
+            if lead is not None or wing is not None:
                 self._known_destroyed.append(self._target)
-            self._state = State.SEARCH
-            self._target = None
-            self._filter = None
-            self._is_wingman = False
-            self._dwell_time = 0.0
-            return self._dispatch(obs, dt)
+                cmds.append(
+                    broadcast(f"D:{self._target[0]:.3f},{self._target[1]:.3f}")
+                )
+                self._state = State.SEARCH
+                self._target = None
+                self._filter = None
+                self._is_wingman = False
+                self._dwell_time = 0.0
+                return cmds + self._dispatch(obs, dt)  # 保留 D: 广播命令
 
         # 超时未摧毁（协同未到齐）→ 记冷却后回 SEARCH（可能是诱饵或停顿真目标）
         if self._track_time >= _TRACK_TIMEOUT_S:
@@ -779,18 +851,22 @@ class CoopDecoyAgent(CoopAgent):
         # 检测位置，检测落在 announce 点 200~300m 外时（目标+诱饵搭档）
         # VERIFY↔JOIN 同拍乒乓直至递归崩溃）。检测只用于云台瞄准（下方）。
 
-        # 接近到 350m 且有检测 → 僚机先过 VERIFY 判别（announce 早于判别 12s
-        # 发出，候选可能是诱饵；统一所有 TRACK 入口都经 OLS 判别）。
-        # 阈值取 350m 而非 200m：长机在目标 100m 盘旋，僚机再近会触发
-        # <200m proximity 扣分（600s 局 8 次 ×2 分把 accuracy 得分清零）
+        # 接近到 350m 且有检测 → 僚机直接 TRACK（边跟踪边判别）。
+        # 老设计是先过 12s VERIFY 判别，但 announce 已经过长机速度判别
+        # （fast-pass/OLS），僚机再走一遍 VERIFY 只是把 K=2 协锁推迟 12s+；
+        # 直入 TRACK 让协锁 dwell 从到达即开始累计，假阳性由 TRACK 内的
+        # 后台低速 bailout（15s <5.5 m/s）兜底。阈值 350m 而非 200m：
+        # 长机在 100m 盘旋，僚机再近触发 <200m proximity 扣分
         dist_to_target = haversine_m(
             obs.self.lat, obs.self.lon, self._target[0], self._target[1]
         )
         if dist_to_target < 350.0 and det.detected:
-            self._state = State.VERIFY
-            self._is_wingman = True  # 判别通过后以僚机身份 TRACK
-            self._verify_samples = []
-            self._verify_lost_s = 0.0
+            self._state = State.TRACK
+            self._is_wingman = True
+            self._dwell_time = 0.0
+            self._track_time = 0.0
+            self._last_det_time = self._sim_time
+            self._wing_bail_s = 0.0
             self._filter = CvFilter(obs.self.lat, obs.self.lon)
             return self._dispatch(obs, dt)
 

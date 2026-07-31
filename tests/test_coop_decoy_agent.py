@@ -322,15 +322,15 @@ class TestCoopAgentVerifyOls:
         msg.sender_uid = "uav_1"
         agent.decide(_make_obs(comm_inbox=(msg,)), dt=0.1)
         assert agent._state.value == "JOIN"
-        # 僚机已在目标 200m 内且检测到 → 应进 VERIFY 而非 TRACK
+        # 僚机已在目标 200m 内且检测到 → 直接 TRACK（边跟踪边判别，
+        # 协锁 dwell 立即累计；假阳性由后台低速 bailout 兜底）
         obs = _make_obs(
             lat=27.005, lon=125.005, detected=True,
             target_lat=27.005, target_lon=125.005,
         )
         agent.decide(obs, dt=0.1)
-        assert agent._state.value == "VERIFY", (
-            "JOIN 收敛后应先 VERIFY 判别（防止收敛到未鉴别的诱饵）"
-        )
+        assert agent._state.value == "TRACK"
+        assert agent._is_wingman
 
 
 class TestCoopAgentComms:
@@ -514,12 +514,8 @@ class TestCoopAgentTrackFilter:
 class TestCoopAgentDestroyedMemory:
     """已摧毁目标记忆：摧毁后不重复跟踪、上报。"""
 
-    def test_dwell_complete_marks_destroyed(self):
-        """dwell 满 20s 后目标应记入 _known_destroyed 并回 SEARCH。"""
-        agent = CoopDecoyAgent("uav_1")
-        agent.reset()
-        for i in range(5):
-            agent.decide(_make_obs(), dt=0.1)
+    def _enter_track_solo_dwell(self, agent):
+        """进入 TRACK 且本地 dwell 即将满 20s（单机）。"""
         agent._state = agent._state.TRACK
         agent._is_wingman = False
         agent._target = (27.005, 125.005)
@@ -531,12 +527,49 @@ class TestCoopAgentDestroyedMemory:
         agent._last_det_time = 10.0
         agent._filter = None
 
+    def test_solo_dwell_does_not_mark_destroyed(self):
+        """单机 dwell 满 20s 不算摧毁（评估器按 K=2 协锁判毁）——
+        继续盯防等僚机，不标记、不离开（旧逻辑单机满 20s 离开会拆掉协锁）。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        self._enter_track_solo_dwell(agent)
         obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005)
         agent.decide(obs, dt=0.1)
-        assert agent._state.value == "SEARCH", "dwell 满 20s 应回 SEARCH"
-        assert (27.005, 125.005) in agent._known_destroyed, (
-            "完成盯防的目标应记入已摧毁列表"
-        )
+        assert agent._state.value == "TRACK", "单机满 20s 应继续盯防"
+        assert (27.005, 125.005) not in agent._known_destroyed
+
+    def test_coop_dwell_marks_destroyed_and_broadcasts(self):
+        """dwell 满 20s 且队友在场（J: 占位）→ 判定摧毁：标记 + D: 广播 + 回 SEARCH。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        self._enter_track_solo_dwell(agent)
+        msg = MagicMock()
+        msg.payload = "J:27.005,125.005"
+        msg.sender_uid = "uav_2"
+        obs = _make_obs(detected=True, target_lat=27.005, target_lon=125.005,
+                        comm_inbox=(msg,))
+        cmds = agent.decide(obs, dt=0.1)
+        assert agent._state.value == "SEARCH", "协锁满 20s 应回 SEARCH"
+        assert (27.005, 125.005) in agent._known_destroyed
+        payloads = [c.params["payload"] for c in cmds
+                    if isinstance(c, Command) and c.verb == "comm.broadcast"]
+        assert any(p.startswith("D:") for p in payloads), "应广播 D: 摧毁通知"
+
+    def test_destroyed_message_marks_target(self):
+        """收到 D: 消息应同步进已摧毁列表（不再判别该目标）。"""
+        agent = CoopDecoyAgent("uav_3")
+        agent.reset()
+        for i in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        msg = MagicMock()
+        msg.payload = "D:27.010,125.010"
+        msg.sender_uid = "uav_1"
+        agent.decide(_make_obs(comm_inbox=(msg,)), dt=0.1)
+        assert (27.010, 125.010) in agent._known_destroyed
 
     def test_destroyed_target_not_reverified(self):
         """SEARCH 中检测到已摧毁目标附近的目标不应再进 VERIFY。"""
@@ -884,3 +917,42 @@ class TestVerifyAbortCooldown:
         cmds = agent.decide(_make_obs(), dt=0.1)  # 无检测拍
         gimbal = _find_cmd(cmds, "component.gimbal_tracking.set_orientation")
         assert gimbal is not None, "VERIFY 无检测拍也应输出云台指向"
+
+
+class TestVerifyFastPass:
+    """VERIFY 快速通过：滤波速度持续 3s 在速度带即判真，不等满 120 样本。"""
+
+    def test_fast_target_passes_before_full_window(self):
+        """9 m/s 目标应在 120 样本前经快速通过进 TRACK。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        for _ in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        # 9 m/s 东移：0.0000081°/帧 ≈ 0.8m/帧 @10Hz
+        track_frame = None
+        for i in range(120):
+            obs = _make_obs(
+                detected=True, target_lat=27.003, target_lon=125.003 + i * 0.0000081
+            )
+            agent.decide(obs, dt=0.1)
+            if agent._state.value == "TRACK":
+                track_frame = i
+                break
+        assert track_frame is not None, "9 m/s 目标应进 TRACK"
+        assert track_frame < 110, f"应早于 120 样本窗口，实际第 {track_frame} 帧"
+
+    def test_slow_decoy_never_fast_passes(self):
+        """5 m/s 诱饵不应触发快速通过，满 120 样本后判否回 SEARCH。"""
+        agent = CoopDecoyAgent("uav_1")
+        agent.reset()
+        for _ in range(5):
+            agent.decide(_make_obs(), dt=0.1)
+        # 5 m/s 东移：0.0000045°/帧
+        for i in range(130):
+            obs = _make_obs(
+                detected=True, target_lat=27.003, target_lon=125.003 + i * 0.0000045
+            )
+            agent.decide(obs, dt=0.1)
+            assert agent._state.value != "TRACK", "5 m/s 诱饵不应快速通过"
+        assert agent._state.value == "SEARCH", "满窗判否后应回 SEARCH"
+
