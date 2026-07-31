@@ -3,14 +3,20 @@
 # Claude Code 运行时产物
 .claude/
 
+# zcode 运行时产物
+.zcode/
+
 # Python 环境（改用 uv 管理）
 python/
 .venv/
 
 # Node 依赖
 lib/
+node_modules/
 
 run/logs/
+run/pids/
+run/scenario-backup/
 
 # Python 字节码
 __pycache__/
