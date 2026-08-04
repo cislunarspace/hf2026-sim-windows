@@ -150,6 +150,7 @@ class ScenarioConfig:
     sim_binary: Optional[str] = None
     start_sim_flag: bool = False
     dry_run: bool = False
+    mock: bool = False           # 用 MockSimClient 替代闭源引擎（进程内快速仿真）
     quiet: bool = False
     seed: int = 0                # 0 = fall back to simulation.seed in JSON; >0 = seed-driven
     visualize: bool = False      # start the 3D visualization (bystander)
@@ -249,7 +250,9 @@ class RunnerBase:
             AccuracySimulator, DetectionResolver, PhotoCache, YoloDetector,
         )
         photo_cache = None
-        if self.cfg.photo_mode != "off" and not self.cfg.dry_run:
+        if self.cfg.photo_mode != "off" and not self.cfg.dry_run \
+                and not self.cfg.mock:
+            # mock 无 UE 渲染/Redis，不启动 PhotoCache
             import redis as redis_lib
             rc = redis_lib.Redis(host=self.cfg.redis_host,
                                  port=self.cfg.redis_port)
@@ -360,7 +363,7 @@ class RunnerBase:
         cfg = self.cfg
         sim_proc = None
         score_pub = ScorePublisher(host=cfg.redis_host, port=cfg.redis_port,
-                                   connect=not cfg.dry_run)
+                                   connect=not cfg.dry_run and not cfg.mock)
         photo_cache = None   # spec 029: 在 try 块开头初始化，便于 finally 安全清理
         resolver = None      # spec 029 C1: 同上，确保 detector 后台资源被释放
         viz_ctx = None
@@ -381,7 +384,17 @@ class RunnerBase:
             client: Optional[SimClient] = None
             heartbeat_stop = threading.Event()
             heartbeat_thread: Optional[threading.Thread] = None
-            if cfg.start_sim_flag and not cfg.dry_run:
+            if cfg.mock:
+                # 进程内快速仿真：MockSimClient 替换闭源引擎（无 Redis/引擎）
+                from .mock_client import MockSimClient
+                import os as _os
+                _dlr = float(_os.environ.get("MOCK_DECOY_LOCK_RATE", "0.35"))
+                client = MockSimClient(
+                    scenario_path=self._prepare_scenario_cfg(),
+                    seed=self.cfg.seed, quiet=cfg.quiet, log=self.log,
+                    decoy_lock_rate=_dlr)
+                client.connect()
+            elif cfg.start_sim_flag and not cfg.dry_run:
                 client = SimClient(host=cfg.redis_host, port=cfg.redis_port)
                 client.connect()
                 self._publish_progress(
@@ -390,7 +403,7 @@ class RunnerBase:
                 )
                 heartbeat_thread = self._start_heartbeat(client, heartbeat_stop)
 
-            if cfg.start_sim_flag:
+            if cfg.start_sim_flag and not cfg.mock:
                 sim_proc = self._start_engine()
                 # 036: _start_engine 在 sim 已订阅 sim:commands 时返回 —— 此时引擎
                 # 已经能接收命令,即使第一帧 sim:state 还没来。把心跳停下来交给
@@ -402,10 +415,11 @@ class RunnerBase:
                 if sim_proc is None:
                     return {"error": "engine start failed"}
 
-            if client is None and not cfg.dry_run:
+            if client is None and not cfg.dry_run and not cfg.mock:
                 client = SimClient(host=cfg.redis_host, port=cfg.redis_port)
                 client.connect()
-            if client is not None and heartbeat_thread is None and not cfg.dry_run:
+            if client is not None and heartbeat_thread is None \
+                    and not cfg.dry_run and not cfg.mock:
                 # 等待第一帧期间重新启用心跳；必须 clear 之前 set 的 stop_event,
                 # 否则新线程会立刻退出。
                 heartbeat_stop.clear()
@@ -600,7 +614,9 @@ class RunnerBase:
                 # higher tick rate (typically 60 Hz). The old formula divided
                 # sim-time delta by control_rate_hz, so once the state stream
                 # was live slack was almost always <= 0 and this loop busy-ran.
-                time.sleep(period)
+                # mock 是纯计算，无需墙钟节流（这正是加速的来源）。
+                if not cfg.mock:
+                    time.sleep(period)
 
             # finalize
             extras = self.score_extras(last, {uid for uid, e in last.entities.items()
@@ -777,11 +793,12 @@ class RunnerBase:
 
     # ── engine / synthetic helpers ────────────────────────────────────
 
-    def _start_engine(self):
-        # 真小车选路种子：仅来自前端/CLI --seed（>0）；前端不填则为 0
-        # （随机选路）。不再读 scenario.json 的 simulation.seed。
-        # 同 seed → 同真小车路线集合（pick_route_by_seed 取模）；诱饵不受
-        # 影响（独立未种子化 RNG，见各 runner 的 prepare_scenario）。
+    def _prepare_scenario_cfg(self) -> str:
+        """seed 解析 + 场景随机化 + prepare_scenario + 写 prepared json。
+
+        返回引擎/mock 实际使用的 scenario json 路径。真实引擎与 mock
+        共用此路径，保证同 seed 下两者场景（选路/起点）一致。
+        """
         scenario_cfg = getattr(self, "_scenario_cfg", None)
         self.cfg.seed = resolve_scenario_seed(self.cfg.seed, scenario_cfg)
 
@@ -826,6 +843,14 @@ class RunnerBase:
             self.log(f"[{self.scenario_name}] prepared scenario → {scenario_path}")
         except Exception as _e:
             self.log(f"[{self.scenario_name}] prepare_scenario failed: {_e}")
+        return scenario_path
+
+    def _start_engine(self):
+        # 真小车选路种子：仅来自前端/CLI --seed（>0）；前端不填则为 0
+        # （随机选路）。不再读 scenario.json 的 simulation.seed。
+        # 同 seed → 同真小车路线集合（pick_route_by_seed 取模）；诱饵不受
+        # 影响（独立未种子化 RNG，见各 runner 的 prepare_scenario）。
+        scenario_path = self._prepare_scenario_cfg()
 
         # Engine binary resolution (release layout): OPENSIM_SIM_BIN env >
         # --sim-binary > opensim-sim(.exe) in the release root (the dir that

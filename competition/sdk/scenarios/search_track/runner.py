@@ -231,7 +231,7 @@ def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
         mode: str = "train", photo_mode: str = "auto",
         photo_enabled: bool | None = None,
         accuracy: float = 0.85, noise_sigma_m: float = 50.0,
-        yolo_model_path: str = "") -> dict:
+        yolo_model_path: str = "", mock: bool = False) -> dict:
     """Convenience entry point for players.
 
     ``seed`` (>0) randomizes the scene (target route, and the UAV+target
@@ -262,5 +262,6 @@ def run(agent_cls, *, duration: float = 600.0, scenario: str | None = None,
         photo_mode=resolve_photo_mode(photo_mode, photo_enabled),
         accuracy=accuracy, noise_sigma_m=noise_sigma_m,
         yolo_model_path=yolo_model_path,
+        mock=mock,
     )
     return SearchTrackRunner(cfg, agent_cls).run()

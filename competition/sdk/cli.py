@@ -104,6 +104,9 @@ def main(argv=None) -> int:
                        help="connect to an already-running opensim-sim")
     run_p.add_argument("--dry-run", action="store_true",
                        help="no Redis / no engine (synthetic loop)")
+    run_p.add_argument("--mock", action="store_true",
+                       help="use the in-process MockSimClient instead of "
+                            "opensim-sim (fast simulation, no Redis/engine)")
     run_p.add_argument("--mode", choices=["train", "eval"], default="train",
                        help="感知层运行模式：train=AccuracySimulator(概率采样)，"
                             "eval=YoloDetector(真实YOLO)")
@@ -158,6 +161,7 @@ def main(argv=None) -> int:
         scenario=args.scenario_json, start_sim=args.start_sim,
         output_dir=args.output, host=args.redis_host, port=args.redis_port,
         dry_run=args.dry_run, quiet=args.quiet, sim_binary=args.sim_binary,
+        mock=args.mock,
     )
 
     viz_kwargs = dict(visualize=args.visualize, viz_dir=args.viz_dir,
