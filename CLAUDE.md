@@ -71,7 +71,6 @@ class EmailService:
         rendered = self.template_engine.render(template, context)
         await self.provider.send(recipient, rendered, **kwargs)
 
-
 # 好
 async def send_welcome_email(user):
     body = f"Welcome {user.name}! Your account is ready."
@@ -214,3 +213,35 @@ issue 和 PR 存放在 GitHub Issues 中，使用 `gh` CLI 操作。见 `docs/ag
 ### Domain docs
 
 多上下文布局。根目录有 `CONTEXT-MAP.md` 指向各子上下文的 `CONTEXT.md`；系统级决策在 `docs/adr/`。见 `docs/agents/domain.md`。
+
+### Loop Engineering
+
+循环运行 builder（写/修代码）和 checker（跑全部检查），直到检查通过。
+定义文件：`.claude/agents/builder.md`、`.claude/agents/checker.md`、`.claude/commands/loop-go.md`。
+
+## Loop 停止规则
+
+以下规则约束 /loop-go 循环。builder、checker 和主循环都遵守。
+
+## 停止条件
+
+循环在以下任一情况停止：
+
+1. 所有检查通过（checker 报 ALL GREEN）。
+2. 达到最大轮数（5 轮），仍未全绿。
+3. 同一失败连续出现两次——builder 可能在瞎猜，不是在修复。
+4. 修复导致之前通过的检查失败——拆东墙补西墙。
+5. builder 违反红线（弱化测试、删除/注释/跳过失败检查、未跑检查就声称已修复）。
+6. checker 无法产出有效报告（找不到检查命令、输出无法解析、连续超时）。
+
+## 红线
+
+- builder 绝不弱化测试来让它通过；绝不删除、注释、跳过失败的检查；绝不在没有跑过检查的情况下声称已修复。
+- checker 绝不意译失败信息（复制真实错误输出的关键行）；绝不省略失败项；绝不自己修复。
+- 主循环绝不自己解读或过滤 checker 的失败报告，原样转发给 builder。
+
+## 升级协议
+
+循环停止后，向用户报告：轮次与停止原因、最后一次 builder 的改动摘要、checker 的完整失败报告（若有）。
+
+由用户决定下一步：继续 / 放宽任务 / 手动介入。循环自行停止后，不静默重开新一轮。
