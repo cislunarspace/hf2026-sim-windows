@@ -683,6 +683,42 @@ class RunnerBase:
         evaluator.observe(ws.sim_time, uav_map, destroyed,
                           uav_positions=uav_positions)
 
+        # ── DEBUG: 逐 tick 评测器协锁状态（COOP_EVAL_DEBUG=1 时启用）──
+        # 输出 output/eval_debug.csv（评测器状态）与 output/eval_debug2.csv
+        # （fov/云台/各目标角偏实/锁选择模型）。追加模式：跑局前删旧文件。
+        if os.environ.get("COOP_EVAL_DEBUG") == "1":
+            try:
+                import pathlib as _pathlib
+                _dbg = _pathlib.Path("output/eval_debug.csv")
+                _dbg.parent.mkdir(exist_ok=True)
+                with open(_dbg, "a", encoding="utf-8") as _f:
+                    _raw = {u.uid: u for u in uavs}
+                    for _u, _m in sorted(uav_map.items()):
+                        _r = _raw.get(_u)
+                        _f.write(
+                            f"U,{ws.sim_time:.3f},{_u},{_m.target_uid},"
+                            f"{int(_m.is_effective)},{_m.decoy_uid},"
+                            f"{int(_r.detected) if _r else 0},"
+                            f"{_r.target_lat if _r else ''},{_r.target_lon if _r else ''},"
+                            f"{int(_r.misid_flag) if _r else 0}\n"
+                        )
+                    for _t, _ts in sorted(evaluator.states.items()):
+                        _f.write(
+                            f"T,{ws.sim_time:.3f},{_t},{_ts.cur_trackers},"
+                            f"{_ts.dwell_accumulated:.3f},"
+                            f"{_ts.interruption_accumulated:.3f},"
+                            f"{int(_ts.has_dwell)},{int(_ts.destroyed)}\n"
+                        )
+                from ._coop_lock_debug import dump_lock_debug  # type: ignore
+                _dbg2 = _pathlib.Path("output/eval_debug2.csv")
+                with open(_dbg2, "a", encoding="utf-8") as _f2:
+                    dump_lock_debug(ws, uav_map, uavs, _f2)
+            except Exception as _dbg_ex:  # noqa: BLE001 — 探针故障不能吞掉
+                import traceback as _tb
+                self.log(f"[{self.scenario_name}] DEBUG \xe6\x8e\xa2\xe9\x92\x88\xe5\xbc\x82\xe5\xb8\xb8: {_dbg_ex!r}\n"
+                         + "".join(_tb.format_exception(
+                             type(_dbg_ex), _dbg_ex, _dbg_ex.__traceback__)))
+
         # ── collect player targeting reports emitted this tick ───────────
         # ``all_cmds`` is a list of (uav_uid, Command). A report is a
         # judge-side signal (verb ``agent.report``); the engine never sees
